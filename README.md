@@ -71,20 +71,27 @@ leaving public signups enabled in Supabase still exposes nothing.
 
 ### First-time setup
 
-1. **Create your admin account.** In the Supabase dashboard for the
+1. **Create your account.** In the Supabase dashboard for the
    *Energy Lead Dashboard* project → **Authentication → Users → Add user**.
    Enter your email and a password, and tick *Auto Confirm User*.
-2. **Give yourself admin.** In **SQL Editor**, run:
+
+   **The first account created becomes `admin` automatically** — the signup
+   trigger grants it, so there is no second step and no password has to be
+   shared with anyone. Every account after the first starts on `pending`,
+   so this cannot be used later to escalate.
+
+   If you ever need to check or force it:
    ```sql
+   select email, role from public.profiles;
    update public.profiles set role = 'admin' where email = 'you@aeeg.co.za';
    ```
-3. **Add your sales team** the same way, then grant each of them a role:
+2. **Add your sales team** the same way, then grant each of them a role:
    ```sql
    update public.profiles set role = 'viewer' where email = 'rep@aeeg.co.za';
    ```
    Use `viewer` for reps who should not change the shared data, `admin` for
    those who should.
-4. **Turn off public signups** (recommended, belt and braces):
+3. **Turn off public signups** (recommended, belt and braces):
    **Authentication → Sign In / Providers → Email → uncheck "Allow new users
    to sign up"**. Role-gating already blocks self-registered accounts from
    seeing anything; this stops them being created at all.
