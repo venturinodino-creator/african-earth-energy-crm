@@ -1,0 +1,64 @@
+/* ═══════════════════════════════════════════════════════════════════
+   AEE Offtaker CRM — motion layer
+   Everything here is decorative. The app is fully usable with this
+   stylesheet removed, and it switches itself off for users who have
+   asked for reduced motion.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@keyframes fadeUp   { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes cardIn   { from { opacity:0; transform:translateY(8px);  } to { opacity:1; transform:translateY(0); } }
+@keyframes countUp  { from { opacity:0; transform:translateY(4px);  } to { opacity:1; transform:translateY(0); } }
+@keyframes modalIn  { from { opacity:0; transform:translateY(12px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes pulseDot { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+
+/* ── PAGE TRANSITION ───────────────────────────────────────────── */
+#content.page-enter { animation: fadeUp .22s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── STAT CARDS ────────────────────────────────────────────────── */
+.stat-card .stat-value { animation: countUp .35s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── ENTITY / PIPELINE CARDS ───────────────────────────────────── */
+.ec, .pb-card { animation: cardIn .28s cubic-bezier(.22,1,.36,1) both; }
+.pipeline-card { animation: cardIn .22s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── STAGGER ───────────────────────────────────────────────────── */
+.stagger-1  { animation-delay: .02s; }
+.stagger-2  { animation-delay: .04s; }
+.stagger-3  { animation-delay: .06s; }
+.stagger-4  { animation-delay: .08s; }
+.stagger-5  { animation-delay: .10s; }
+.stagger-6  { animation-delay: .12s; }
+.stagger-7  { animation-delay: .14s; }
+.stagger-8  { animation-delay: .16s; }
+.stagger-9  { animation-delay: .18s; }
+.stagger-10 { animation-delay: .20s; }
+.stagger-11 { animation-delay: .22s; }
+.stagger-12 { animation-delay: .24s; }
+
+/* ── MODAL ─────────────────────────────────────────────────────── */
+.overlay.open .modal { animation: modalIn .2s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── LIVE DOT ──────────────────────────────────────────────────── */
+.sb-footer-dot { animation: pulseDot 2.6s ease-in-out infinite; }
+
+/* ── ROWS ──────────────────────────────────────────────────────── */
+.person-row { transition: background .15s, transform .15s; border-radius:6px; }
+.person-row:hover { background: rgba(255,255,255,.025); transform: translateX(2px); }
+
+/* ── NAV ICON TAP ──────────────────────────────────────────────── */
+.nav-icon-box { transition: transform .12s ease; }
+
+/* ── TABLE ROW HOVER LIFT ──────────────────────────────────────── */
+tbody tr.clickable:hover td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+
+/* ── BUTTON PRESS ──────────────────────────────────────────────── */
+.btn:active { transform: translateY(1px); }
+
+/* ── RESPECT THE USER'S SETTING ────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}

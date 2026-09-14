@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>African Earth Energy — Offtaker CRM</title>
+<meta name="description" content="Sales workspace for the African Earth Energy offtaker pipeline.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080d18; --bg2:#060a12; --card:rgba(26,40,62,.72);
+  --text:#d4dde8; --text2:#f8fafc; --muted:#7a90a8; --muted2:#a8bccf;
+  --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.14);
+  --accent:#3ddc84; --accent2:#f5a524;
+}
+body{font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100vh}
+a{text-decoration:none;color:inherit}
+
+/* atmospheric wash — solar gold over earth green */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(760px 420px at 12% -6%, rgba(245,165,36,.16), transparent 62%),
+    radial-gradient(700px 480px at 88% 8%, rgba(61,220,132,.14), transparent 62%),
+    radial-gradient(900px 600px at 50% 110%, rgba(56,189,248,.07), transparent 65%);}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:62px 62px;
+  mask-image:radial-gradient(circle at 50% 30%, #000 0%, transparent 78%);}
+
+.wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:0 24px}
+
+header{padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-mark{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(140deg,rgba(61,220,132,.24),rgba(245,165,36,.2));border:1px solid rgba(61,220,132,.34)}
+.brand h1{font-size:14px;font-weight:800;color:var(--text2);letter-spacing:-.2px}
+.brand p{font-size:11px;color:var(--muted);margin-top:1px}
+.hlinks{display:flex;gap:8px;align-items:center}
+
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;
+  display:inline-flex;align-items:center;gap:8px;transition:all .18s;font-family:inherit}
+.btn-primary{background:var(--accent);color:#04160c}
+.btn-primary:hover{background:#2bc972;transform:translateY(-1px);box-shadow:0 8px 24px rgba(61,220,132,.24)}
+.btn-outline{background:rgba(255,255,255,.03);border:1px solid var(--border2);color:var(--text)}
+.btn-outline:hover{border-color:rgba(255,255,255,.26);color:var(--text2)}
+.btn-lg{padding:13px 26px;font-size:14px;border-radius:9px}
+
+.hero{padding:70px 0 54px;max-width:820px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:10.5px;font-weight:800;letter-spacing:1.1px;
+  text-transform:uppercase;color:#86efac;background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.28);
+  padding:5px 13px;border-radius:99px;margin-bottom:22px}
+.hero h2{font-size:clamp(34px,5.4vw,58px);font-weight:900;line-height:1.05;letter-spacing:-1.6px;color:var(--text2)}
+.hero h2 em{font-style:normal;background:linear-gradient(100deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{font-size:16.5px;line-height:1.65;color:var(--muted2);margin-top:20px;max-width:60ch}
+.hero-cta{display:flex;gap:11px;margin-top:32px;flex-wrap:wrap}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:8px 0 62px}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:19px 21px;backdrop-filter:blur(8px)}
+.metric-v{font-size:28px;font-weight:900;color:var(--text2);line-height:1.1;letter-spacing:-.8px;
+  background:linear-gradient(120deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.metric-l{font-size:10.5px;color:var(--muted);font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-top:6px}
+.metric-s{font-size:11.5px;color:var(--muted2);margin-top:5px;line-height:1.45}
+
+.section-head{margin-bottom:24px}
+.section-head h3{font-size:25px;font-weight:800;color:var(--text2);letter-spacing:-.5px}
+.section-head p{font-size:14px;color:var(--muted);margin-top:7px;max-width:62ch;line-height:1.6}
+
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:13px;margin-bottom:64px}
+.feature{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:22px;
+  backdrop-filter:blur(8px);transition:all .22s;position:relative;overflow:hidden}
+.feature::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),transparent);opacity:0;transition:opacity .22s}
+.feature:hover{border-color:var(--border2);transform:translateY(-3px)}
+.feature:hover::after{opacity:1}
+.feature-ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.24);color:var(--accent);margin-bottom:14px}
+.feature h4{font-size:14px;font-weight:800;color:var(--text2);margin-bottom:7px;letter-spacing:-.1px}
+.feature p{font-size:12.8px;color:var(--muted2);line-height:1.62}
+
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px;margin-bottom:64px}
+.step{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:22px;backdrop-filter:blur(8px)}
+.step-n{width:28px;height:28px;border-radius:8px;background:rgba(245,165,36,.13);border:1px solid rgba(245,165,36,.3);
+  color:var(--accent2);font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;margin-bottom:13px}
+.step h4{font-size:13.5px;font-weight:800;color:var(--text2);margin-bottom:6px}
+.step p{font-size:12.5px;color:var(--muted2);line-height:1.6}
+
+.cta-band{background:linear-gradient(120deg,rgba(61,220,132,.1),rgba(245,165,36,.08));
+  border:1px solid rgba(61,220,132,.24);border-radius:16px;padding:40px;text-align:center;margin-bottom:56px}
+.cta-band h3{font-size:25px;font-weight:900;color:var(--text2);letter-spacing:-.5px}
+.cta-band p{font-size:14px;color:var(--muted2);margin:11px auto 24px;max-width:56ch;line-height:1.6}
+
+footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align-items:center;
+  justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+
+@media(max-width:640px){
+  .hero{padding:46px 0 36px}
+  .cta-band{padding:30px 20px}
+  header{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#3ddc84" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg>
+      </div>
+      <div><h1>African Earth Energy</h1><p>Energy from the ground up</p></div>
+    </div>
+    <div class="hlinks">
+      <a class="btn btn-outline" href="https://www.aeeg.co.za/en" target="_blank" rel="noopener">Company site</a>
+      <a class="btn btn-primary" href="index.html">Open the CRM</a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+      Offtaker sales workspace
+    </div>
+    <h2>Find the buyers for <em>a gigawatt</em> of South African renewable power.</h2>
+    <p>
+      A working CRM for the AEE sales team. It tracks every commercial and industrial
+      offtaker worth approaching, scores them on how well their load actually fits a
+      wheeled solar-plus-storage PPA, and gives a rep the numbers and the script they
+      need before they pick up the phone.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary btn-lg" href="index.html">
+        Open the CRM
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a class="btn btn-outline btn-lg" href="index.html?view=calculator">Savings calculator</a>
+    </div>
+  </section>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-v">~1 GW</div><div class="metric-l">Portfolio</div>
+      <div class="metric-s">Development and pipeline across five provinces</div></div>
+    <div class="metric"><div class="metric-v">8</div><div class="metric-l">Named sites</div>
+      <div class="metric-s">Solar PV with battery storage, COD 2028–2029</div></div>
+    <div class="metric"><div class="metric-v">20</div><div class="metric-l">Offtakers seeded</div>
+      <div class="metric-s">Mining, smelting, industry, retail and data centres</div></div>
+    <div class="metric"><div class="metric-v">Level 2</div><div class="metric-l">B-BBEE</div>
+      <div class="metric-s">Worth leading with in procurement conversations</div></div>
+  </div>
+
+  <div class="section-head">
+    <h3>Built around the sales conversation</h3>
+    <p>Not a generic CRM with energy fields bolted on. Every screen exists because a rep needs it at a specific point in an offtaker conversation.</p>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
+      <h4>Fit scoring</h4>
+      <p>Every offtaker gets a score out of 100 from load size, load factor, tariff headroom, wheeling feasibility and distance to the nearest AEE site. Sort by it and the call list writes itself.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="18"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="8" y1="18" x2="12" y2="18"/></svg></div>
+      <h4>Savings calculator</h4>
+      <p>Model a wheeled PPA against the buyer's current tariff over 20 years, with escalation assumptions you can change live on the call. Copy the summary straight into an email.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/></svg></div>
+      <h4>PPA pipeline board</h4>
+      <p>Seven stages from Identified to Signed. Drag a card, the probability updates and the move is written to the activity log automatically.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></div>
+      <h4>Capacity allocation</h4>
+      <p>See how much of each site is already spoken for. Oversubscription is flagged when you create the opportunity, not after the term sheet goes out.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div>
+      <h4>Load map</h4>
+      <p>Offtaker load plotted against generation sites. Circle size is annual consumption, so the big prizes near a site are visible at a glance.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <h4>Playbook</h4>
+      <p>Cold emails, a discovery script, objection handling and a qualification checklist — with the offtaker's own numbers filled in before you copy.</p>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h3>How a rep works an account</h3>
+    <p>Four steps, start to signature.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step"><div class="step-n">1</div><h4>Pick from the call list</h4>
+      <p>The dashboard ranks untouched offtakers by fit score and tells you why each one scores where it does.</p></div>
+    <div class="step"><div class="step-n">2</div><h4>Open the record</h4>
+      <p>Load profile, supply authority, wheeling feasibility, nearest site, the people, and an indicative saving — all on one screen.</p></div>
+    <div class="step"><div class="step-n">3</div><h4>Reach out and log it</h4>
+      <p>Copy a pre-filled template, make the call, log what happened. The status moves off Prospect on its own.</p></div>
+    <div class="step"><div class="step-n">4</div><h4>Build the opportunity</h4>
+      <p>Create a PPA opportunity against a specific site, model the saving, and drag it through the board as it progresses.</p></div>
+  </div>
+
+  <div class="cta-band">
+    <h3>Start with the call list</h3>
+    <p>Twenty offtakers are already loaded with estimated load profiles and tariffs. Verify the numbers as you go, add your own accounts, and export the list whenever you need to share it.</p>
+    <a class="btn btn-primary btn-lg" href="index.html">Open the CRM</a>
+  </div>
+
+  <footer>
+    <div>African Earth Energy — offtaker CRM. Data is saved in your own browser.</div>
+    <div><a href="https://www.aeeg.co.za/en" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">aeeg.co.za</a></div>
+  </footer>
+
+</div>
+</body>
+</html>

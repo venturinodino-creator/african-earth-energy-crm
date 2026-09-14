@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Node (not used today, but keeps a stray install out of the repo)
+node_modules/
+npm-debug.log*
+
+# Secrets — never commit these
+.env
+.env.*
+*.pem
+
+# Local exports
+*.csv
+!data/*.csv

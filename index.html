@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEE Offtaker CRM</title>
+<meta name="description" content="Offtaker pipeline and sales workspace for African Earth Energy.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="animations.css">
+</head>
+<body>
+
+<nav class="sb">
+  <a class="sb-logo" href="landing.html" title="Back to home">
+    <div class="sb-logo-mark">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#3ddc84" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/>
+      </svg>
+    </div>
+    <div class="sb-logo-text">
+      <h1>African Earth Energy</h1>
+      <p>Offtaker CRM</p>
+      <span class="sb-pill">South Africa</span>
+    </div>
+  </a>
+
+  <div class="sb-nav">
+    <div class="nav-section">Workspace</div>
+    <div class="nav-item active" data-view="dashboard" onclick="nav('dashboard')">
+      <div class="nav-icon-box" data-icon="dashboard"></div> Dashboard
+    </div>
+    <div class="nav-item" data-view="pipeline" onclick="nav('pipeline')">
+      <div class="nav-icon-box" data-icon="pipeline"></div> Pipeline
+    </div>
+    <div class="nav-item" data-view="offtakers" onclick="nav('offtakers')">
+      <div class="nav-icon-box" data-icon="building"></div>
+      <span style="flex:1">Offtakers</span>
+      <span id="nav-offtakers-badge" class="nav-badge" style="display:none"></span>
+    </div>
+    <div class="nav-item" data-view="contacts" onclick="nav('contacts')">
+      <div class="nav-icon-box" data-icon="contacts"></div> Contacts
+    </div>
+    <div class="nav-item" data-view="activity" onclick="nav('activity')">
+      <div class="nav-icon-box" data-icon="activity"></div>
+      <span style="flex:1">Activity</span>
+      <span id="nav-activity-badge" class="nav-badge" style="display:none"></span>
+    </div>
+
+    <div class="sb-divider"></div>
+    <div class="nav-section">Generation</div>
+    <div class="nav-item" data-view="projects" onclick="nav('projects')">
+      <div class="nav-icon-box" data-icon="sun"></div> Projects
+    </div>
+    <div class="nav-item" data-view="map" onclick="nav('map')">
+      <div class="nav-icon-box" data-icon="map"></div> Map
+    </div>
+    <div class="nav-item" data-view="analytics" onclick="nav('analytics')">
+      <div class="nav-icon-box" data-icon="chart"></div> Analytics
+    </div>
+
+    <div class="sb-divider"></div>
+    <div class="nav-section">Sales tools</div>
+    <div class="nav-item" data-view="calculator" onclick="nav('calculator')">
+      <div class="nav-icon-box" data-icon="calc"></div> Savings calculator
+    </div>
+    <div class="nav-item" data-view="playbook" onclick="nav('playbook')">
+      <div class="nav-icon-box" data-icon="book"></div> Playbook
+    </div>
+
+    <div class="sb-divider"></div>
+    <div class="nav-section">Data</div>
+    <div class="nav-item" onclick="openImport()">
+      <div class="nav-icon-box" data-icon="upload"></div>
+      <div style="flex:1"><div>Import contacts</div><div style="font-size:10px;opacity:.55;margin-top:1px">from CSV</div></div>
+    </div>
+    <div class="nav-item" onclick="exportOfftakers()">
+      <div class="nav-icon-box" data-icon="download"></div> Export offtakers
+    </div>
+    <div class="nav-item" onclick="resetData()">
+      <div class="nav-icon-box" data-icon="refresh"></div> Reset data
+    </div>
+  </div>
+
+  <div class="sb-footer"><span class="sb-footer-dot"></span> Saved in this browser</div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <button class="mobile-toggle" onclick="document.querySelector('.sb').classList.toggle('open')" aria-label="Menu">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topbar-left">
+      <h2 id="page-title">Dashboard</h2>
+      <p id="page-sub">Offtaker pipeline for African Earth Energy</p>
+    </div>
+    <div class="gs-wrap">
+      <span class="gs-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+      <input type="text" id="global-search-input" class="gs-input" placeholder="Search offtakers, people, projects..."
+             oninput="globalSearch(this.value)" autocomplete="off">
+      <div id="global-search-results" class="gs-results"></div>
+    </div>
+    <div class="topbar-right" id="topbar-actions"></div>
+  </div>
+  <div id="back-to-main"></div>
+  <div class="content" id="content"></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══ MODAL: OFFTAKER ══════════════════════════════════════════ -->
+<div class="overlay" id="modal-offtaker">
+  <div class="modal">
+    <div class="mh"><h3 id="mo-title">Add offtaker</h3><button class="modal-close" onclick="closeModal('modal-offtaker')">&times;</button></div>
+    <div class="mc">
+      <div class="fgrid">
+        <div class="fg full"><label>Company name *</label><input id="mo-name" placeholder="e.g. Samancor Chrome — Middelburg Ferrochrome"></div>
+        <div class="fg"><label>Short name</label><input id="mo-short" placeholder="Samancor"></div>
+        <div class="fg"><label>Sector</label>
+          <select id="mo-sector">
+            <option value="mining">Mining</option>
+            <option value="smelter">Smelter / Metals</option>
+            <option value="industrial">Heavy Industry</option>
+            <option value="commercial">Commercial</option>
+            <option value="agriculture">Agri-processing</option>
+            <option value="datacentre">Data Centre</option>
+            <option value="retail">Retail</option>
+            <option value="municipality">Municipality</option>
+          </select>
+        </div>
+        <div class="fg"><label>Province</label>
+          <select id="mo-province">
+            <option>Gauteng</option><option>Mpumalanga</option><option>Limpopo</option>
+            <option>North West</option><option>Free State</option><option>Northern Cape</option>
+            <option>Western Cape</option><option>Eastern Cape</option><option>KwaZulu-Natal</option>
+          </select>
+        </div>
+        <div class="fg"><label>City / town</label><input id="mo-city" placeholder="Middelburg"></div>
+        <div class="fg full"><label>Website</label><input id="mo-website" placeholder="https://..."></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Load profile</div>
+        <div class="fgrid">
+          <div class="fg"><label>Annual consumption (GWh)</label><input id="mo-gwh" type="number" step="1" placeholder="2400"></div>
+          <div class="fg"><label>Peak demand (MW)</label><input id="mo-peak" type="number" step="1" placeholder="310"></div>
+          <div class="fg"><label>Current tariff (R/kWh)</label><input id="mo-tariff" type="number" step="0.01" placeholder="1.42"></div>
+          <div class="fg"><label>Notified max demand (MVA)</label><input id="mo-nmd" type="number" step="1" placeholder="340"></div>
+          <div class="fg full fg-hint">Load factor and fit score are worked out from consumption and peak demand, so both are worth getting right. A flat, high-load-factor profile is far easier to serve with solar plus storage.</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Supply &amp; commercial status</div>
+        <div class="fgrid">
+          <div class="fg"><label>Supply authority</label>
+            <select id="mo-supply"><option value="eskom">Eskom direct</option><option value="municipal">Municipal</option><option value="mixed">Mixed</option></select>
+          </div>
+          <div class="fg"><label>Wheeling feasibility</label>
+            <select id="mo-wheeling"><option value="yes">Confirmed</option><option value="likely">Likely</option><option value="unknown">Unknown</option><option value="no">Not feasible</option></select>
+          </div>
+          <div class="fg"><label>Status</label>
+            <select id="mo-status">
+              <option value="prospect">Prospect</option><option value="engaged">Engaged</option>
+              <option value="qualified">Qualified</option><option value="negotiating">Negotiating</option>
+              <option value="contracted">Contracted</option><option value="lost">Lost</option>
+            </select>
+          </div>
+          <div class="fg"><label>Priority</label>
+            <select id="mo-priority"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+          </div>
+          <div class="fg full"><label>Notes</label><textarea id="mo-desc" placeholder="What drives their energy decision? Who else is bidding? Any published renewable target?"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-outline" onclick="closeModal('modal-offtaker')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveOfftaker()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CONTACT ═══════════════════════════════════════════ -->
+<div class="overlay" id="modal-contact">
+  <div class="modal">
+    <div class="mh"><h3 id="mc-title">Add contact</h3><button class="modal-close" onclick="closeModal('modal-contact')">&times;</button></div>
+    <div class="mc">
+      <div class="fgrid">
+        <div class="fg"><label>First name *</label><input id="mc-first" placeholder="Thabo"></div>
+        <div class="fg"><label>Last name *</label><input id="mc-last" placeholder="Nkosi"></div>
+        <div class="fg full"><label>Job title</label><input id="mc-jobtitle" placeholder="Group Energy Procurement Manager"></div>
+        <div class="fg full"><label>Department</label><input id="mc-dept" placeholder="Supply Chain"></div>
+        <div class="fg full"><label>Offtaker</label><select id="mc-offtaker"></select></div>
+        <div class="fg"><label>Email</label><input id="mc-email" type="text" placeholder="name@company.co.za"></div>
+        <div class="fg"><label>Phone</label><input id="mc-phone" placeholder="+27 11 123 4567"></div>
+        <div class="fg full"><label>LinkedIn</label><input id="mc-linkedin" placeholder="https://linkedin.com/in/..."></div>
+        <div class="fg"><label>Role in the decision</label>
+          <select id="mc-role">
+            <option value="decision">Decision maker</option>
+            <option value="influencer">Influencer</option>
+            <option value="technical">Technical</option>
+            <option value="gatekeeper">Gatekeeper</option>
+          </select>
+        </div>
+        <div class="fg"><label>Priority</label>
+          <select id="mc-priority"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+        </div>
+        <div class="fg"><label>Status</label>
+          <select id="mc-status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="left">Left the company</option></select>
+        </div>
+        <div class="fg full"><label>Notes</label><textarea id="mc-notes" placeholder="What do they care about? Who do they report to? Best way to reach them?"></textarea></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-outline" onclick="closeModal('modal-contact')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: OPPORTUNITY ═══════════════════════════════════════ -->
+<div class="overlay" id="modal-deal">
+  <div class="modal">
+    <div class="mh"><h3 id="md-title">New opportunity</h3><button class="modal-close" onclick="closeModal('modal-deal')">&times;</button></div>
+    <div class="mc">
+      <div class="fgrid">
+        <div class="fg full"><label>Offtaker *</label><select id="md-offtaker" onchange="updateDealPreview()"></select></div>
+        <div class="fg full"><label>Generation site</label><select id="md-project" onchange="updateDealPreview()"></select></div>
+        <div class="fg"><label>Contracted capacity (MW)</label><input id="md-mw" type="number" step="1" oninput="updateDealPreview()"></div>
+        <div class="fg"><label>Tariff (R/kWh)</label><input id="md-tariff" type="number" step="0.01" oninput="updateDealPreview()"></div>
+        <div class="fg"><label>Tenor (years)</label><input id="md-tenor" type="number" step="1" oninput="updateDealPreview()"></div>
+        <div class="fg"><label>Probability (%)</label><input id="md-probability" type="number" step="5" min="0" max="100" oninput="updateDealPreview()"></div>
+        <div class="fg"><label>Stage</label>
+          <select id="md-stage">
+            <option value="identified">Identified</option>
+            <option value="contacted">Contacted</option>
+            <option value="qualified">Qualified</option>
+            <option value="proposal">Term Sheet</option>
+            <option value="diligence">Due Diligence</option>
+            <option value="negotiation">PPA Negotiation</option>
+            <option value="signed">Signed</option>
+          </select>
+        </div>
+        <div class="fg"><label>Target close date</label><input id="md-close" type="date"></div>
+        <div class="fg full"><label>Notes</label><textarea id="md-notes" placeholder="Where does this stand? What is the next step and who owns it?"></textarea></div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">Indicative value</div>
+        <div id="md-preview"></div>
+        <div class="fg-hint" style="margin-top:9px">Assumes a 30% capacity factor on contracted MW. Not a quote.</div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-danger" id="md-delete" onclick="deleteDeal()" style="margin-right:auto">Delete</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-deal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDeal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: LOG ACTIVITY ══════════════════════════════════════ -->
+<div class="overlay" id="modal-interaction">
+  <div class="modal" style="max-width:480px">
+    <div class="mh"><h3>Log activity</h3><button class="modal-close" onclick="closeModal('modal-interaction')">&times;</button></div>
+    <div class="mc">
+      <div class="fgrid">
+        <div class="fg full"><label>Offtaker *</label><select id="mi-offtaker"></select></div>
+        <div class="fg"><label>Date</label><input id="mi-date" type="date"></div>
+        <div class="fg"><label>Type</label>
+          <select id="mi-type">
+            <option value="call">Call</option><option value="email">Email</option>
+            <option value="meeting">Meeting</option><option value="site visit">Site visit</option>
+            <option value="proposal">Proposal sent</option><option value="note">Note</option>
+          </select>
+        </div>
+        <div class="fg full"><label>What happened *</label><textarea id="mi-summary" placeholder="Spoke to the energy manager. They will share half-hourly data next week; decision sits with the CFO."></textarea></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-outline" onclick="closeModal('modal-interaction')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInteraction()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: IMPORT ════════════════════════════════════════════ -->
+<div class="overlay" id="modal-import">
+  <div class="modal">
+    <div class="mh"><h3>Import contacts from CSV</h3><button class="modal-close" onclick="closeModal('modal-import')">&times;</button></div>
+    <div class="mc">
+      <div class="fg"><label>CSV file</label><input id="imp-file" type="file" accept=".csv,text/csv" onchange="previewImport(this)"></div>
+      <div id="imp-preview" style="margin-top:12px"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-outline" onclick="closeModal('modal-import')">Cancel</button>
+      <button class="btn btn-primary" id="imp-go" onclick="runImport()" disabled>Import</button>
+    </div>
+  </div>
+</div>
+
+<script src="data/seed.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/core.js"></script>
+<script src="js/views-dashboard.js"></script>
+<script src="js/views-offtakers.js"></script>
+<script src="js/views-tools.js"></script>
+<script src="js/forms.js"></script>
+<script src="animations.js"></script>
+<script>
+  /* Paint the sidebar glyphs once the icon set is available. */
+  document.querySelectorAll('[data-icon]').forEach(function (el) { el.innerHTML = icon(el.dataset.icon, 17); });
+</script>
+</body>
+</html>
