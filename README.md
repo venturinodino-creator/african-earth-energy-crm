@@ -4,7 +4,7 @@ A sales workspace for the African Earth Energy team: find, qualify and track the
 commercial and industrial buyers for roughly 1 GW of South African solar-plus-storage
 capacity in development.
 
-Live site: `https://venturinodino-creator.github.io/african-earth-energy-crm/`
+Live site: <https://venturinodino-creator.github.io/african-earth-energy-crm/>
 Company site: <https://www.aeeg.co.za/en>
 
 ---
@@ -99,6 +99,8 @@ js/forms.js             create / edit / delete
 
 ## Deploying
 
-Pushing to `main` publishes to GitHub Pages via
-[`.github/workflows/pages.yml`](.github/workflows/pages.yml). Enable Pages on the
-repo with **Source: GitHub Actions** the first time.
+GitHub Pages serves `main` from the repository root, so pushing to `main` publishes.
+There is no build step and no workflow to maintain — the site is the files in this repo.
+
+- `index.html` is what the Pages URL serves: the CRM itself
+- `landing.html` is the overview page, linked from the sidebar logo
