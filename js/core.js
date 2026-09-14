@@ -570,15 +570,6 @@ function runImport() {
   nav('contacts');
 }
 
-/* ─── REFRESH ─────────────────────────────────────────────────── */
-/* Re-reads everything from the server, discarding the local cache. */
-async function refreshData() {
-  try { localStorage.removeItem(STORE_PREFIX + 'cache'); } catch (e) {}
-  await load();
-  render();
-  toast('Reloaded from the server');
-}
-
 /* ─── BOOT / AUTH GATE ────────────────────────────────────────────
    Nothing renders until Supabase confirms a session and the profile
    carries a role. A signed-out visitor gets the sign-in screen; a

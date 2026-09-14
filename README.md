@@ -171,7 +171,6 @@ they happen.
 - **Export offtakers / contacts / pipeline** produces CSV for sharing or backup.
 - **Import contacts** reads a CSV with a header row and matches companies to
   existing offtakers by name; anything unmatched is filed as unassigned.
-- **Reload from server** in the sidebar discards the cache and re-reads everything.
 
 The URL and publishable key in `js/supabase.js` are meant to be public — they
 identify the project and grant nothing on their own.
