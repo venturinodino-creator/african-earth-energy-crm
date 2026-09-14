@@ -43,11 +43,20 @@ if the team's experience says something different.
 
 ## Access and security
 
-The CRM is **not public**. Everything is behind Supabase email-and-password
-authentication, and the data itself is protected by Postgres Row Level Security
-— not by anything in the JavaScript. An unauthenticated visitor who opens the
-page, reads the source, or calls the API directly gets an empty list and cannot
-write a single row.
+The CRM is **not public**. Both pages — the app and the overview page — show
+nothing but a sign-in card until Supabase confirms a session, and the data is
+protected by Postgres Row Level Security rather than by anything in the
+JavaScript. An unauthenticated visitor who opens the page, reads the source, or
+calls the API directly gets an empty list and cannot write a single row.
+
+Every table in the project is covered, including `mining_leads`, which carried
+an `Allow public read access` policy from earlier work and is now behind the
+same role gate.
+
+One honest caveat: this is a static site, so the *markup* of the overview page
+is readable in the page source whatever the gate does. That page is written to
+contain nothing that is not already on aeeg.co.za. The wall that matters is on
+the data, and that one is enforced by the database.
 
 Three roles, stored in `public.profiles`:
 
