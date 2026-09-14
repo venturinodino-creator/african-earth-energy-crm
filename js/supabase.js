@@ -17,6 +17,30 @@
 const SUPA_URL = 'https://pkzfazjtpswqjmnzzrgt.supabase.co';
 const SUPA_KEY = 'sb_publishable_jqCjOPRXZEIKjgNDVsL3uw_ldx-I-tO';
 
+/* Supabase Auth always identifies an account by email address — there is no
+   username provider. So the team signs in with a plain username and this is
+   the domain it is completed to: "dino" becomes "dino@aeeg.co.za", which is
+   what the account is actually stored under. Anything typed WITH an @ is
+   passed through untouched, so a real address still works.
+
+   Trade-off worth knowing: accounts created on a domain that cannot receive
+   mail have no working "forgot password" route. Resetting one means an admin
+   setting a new password in the Supabase dashboard. */
+const AUTH_DOMAIN = 'aeeg.co.za';
+
+function toAuthEmail(input) {
+  const v = String(input || '').trim();
+  if (!v) return '';
+  return v.includes('@') ? v.toLowerCase() : v.toLowerCase().replace(/\s+/g, '.') + '@' + AUTH_DOMAIN;
+}
+
+/* The inverse, for display: hide the synthetic domain but keep a genuinely
+   external address visible in full. */
+function toDisplayName(email) {
+  const v = String(email || '');
+  return v.toLowerCase().endsWith('@' + AUTH_DOMAIN) ? v.slice(0, v.lastIndexOf('@')) : v;
+}
+
 let supabaseClient = null;
 
 async function initSupabase() {
@@ -138,9 +162,9 @@ async function guardWrite(fn) {
 }
 
 /* ─── AUTH ────────────────────────────────────────────────────── */
-async function signIn(email, password) {
+async function signIn(usernameOrEmail, password) {
   await initSupabase();
-  return supabaseClient.auth.signInWithPassword({ email, password });
+  return supabaseClient.auth.signInWithPassword({ email: toAuthEmail(usernameOrEmail), password });
 }
 async function signOut() {
   if (supabaseClient) await supabaseClient.auth.signOut();

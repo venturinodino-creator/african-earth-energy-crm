@@ -69,11 +69,33 @@ Three roles, stored in `public.profiles`:
 `pending` being the default is deliberate: access is granted explicitly, so
 leaving public signups enabled in Supabase still exposes nothing.
 
+### Usernames, not email addresses
+
+The team signs in with a plain username. Supabase Auth has no username
+provider — an account is always identified by an email address — so the login
+form completes a bare username to a fixed domain:
+
+```
+dino            →  dino@aeeg.co.za
+karen metcalf   →  karen.metcalf@aeeg.co.za
+someone@x.com   →  someone@x.com          (anything with an @ passes through)
+```
+
+The domain is `AUTH_DOMAIN` in [`js/supabase.js`](js/supabase.js), mirrored in
+`landing.html`. Change both together if it ever moves. Input is lower-cased and
+spaces become dots, so capitalisation and stray spaces do not matter.
+
+The address is only ever an identifier — nothing is sent to it. The trade-off
+is that there is no self-service "forgot password": resetting one means an
+admin setting a new password in the Supabase dashboard.
+
 ### First-time setup
 
 1. **Create your account.** In the Supabase dashboard for the
-   *Energy Lead Dashboard* project → **Authentication → Users → Add user**.
-   Enter your email and a password, and tick *Auto Confirm User*.
+   *Energy Lead Dashboard* project → **Authentication → Users → Add user →
+   Create new user**. In the email field type the username in full address
+   form — `dino@aeeg.co.za` for the username `dino` — set a password, and tick
+   *Auto Confirm User*. Your team then only ever types `dino`.
 
    **The first account created becomes `admin` automatically** — the signup
    trigger grants it, so there is no second step and no password has to be

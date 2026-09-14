@@ -598,9 +598,9 @@ function signInScreenHtml(message) {
   return '<div class="gate-card">' +
     '<div class="gate-mark">' + icon('bolt', 22) + '</div>' +
     '<h1>African Earth Energy</h1>' +
-    '<p class="gate-sub">Offtaker CRM — internal. Sign in with the account you were given.</p>' +
+    '<p class="gate-sub">Offtaker CRM — internal. Sign in with the username and password you were given.</p>' +
     '<form class="gate-form" onsubmit="event.preventDefault();doSignIn()">' +
-      '<input id="gate-email" type="email" placeholder="you@aeeg.co.za" autocomplete="username" required>' +
+      '<input id="gate-email" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false" required>' +
       '<input id="gate-password" type="password" placeholder="Password" autocomplete="current-password" required>' +
       '<button class="btn btn-primary" id="gate-btn" type="submit">Sign in</button>' +
     '</form>' +
@@ -612,7 +612,7 @@ function pendingScreenHtml(email) {
   return '<div class="gate-card">' +
     '<div class="gate-mark">' + icon('clock', 22) + '</div>' +
     '<h1>Access not granted yet</h1>' +
-    '<p class="gate-sub">You are signed in as <b>' + esc(email) + '</b>, but this account has not been given access to the CRM. Ask an administrator to grant it.</p>' +
+    '<p class="gate-sub">You are signed in as <b>' + esc(toDisplayName(email)) + '</b>, but this account has not been given access to the CRM. Ask an administrator to grant it.</p>' +
     '<button class="btn btn-outline" onclick="signOut()">Sign out</button>' +
   '</div>';
 }
@@ -622,13 +622,13 @@ async function doSignIn() {
   const password = document.getElementById('gate-password').value || '';
   const msg = document.getElementById('gate-msg');
   const btn = document.getElementById('gate-btn');
-  if (!email || !password) { msg.textContent = 'Enter both an email address and a password.'; return; }
+  if (!email || !password) { msg.textContent = 'Enter both a username and a password.'; return; }
   btn.disabled = true; btn.textContent = 'Signing in…';
   const res = await signIn(email, password);
   btn.disabled = false; btn.textContent = 'Sign in';
   if (res.error) {
     msg.textContent = /invalid/i.test(res.error.message)
-      ? 'That email and password combination was not recognised.'
+      ? 'That username and password combination was not recognised.'
       : res.error.message;
   }
   /* A success fires onAuthStateChange, which takes it from here. */
@@ -642,7 +642,7 @@ function setUserBadge(email, role) {
   el.innerHTML =
     '<div class="av" style="width:24px;height:24px;font-size:9px;background:' + avatarColor(email) + '">' +
       esc((email[0] || '?').toUpperCase()) + '</div>' +
-    '<div class="ub-text"><div class="ub-email">' + esc(email) + '</div>' +
+    '<div class="ub-text"><div class="ub-email">' + esc(toDisplayName(email)) + '</div>' +
     '<div class="ub-role">' + (role === 'admin' ? 'Admin' : 'Read only') + '</div></div>' +
     '<button class="btn btn-ghost btn-xs" onclick="signOut()" title="Sign out">' + icon('logout', 13) + '</button>';
 }

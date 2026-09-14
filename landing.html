@@ -149,9 +149,9 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
     <h1>African Earth Energy</h1>
-    <p class="gate-sub">Offtaker CRM &mdash; internal. Sign in with the account you were given.</p>
+    <p class="gate-sub">Offtaker CRM &mdash; internal. Sign in with the username and password you were given.</p>
     <form class="gate-form" onsubmit="event.preventDefault();doLogin()">
-      <input id="lm-email" type="email" placeholder="you@aeeg.co.za" autocomplete="username" required>
+      <input id="lm-email" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
       <input id="lm-password" type="password" placeholder="Password" autocomplete="current-password" required>
       <button class="btn btn-primary" id="lm-btn" type="submit">Sign in</button>
     </form>
@@ -290,7 +290,16 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
 (function () {
   var SUPA_URL = 'https://pkzfazjtpswqjmnzzrgt.supabase.co';
   var SUPA_KEY = 'sb_publishable_jqCjOPRXZEIKjgNDVsL3uw_ldx-I-tO';
+  /* Kept in step with AUTH_DOMAIN in js/supabase.js — a bare username is
+     completed to this domain, which is what the account is stored under. */
+  var AUTH_DOMAIN = 'aeeg.co.za';
   var client = null;
+
+  function toAuthEmail(input) {
+    var v = String(input || '').trim();
+    if (!v) return '';
+    return v.indexOf('@') !== -1 ? v.toLowerCase() : v.toLowerCase().replace(/\s+/g, '.') + '@' + AUTH_DOMAIN;
+  }
 
   async function init() {
     if (client) return client;
@@ -307,18 +316,18 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
   }
 
   window.doLogin = async function () {
-    var email = (document.getElementById('lm-email').value || '').trim();
+    var email = (document.getElementById('lm-email').value || '').trim();  // username or full address
     var password = document.getElementById('lm-password').value || '';
     var msg = document.getElementById('lm-msg');
     var btn = document.getElementById('lm-btn');
-    if (!email || !password) { msg.textContent = 'Enter both an email address and a password.'; return; }
+    if (!email || !password) { msg.textContent = 'Enter both a username and a password.'; return; }
     await init();
     btn.disabled = true; btn.textContent = 'Signing in…';
-    var res = await client.auth.signInWithPassword({ email: email, password: password });
+    var res = await client.auth.signInWithPassword({ email: toAuthEmail(email), password: password });
     btn.disabled = false; btn.textContent = 'Sign in';
     if (res.error) {
       msg.textContent = /invalid/i.test(res.error.message)
-        ? 'That email and password combination was not recognised.'
+        ? 'That username and password combination was not recognised.'
         : res.error.message;
     } else {
       reveal();
