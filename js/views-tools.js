@@ -56,21 +56,26 @@ function renderProjects() {
    ═══════════════════════════════════════════════════════════════ */
 let _map = null, _mapLayers = [];
 
+/* Matches the .b-grp-* badge palette in styles.css, so a group reads the
+   same colour on the map as it does on a card. */
+const GROUP_COLOR = {
+  'heavy-industry': '#fca5a5', 'manufacturing': '#fbbf5c', 'commercial': '#c4b5fd',
+  'digital': '#f9a8d4', 'logistics': '#7dd3fc', 'utilities-public': '#cbd5e1',
+  'primary': '#86efac', 'emerging': '#5eead4',
+};
+
 function renderMap() {
   setPage('Map', 'Offtaker load against generation sites across South Africa', '');
+  /* Filter by sector GROUP, not by sector — thirty chips would not fit,
+     and the group is the cut a rep actually wants. */
   const legend =
     '<div class="map-legend">' +
       mapChip('all', 'Everything', 'var(--text2)') +
       mapChip('projects', 'AEE sites', 'var(--accent)') +
-      mapChip('mining', 'Mining', '#fbbf5c') +
-      mapChip('smelter', 'Smelters', '#fca5a5') +
-      mapChip('industrial', 'Industry', '#7dd3fc') +
-      mapChip('commercial', 'Commercial', '#c4b5fd') +
-      mapChip('retail', 'Retail', '#fdba74') +
-      mapChip('datacentre', 'Data centres', '#f9a8d4') +
-      mapChip('agriculture', 'Agri', '#86efac') +
-      mapChip('municipality', 'Municipal', '#cbd5e1') +
+      Object.entries(SECTOR_GROUPS).map(([k, v]) =>
+        mapChip(k, v, GROUP_COLOR[k] || '#cbd5e1')).join('') +
     '</div>';
+
   setContent(legend + '<div id="map-canvas" style="height:calc(100vh - 210px);min-height:440px"></div>' +
     '<div class="fg-hint" style="margin-top:10px">Circle size reflects annual consumption. Offtakers without exact coordinates are placed at the centre of their province.</div>');
   setTimeout(initMap, 60);
@@ -98,10 +103,6 @@ function initMap() {
   }).addTo(_map);
 
   const f = state.mapFilter;
-  const sectorColor = {
-    mining: '#fbbf5c', smelter: '#fca5a5', industrial: '#7dd3fc', commercial: '#c4b5fd',
-    retail: '#fdba74', datacentre: '#f9a8d4', agriculture: '#86efac', municipality: '#cbd5e1',
-  };
 
   if (f === 'all' || f === 'projects') {
     state.projects.filter(p => p.status !== 'pipeline').forEach(p => {
@@ -120,16 +121,16 @@ function initMap() {
   }
 
   if (f !== 'projects') {
-    state.offtakers.filter(o => f === 'all' || o.sector === f).forEach(o => {
+    state.offtakers.filter(o => f === 'all' || sectorGroup(o.sector) === f).forEach(o => {
       const [lat, lng] = offtakerCoords(o);
       const r = Math.max(7, Math.min(26, Math.sqrt(num(o.annualGwh)) * 0.55));
-      const color = sectorColor[o.sector] || '#cbd5e1';
+      const color = GROUP_COLOR[sectorGroup(o.sector)] || '#cbd5e1';
       L.circleMarker([lat, lng], {
         radius: r, color, weight: 1.5, fillColor: color, fillOpacity: .28,
       }).addTo(_map).bindPopup(
         '<b>' + esc(o.name) + '</b><br>' +
         fmtNum(o.annualGwh) + ' GWh/yr · ' + fmtNum(o.peakMw) + ' MW peak<br>' +
-        'R' + num(o.tariff).toFixed(2) + '/kWh · fit ' + fitScore(o) + '/100<br>' +
+        esc(sectorName(o.sector)) + '<br>R' + num(o.tariff).toFixed(2) + '/kWh · fit ' + fitScore(o) + '/100<br>' +
         '<span style="color:#3ddc84;cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">Open record &rarr;</span>');
     });
   }
@@ -374,7 +375,7 @@ function renderPlaybook() {
     '</div>';
   }).join('');
 
-  setContent(shortlistsHtml() + marketContextHtml() +
+  setContent(shortlistsHtml() + stakeholderLadderHtml() + marketContextHtml() +
     '<div class="section-title">Scripts &amp; templates</div>' + filter +
     '<div class="pb-grid">' + cards + '</div>');
   const s2 = document.getElementById('pb-offtaker');
@@ -404,6 +405,28 @@ function shortlistsHtml() {
       notes.map(n => '<div style="margin-bottom:12px"><div class="card-title" style="margin-bottom:4px">' + esc(n.name) + '</div>' +
         '<div style="font-size:12px;color:var(--text2);line-height:1.6">' + esc(n.meaning) + '</div></div>').join('') +
       '</div>' : '');
+}
+
+/* Who to approach, in what order. Sector-agnostic — this is the shape of
+   an industrial or mining energy sale wherever it happens. */
+function stakeholderLadderHtml() {
+  return '<div class="section-title">Who to approach, in what order</div>' +
+    '<div class="grid-3">' + STAKEHOLDER_TIERS.map(t =>
+      '<div class="card">' +
+        '<div class="card-header"><div><div class="card-title">' + esc(t.label) + '</div>' +
+        '<div class="card-sub">' + esc(t.hint) + '</div></div>' +
+        '<span class="badge ' + (t.id === 'open' ? 'b-tier-1' : t.id === 'multithread' ? 'b-tier-2' : 'b-tier-3') + '">' +
+        t.roles.length + '</span></div>' +
+        t.roles.map(r =>
+          '<div class="person-row">' +
+            '<div class="av" style="width:24px;height:24px;font-size:9px;background:' + avatarColor(r.title) + '">' +
+              esc((r.title[0] || '?').toUpperCase()) + '</div>' +
+            '<div style="min-width:0;flex:1">' +
+              '<div class="person-name">' + esc(r.title) + '</div>' +
+              '<div class="person-title">' + esc(r.why) + '</div>' +
+            '</div>' +
+          '</div>').join('') +
+      '</div>').join('') + '</div>';
 }
 
 function marketContextHtml() {

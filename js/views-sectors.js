@@ -142,7 +142,7 @@ function renderSector() {
           '<div class="av" style="width:24px;height:24px;font-size:9px;background:' + avatarColor(title) + '">' +
             esc((title[0] || '?').toUpperCase()) + '</div>' +
           '<div style="min-width:0;flex:1"><div class="person-name">' + esc(title) + '</div>' +
-          (role ? '<div class="person-title">' + esc(role.part.replace('-', ' ')) + '</div>' : '') + '</div>' +
+          '<div class="person-title">' + esc(STAKEHOLDER_WHY[title] || (role ? role.part.replace('-', ' ') : '')) + '</div></div>' +
         '</div>';
       }).join('') +
       (subs.length ? '<div class="form-section-title" style="margin-top:16px">Sub-sectors</div>' +

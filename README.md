@@ -144,6 +144,12 @@ The taxonomy is deliberately **non-mining**. AEE's mining prospects are tracked
 as offtakers in their own right, so `MINING_SECTOR` keeps a 30th sector alongside
 the 29 for them.
 
+It also carries a **stakeholder ladder** (from `Repo - Data.xlsx`): 17 roles in
+three tiers — who to open with, who to multithread once you have a champion, and
+the two roles that only matter when the buyer is a joint venture — each with the
+reason that person takes the call. That is where the mining and JV roles live,
+since the sector taxonomy has no home for them.
+
 Two things it drives that are easy to miss:
 
 - **Open any offtaker and you get that sector's qualifying questions and the

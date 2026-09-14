@@ -2789,3 +2789,63 @@ const MARKET = {
    default quote reflects the real market rather than a guess. */
 const MARKET_MEGAFLEX_MID = (2.00 + 2.60) / 2;   // R2.30
 const MARKET_SOLAR_MID    = (1.15 + 1.45) / 2;   // R1.30
+
+/* ═══════════════════════════════════════════════════════════════
+   STAKEHOLDER LADDER — who to approach, in what order, and the
+   reason each one takes the call.
+
+   Source: Repo - Data.xlsx, Stakeholders sheet. This complements
+   CONTACT_ROLES above rather than repeating it: CONTACT_ROLES maps a
+   title to the sectors where it is the primary contact, while this
+   gives the approach ORDER and, more usefully on a cold call, why the
+   person on the other end has a reason to listen.
+
+   It also carries the mining and joint-venture roles that the
+   non-mining sector taxonomy has no home for.
+   ═══════════════════════════════════════════════════════════════ */
+const STAKEHOLDER_TIERS = [
+  {
+    id: 'open',
+    label: 'Tier 1 — open here',
+    hint: 'These people have the problem and want the call.',
+    roles: [
+      { title: 'Energy Director / Group Head of Energy',            why: 'Owns the energy cost line and the supply strategy' },
+      { title: 'Group Energy Manager / Energy & Utilities Manager', why: 'Day-to-day owner of tariffs, load and Eskom exposure' },
+      { title: 'Head of Energy Transition / Decarbonisation Manager', why: 'Has a target and a deadline, needs MW to hit it' },
+      { title: 'Chief Sustainability Officer',                      why: 'Owns the Scope 2 commitment publicly' },
+      { title: 'Head of ESG / Carbon Manager',                      why: 'Reports the emissions number; a renewable PPA is their fix' },
+      { title: 'Utilities Manager (site)',                          why: 'At smelters, concentrators and refineries — huge continuous load' },
+    ],
+  },
+  {
+    id: 'multithread',
+    label: 'Tier 2 — multithread once Tier 1 engages',
+    hint: 'Bring these in after you have a champion, not before.',
+    roles: [
+      { title: 'COO / Operations Director',                  why: 'Cost-per-tonne owner; energy is a top-three input' },
+      { title: 'CFO',                                        why: 'Signs a 15–20 year commitment; cares about tariff escalation certainty' },
+      { title: 'Strategy Director',                          why: 'Owns the long-range energy security thesis' },
+      { title: 'CEO / Managing Director',                    why: 'At mid-tier miners, genuinely reachable and often decisive' },
+      { title: 'General Manager (site/complex)',             why: 'Real budget holder per operation' },
+      { title: 'Mine Manager',                               why: 'Operational sponsor at site level' },
+      { title: 'Engineering Manager (2.13.1 appointee)',     why: 'Technical validation — reticulation and connection point' },
+      { title: 'Category Manager: Energy & Utilities',       why: 'Runs the RFP. Find them before the RFP is written, not after' },
+      { title: 'Head of Procurement / Supply Chain',         why: 'Relevant at group level for large miners' },
+    ],
+  },
+  {
+    id: 'jv',
+    label: 'Consortium / JV only',
+    hint: 'Where the buyer is a joint venture rather than a single company.',
+    roles: [
+      { title: 'Programme Director / JV Project Director', why: "Owns the consortium's energy workstream" },
+      { title: 'Shareholder Representative',               why: 'One per member company — each needs its own champion' },
+    ],
+  },
+];
+
+/* Flat title -> reason lookup, so a role shown anywhere in the app can
+   carry its "why they take the meeting" line. */
+const STAKEHOLDER_WHY = Object.fromEntries(
+  STAKEHOLDER_TIERS.flatMap(t => t.roles.map(r => [r.title, r.why]))
+);
