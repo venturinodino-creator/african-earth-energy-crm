@@ -23,7 +23,9 @@ Company site: <https://www.aeeg.co.za/en>
 | **Map** | Offtaker load plotted against generation sites, sized by annual consumption |
 | **Analytics** | Load by province and sector, fit distribution, where the pipeline value actually sits |
 | **Savings calculator** | Model a wheeled PPA against the buyer's current tariff over the contract life |
-| **Playbook** | Cold emails, discovery script, objection handling, qualification checklist |
+| **Sectors** | 30 sectors with tier, PPA fit, load shape, deal structures, sales cycle and who to call. Each opens to its own page with qualifying questions and objections |
+| **Prospects** | The 264-company prospecting list, filterable by sector, tier and status, with one-click promotion to an offtaker |
+| **Playbook** | Ranked shortlists, market context, cold emails, discovery script, objection handling, qualification checklist |
 
 ## The fit score
 
@@ -32,11 +34,12 @@ most likely to sign. It weighs five things:
 
 | Factor | Weight | Why it matters |
 | --- | --- | --- |
-| Annual consumption | 30 | Below ~20 GWh/yr the transaction cost rarely justifies itself |
-| Load factor | 22 | A flat 24/7 load is far easier to serve with solar plus storage than a spiky one |
-| Tariff headroom | 20 | The gap between what they pay now and a target PPA tariff is the whole pitch |
-| Wheeling feasibility | 16 | A confirmed wheeling route removes the biggest single blocker |
-| Distance to nearest site | 12 | Short wheeling paths mean lower use-of-system charges |
+| Annual consumption | 26 | Below ~10 GWh/yr the transaction cost rarely justifies itself |
+| Load factor | 20 | A flat 24/7 load is far easier to serve with solar plus storage than a spiky one |
+| Tariff headroom | 18 | The gap between what they pay now and the wheeled-solar midpoint is the whole pitch |
+| Wheeling feasibility | 14 | A confirmed wheeling route removes the biggest single blocker |
+| Sector PPA fit | 12 | The desk's own 1–5 rating for how readily that sector's load, connection and procurement suit a PPA |
+| Distance to nearest site | 10 | Short wheeling paths mean lower use-of-system charges |
 
 The maths is in [`js/core.js`](js/core.js) — `fitScore()`. Change the weights there
 if the team's experience says something different.
@@ -129,6 +132,42 @@ reps. The login box accepts either.
 select email, role, created_at from public.profiles order by created_at;
 ```
 
+## The sector taxonomy
+
+29 non-mining sectors, 164 sub-sectors, 107 qualifying questions, 39 objections
+with responses, 22 contact roles and the market context the desk works to — all
+from `AEEG-offtaker-sectors.xlsx` v1.1.0, and all in
+[`data/sectors.js`](data/sectors.js). It ships with the app because it is market
+knowledge rather than pipeline.
+
+The taxonomy is deliberately **non-mining**. AEE's mining prospects are tracked
+as offtakers in their own right, so `MINING_SECTOR` keeps a 30th sector alongside
+the 29 for them.
+
+Two things it drives that are easy to miss:
+
+- **Open any offtaker and you get that sector's qualifying questions and the
+  objections you will hear**, with responses. That is the piece a rep has open
+  during the call.
+- **Tariff benchmarks feed the calculator's defaults.** Megaflex all-in is taken
+  as R2.00–2.60 and wheeled solar as R1.15–1.45, so the opening comparison is
+  R2.30 against R1.30 — a R1.00/kWh gap, about 43%. Earlier defaults were
+  guesses that understated the saving.
+
+## Prospects vs offtakers
+
+| | Prospect | Offtaker |
+| --- | --- | --- |
+| What it is | A named company in a sector | An account being worked |
+| Has load data | No | Yes, even if estimated |
+| Fit scored | No | Yes |
+| Where | `aee_prospects` | `aee_offtakers` |
+
+A prospect carries a name, a sector and a note. It is not fit-scored, because
+scoring a record with no load data would put 264 zeros at the top of the call
+list. **Promote** moves it across once the load is known, and that is when it
+starts being ranked.
+
 ## The numbers, and how much to trust them
 
 - **Generation portfolio** — real, taken from <https://www.aeeg.co.za/en/projects>.
@@ -161,7 +200,7 @@ they happen.
 
 - **Supabase project:** `Energy Lead Dashboard` (`pkzfazjtpswqjmnzzrgt`, eu-west-1)
 - **Tables:** `aee_offtakers`, `aee_contacts`, `aee_deals`, `aee_interactions`,
-  plus `profiles` for roles. They are namespaced `aee_*` so they sit alongside
+  `aee_prospects`, plus `profiles` for roles. They are namespaced `aee_*` so they sit alongside
   the pre-existing `mining_leads` table without touching it.
 - **The generation portfolio is not in the database.** It is AEE's own published
   project list, so it ships in `data/seed.js` and needs no sync.
@@ -182,12 +221,14 @@ index.html              app shell, sidebar, modals
 landing.html            public-facing entry page
 styles.css              design system
 animations.css/.js      motion layer (decorative, honours prefers-reduced-motion)
-data/seed.js            generation portfolio, pipeline stages, playbook (public reference data only)
+data/seed.js            generation portfolio, pipeline stages, outreach templates
+data/sectors.js         sector taxonomy, questions, objections, roles, market context
 js/icons.js             inline SVG icon set
 js/supabase.js          auth, row mapping, reads and writes
 js/core.js              state, routing, helpers, fit score, auth gate, CSV
 js/views-dashboard.js   dashboard + pipeline board
 js/views-offtakers.js   offtaker list, detail page, contacts
+js/views-sectors.js     sectors, one-sector page, prospects list
 js/views-tools.js       projects, map, analytics, calculator, playbook, activity
 js/forms.js             create / edit / delete
 ```

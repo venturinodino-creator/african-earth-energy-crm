@@ -200,7 +200,7 @@ function renderAnalytics() {
     '</div>' +
     '<div class="grid-2">' +
       barCard('Load by province', 'GWh a year', byProvince, null, 'var(--accent)') +
-      barCard('Load by sector', 'GWh a year', bySector, SECTOR_LABEL, 'var(--accent2)') +
+      barCard('Load by sector', 'GWh a year', bySector, SECTOR_LABEL_MAP, 'var(--accent2)') +
     '</div>' +
     '<div class="grid-2" style="margin-top:14px">' +
       barCard('Fit score distribution', 'Number of offtakers in each band', buckets, null, '#7dd3fc') +
@@ -236,7 +236,7 @@ function renderCalculator() {
   const o = _calcOfftakerId ? getOfftaker(_calcOfftakerId) : {};
   const v = {
     gwh: num(o.annualGwh) || 100,
-    current: num(o.tariff) || 1.45,
+    current: num(o.tariff) || DEFAULT_CURRENT_TARIFF,
     ppa: DEFAULT_PPA_TARIFF,
     coverage: 70,
     years: 20,
@@ -374,9 +374,76 @@ function renderPlaybook() {
     '</div>';
   }).join('');
 
-  setContent(filter + '<div class="pb-grid">' + cards + '</div>');
+  setContent(shortlistsHtml() + marketContextHtml() +
+    '<div class="section-title">Scripts &amp; templates</div>' + filter +
+    '<div class="pb-grid">' + cards + '</div>');
   const s2 = document.getElementById('pb-offtaker');
   if (s2) s2.value = offId;
+}
+
+/* Where to point the desk first. Each shortlist links straight through
+   to the sector, so a rep can go from "fastest paths" to the questions
+   to ask in two clicks. */
+function shortlistsHtml() {
+  const ranked = SECTOR_SHORTLISTS.filter(s => s.sectors.length);
+  const notes = SECTOR_SHORTLISTS.filter(s => !s.sectors.length);
+  return '<div class="section-title">Where to point the desk</div>' +
+    '<div class="grid-3">' + ranked.map(s =>
+      '<div class="card">' +
+        '<div class="card-header"><div><div class="card-title">' + esc(s.name) + '</div>' +
+        '<div class="card-sub">' + esc(s.meaning) + '</div></div></div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:5px">' +
+        s.sectors.map(name => {
+          const sec = ALL_SECTORS.find(x => x.name === name);
+          return sec
+            ? '<span class="chip" style="cursor:pointer" onclick="nav(\'sector\',{id:\'' + sec.id + '\'})">' + esc(name) + '</span>'
+            : '<span class="chip">' + esc(name) + '</span>';
+        }).join('') + '</div>' +
+      '</div>').join('') + '</div>' +
+    (notes.length ? '<div class="card" style="margin-top:14px">' +
+      notes.map(n => '<div style="margin-bottom:12px"><div class="card-title" style="margin-bottom:4px">' + esc(n.name) + '</div>' +
+        '<div style="font-size:12px;color:var(--text2);line-height:1.6">' + esc(n.meaning) + '</div></div>').join('') +
+      '</div>' : '');
+}
+
+function marketContextHtml() {
+  return '<div class="section-title">Market context — as at ' + esc(MARKET.asAt) + '</div>' +
+    '<div class="grid-3">' +
+      '<div class="card">' +
+        '<div class="card-header"><div><div class="card-title">Tariff benchmarks</div>' +
+        '<div class="card-sub">ZAR per kWh, all-in</div></div></div>' +
+        MARKET.tariffs.map(t =>
+          '<div class="mkt-row"><div><div class="mkt-label">' + esc(t.label) + '</div>' +
+          (t.note ? '<div class="mkt-note">' + esc(t.note) + '</div>' : '') + '</div>' +
+          '<div class="mkt-value">R' + t.low.toFixed(2) + ' – ' + t.high.toFixed(2) + '</div></div>').join('') +
+        '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
+        'Midpoint saving against Megaflex on wheeled solar: <b style="color:var(--accent)">R' +
+        (MARKET_MEGAFLEX_MID - MARKET_SOLAR_MID).toFixed(2) + '/kWh</b>, about ' +
+        Math.round(((MARKET_MEGAFLEX_MID - MARKET_SOLAR_MID) / MARKET_MEGAFLEX_MID) * 100) + '%.</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card-header"><div class="card-title">Standard PPA terms</div></div>' +
+        MARKET.ppaTerms.map(t =>
+          '<div class="mkt-row"><div class="mkt-label">' + esc(t.label) + '</div>' +
+          '<div class="mkt-value" style="font-weight:600;white-space:normal;text-align:right;max-width:58%">' +
+          esc(t.value) + '</div></div>').join('') +
+        '<div class="form-section-title" style="margin-top:14px">Watch items</div>' +
+        '<ul class="check-list warn">' + MARKET.watchItems.map(w => '<li>' + esc(w) + '</li>').join('') + '</ul>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card-header"><div><div class="card-title">Qualify or walk away</div>' +
+        '<div class="card-sub">An account must clear all four</div></div></div>' +
+        '<ul class="check-list">' + MARKET.qualifiers.map(q => '<li>' + esc(q) + '</li>').join('') + '</ul>' +
+        '<div class="form-section-title" style="margin-top:16px">Disqualifiers — walk away</div>' +
+        '<ul class="check-list danger">' + MARKET.disqualifiers.map(q => '<li>' + esc(q) + '</li>').join('') + '</ul>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="margin-top:14px">' +
+      '<div class="card-title" style="margin-bottom:6px">Opening question, any account</div>' +
+      '<div style="font-size:14px;color:var(--text2);line-height:1.6;font-style:italic">&ldquo;' +
+      esc(MARKET.openingQuestion) + '&rdquo;</div>' +
+      '<div class="fg-hint" style="margin-top:10px">' + esc(MARKET.prioritisation) + '</div>' +
+    '</div>';
 }
 
 /* ═══════════════════════════════════════════════════════════════

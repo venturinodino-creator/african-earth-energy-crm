@@ -11,7 +11,7 @@ function offSortVal(o, field) {
     case 'peak': return num(o.peakMw);
     case 'tariff': return num(o.tariff);
     case 'contacts': return contactsFor(o.id).length;
-    case 'sector': return SECTOR_LABEL[o.sector] || o.sector;
+    case 'sector': return sectorName(o.sector);
     case 'status': return ['prospect', 'engaged', 'qualified', 'negotiating', 'contracted', 'lost'].indexOf(o.status);
     case 'distance': { const np = nearestProject(o); return np ? np.km : 99999; }
     default: return String(o[field] || '');
@@ -47,7 +47,8 @@ function renderOfftakers() {
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
       '<input placeholder="Search company, city or notes..." value="' + esc(state.offSearch) + '" ' +
       'oninput="state.offSearch=this.value;state.offPage=1;renderOfftakers()"></div>' +
-      selectFlt('offSector', 'All sectors', Object.entries(SECTOR_LABEL)) +
+      '<select class="flt" onchange="state.offSector=this.value;state.offPage=1;renderOfftakers()">' +
+        '<option value="">All sectors</option>' + sectorOptions(state.offSector) + '</select>' +
       selectFlt('offStatus', 'All statuses', Object.entries(STATUS_LABEL)) +
       selectFlt('offProvince', 'All provinces', provinces.map(p => [p, p])) +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
@@ -84,7 +85,7 @@ function offtakerCardHtml(o) {
   return '<div class="ec" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' +
     '<div class="ec-head">' +
       '<div class="ec-icon">' + sectorIcon(o.sector, 18) + '</div>' +
-      '<span class="badge b-' + o.sector + '">' + esc(SECTOR_LABEL[o.sector] || o.sector) + '</span>' +
+      sectorBadge(o.sector) +
     '</div>' +
     '<h3>' + esc(o.name) + '</h3>' +
     (o.short ? '<div class="short">' + esc(o.short) + '</div>' : '') +
@@ -125,7 +126,7 @@ function offtakerTableHtml(list) {
         '<td><div class="name-cell"><span style="opacity:.6;display:flex">' + sectorIcon(o.sector, 15) + '</span>' +
           '<div><div style="font-weight:700">' + esc(o.name) + '</div>' +
           '<div style="font-size:10.5px;color:var(--muted)">' + esc(o.city) + '</div></div></div></td>' +
-        '<td><span class="badge b-' + o.sector + '">' + esc(SECTOR_LABEL[o.sector] || o.sector) + '</span></td>' +
+        '<td>' + sectorBadge(o.sector) + '</td>' +
         '<td>' + esc(o.province) + '</td>' +
         '<td class="num">' + fmtNum(o.annualGwh) + '</td>' +
         '<td class="num">' + fmtNum(o.peakMw) + '</td>' +
@@ -156,7 +157,7 @@ function renderDetail() {
   const logs = interactionsFor(o.id);
   const model = savingsModel(o.annualGwh, o.tariff, DEFAULT_PPA_TARIFF, 100, 20, ESKOM_ESCALATION, DEFAULT_ESCALATION);
 
-  setPage(o.short || o.name, esc(SECTOR_LABEL[o.sector] || o.sector) + ' · ' + esc(o.city) + ', ' + esc(o.province),
+  setPage(o.short || o.name, sectorName(o.sector) + ' · ' + esc(o.city) + ', ' + esc(o.province),
     '<button class="btn btn-outline btn-sm" onclick="openLogInteraction(\'' + o.id + '\')">' + icon('note', 14) + ' Log activity</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add contact</button>' +
     '<button class="btn btn-primary btn-sm" onclick="openAddDeal(\'' + o.id + '\')">' + icon('bolt', 14) + ' New opportunity</button>');
@@ -168,7 +169,7 @@ function renderDetail() {
         '<div style="flex:1;min-width:220px">' +
           '<div class="dh-title">' + esc(o.name) + '</div>' +
           '<div class="dh-sub">' +
-            '<span class="badge b-' + o.sector + '">' + esc(SECTOR_LABEL[o.sector] || o.sector) + '</span>' +
+            sectorBadge(o.sector) +
             '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
             '<span class="badge b-' + o.priority + '">' + esc(o.priority) + ' priority</span>' +
             (o.estimated ? '<span class="chip" title="Load figures are desk estimates — verify with the customer">' + icon('alert', 11) + ' estimated load</span>' : '') +
@@ -210,6 +211,22 @@ function renderDetail() {
       '<div class="fg-hint" style="margin-top:12px">Assumes ' + ESKOM_ESCALATION + '% a year on the current tariff and ' +
       DEFAULT_ESCALATION + '% on the PPA. Quote as indicative until half-hourly data has been modelled.</div>' +
     '</div>';
+
+  /* What the desk knows about this sector as a whole. */
+  const sec = sectorOf(o.sector);
+  const sectorCard = sec ? '<div class="card">' +
+      '<div class="card-header"><div><div class="card-title">Sector — ' + esc(sec.name) + '</div>' +
+      '<div class="card-sub">Tier ' + sec.tier + ' · PPA fit ' + sec.ppaFit + '/5 · ' + esc(sec.cycleMonths) + ' month cycle</div></div>' +
+      '<button class="btn btn-ghost btn-xs" onclick="nav(\'sector\',{id:\'' + sec.id + '\'})">Open</button></div>' +
+      '<dl class="kv">' +
+        '<dt>Typical load</dt><dd>' + esc(sec.loadMw) + ' MW</dd>' +
+        '<dt>Typical deal</dt><dd>' + esc(sec.dealMw) + ' MW</dd>' +
+        '<dt>Load profile</dt><dd>' + esc(sec.profile) + '</dd>' +
+        '<dt>Solar match</dt><dd>' + esc(sec.solarMatch) + '</dd>' +
+      '</dl>' +
+      '<div class="form-section-title" style="margin-top:14px">Structures that work here</div>' +
+      '<ul class="check-list">' + sec.structures.slice(0, 3).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+    '</div>' : '';
 
   const supply =
     '<div class="card">' +
@@ -289,10 +306,15 @@ function renderDetail() {
         '</div>').join('') +
     '</div>';
 
+  /* The sector workbook's own questions and objections, filtered to this
+     account's sector — the thing a rep actually wants open on the call. */
+  const qCard = questionsCardHtml(o.sector, 'For ' + sectorName(o.sector));
+  const oCard = objectionsCardHtml(o.sector);
+
   setContent(hero + pitch +
     '<div class="cols-2" style="margin-top:14px">' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + peopleHtml + logHtml + '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + supply + dealsHtml + outreach + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:14px">' + peopleHtml + qCard + oCard + logHtml + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:14px">' + supply + sectorCard + dealsHtml + outreach + '</div>' +
     '</div>');
 }
 

@@ -7,6 +7,9 @@
    PIPELINE_STAGES — the deal stages the kanban board is built from
    PLAYBOOK        — outreach scripts the sales team can copy/paste
 
+   The sector taxonomy lives in data/sectors.js, which also defines
+   SECTOR_LABEL.
+
    Only public, non-sensitive reference data lives here. The offtaker
    target list, the contacts and the pipeline are NOT in this file —
    they are in Supabase behind Row Level Security, so they are visible
@@ -60,10 +63,6 @@ const PIPELINE_STAGES = [
   { id:'signed',     label:'Signed',          hint:'PPA executed' },
 ];
 
-const SECTOR_LABEL = {
-  mining:'Mining', smelter:'Smelter / Metals', industrial:'Heavy Industry', commercial:'Commercial',
-  agriculture:'Agri-processing', datacentre:'Data Centre', retail:'Retail', municipality:'Municipality',
-};
 
 const STATUS_LABEL = {
   prospect:'Prospect', engaged:'Engaged', qualified:'Qualified',

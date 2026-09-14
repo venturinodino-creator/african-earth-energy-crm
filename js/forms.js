@@ -13,11 +13,12 @@ function openAddOfftaker() {
   state.editOfftakerId = null;
   document.getElementById('mo-title').textContent = 'Add offtaker';
   ['mo-name', 'mo-short', 'mo-city', 'mo-website', 'mo-desc', 'mo-nmd'].forEach(id => setVal(id, ''));
-  setVal('mo-sector', 'industrial');
+  document.getElementById('mo-sector').innerHTML = sectorOptions('');
+  setVal('mo-sector', 'automotive-manufacturing');
   setVal('mo-province', 'Gauteng');
   setVal('mo-gwh', '');
   setVal('mo-peak', '');
-  setVal('mo-tariff', '1.45');
+  setVal('mo-tariff', DEFAULT_CURRENT_TARIFF.toFixed(2));
   setVal('mo-supply', 'eskom');
   setVal('mo-wheeling', 'unknown');
   setVal('mo-status', 'prospect');
@@ -30,6 +31,7 @@ function openEditOfftaker(id) {
   if (!o.id) return;
   state.editOfftakerId = id;
   document.getElementById('mo-title').textContent = 'Edit ' + (o.short || o.name);
+  document.getElementById('mo-sector').innerHTML = sectorOptions(o.sector);
   setVal('mo-name', o.name); setVal('mo-short', o.short); setVal('mo-sector', o.sector);
   setVal('mo-province', o.province); setVal('mo-city', o.city); setVal('mo-website', o.website);
   setVal('mo-gwh', o.annualGwh); setVal('mo-peak', o.peakMw); setVal('mo-tariff', o.tariff);

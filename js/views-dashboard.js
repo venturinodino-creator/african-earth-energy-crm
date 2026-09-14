@@ -92,7 +92,7 @@ function renderDashboard() {
     '<div class="card">' +
       '<div class="card-header"><div class="card-title">Addressable load by sector</div></div>' +
       sectorRows.map(([k, v]) =>
-        '<div class="bar-row"><div class="bar-label">' + esc(SECTOR_LABEL[k] || k) + '</div>' +
+        '<div class="bar-row"><div class="bar-label">' + esc(sectorName(k)) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + ((v / sectorMax) * 100) + '" style="background:var(--accent2)"></span></div>' +
         '<div class="bar-num">' + fmtNum(v) + '</div></div>').join('') +
       '<div class="fg-hint" style="margin-top:8px">GWh a year across tracked offtakers.</div>' +

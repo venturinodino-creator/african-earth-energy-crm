@@ -14,6 +14,7 @@ let state = {
   contacts: [],
   deals: [],
   interactions: [],
+  prospects: [],
   projects: [],
 
   role: null,   // 'admin' | 'viewer' | 'pending' | null (signed out)
@@ -34,6 +35,12 @@ let state = {
   contactSearch: '', contactOfftaker: '', contactRole: '',
   contactSort: { field: 'last', dir: 'asc' },
   contactPage: 1,
+
+  sectorId: null,
+  sectorSearch: '', sectorTier: '', sectorGroup: '',
+
+  prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '',
+  prospectPage: 1,
 
   mapFilter: 'all',
   pbFilter: '',
@@ -76,6 +83,33 @@ function avatarColor(seed) {
   return colors[Math.abs(h) % colors.length];
 }
 
+/* ─── SECTOR HELPERS ──────────────────────────────────────────── */
+function sectorOf(id) { return SECTOR_BY_ID[id] || null; }
+function sectorName(id) { const s = sectorOf(id); return s ? s.name : (id || '—'); }
+function sectorGroup(id) { const s = sectorOf(id); return s ? s.group : 'utilities-public'; }
+function sectorTier(id) { const s = sectorOf(id); return s ? s.tier : 3; }
+/* Plain id -> name map, for the chart helpers that take a label lookup. */
+const SECTOR_LABEL_MAP = SECTOR_LABEL;
+function sectorBadge(id) {
+  return '<span class="badge b-grp-' + sectorGroup(id) + '">' + esc(sectorName(id)) + '</span>';
+}
+/* PPA fit rendered as five dots — quicker to read across a list than a number. */
+function ppaDots(fit) {
+  let h = '<span class="ppa-dots" title="PPA fit ' + num(fit) + ' of 5">';
+  for (let i = 1; i <= 5; i++) h += '<span class="ppa-dot' + (i <= num(fit) ? ' on' : '') + '"></span>';
+  return h + '</span>';
+}
+/* Sector <option> list, grouped, for every sector picker in the app. */
+function sectorOptions(selected) {
+  const byGroup = {};
+  ALL_SECTORS.forEach(s => { (byGroup[s.group] = byGroup[s.group] || []).push(s); });
+  return Object.keys(SECTOR_GROUPS).filter(g => byGroup[g]).map(g =>
+    '<optgroup label="' + esc(SECTOR_GROUPS[g]) + '">' +
+    byGroup[g].sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name)).map(s =>
+      '<option value="' + esc(s.id) + '"' + (s.id === selected ? ' selected' : '') + '>' +
+      esc(s.name) + '</option>').join('') + '</optgroup>').join('');
+}
+
 function getOfftaker(id) { return state.offtakers.find(o => o.id === id) || {}; }
 function getProject(id) { return state.projects.find(p => p.id === id) || {}; }
 function contactsFor(id) { return state.contacts.filter(c => c.offtakerId === id); }
@@ -107,25 +141,32 @@ function nearestProject(o) {
 }
 
 /* Fit score, 0–100. A single number the sales team can sort by so the
-   call list starts with the offtakers most likely to sign. Weighted:
-   size of load, how flat it is, current tariff headroom, wheeling
-   feasibility, and distance to the nearest generation site. */
+   call list starts with the offtakers most likely to sign. Six factors:
+   size of load, how flat it is, tariff headroom, wheeling feasibility,
+   distance to a generation site, and how well the sector as a whole
+   suits a PPA (the desk's own 1–5 rating from the sector workbook). */
 function fitScore(o) {
   const gwh = num(o.annualGwh);
-  const sizeScore = Math.min(30, (gwh / 1000) * 30);                       // 1 TWh+ maxes out
+  const sizeScore = Math.min(26, (gwh / 1000) * 26);                       // 1 TWh+ maxes out
 
   const peak = num(o.peakMw);
   const lf = peak > 0 ? Math.min(1, (gwh * 1000) / (peak * 8760)) : 0;     // load factor
-  const shapeScore = lf * 22;                                              // flat load suits solar+BESS
+  const shapeScore = lf * 20;                                              // flat load suits solar+BESS
 
-  const tariffScore = Math.max(0, Math.min(20, (num(o.tariff) - 1.10) * 22)); // headroom vs our ~R1.10 target
+  /* Headroom against the wheeled-solar midpoint, which is what AEE can
+     actually offer — not an aspirational number. */
+  const tariffScore = Math.max(0, Math.min(18, (num(o.tariff) - MARKET_SOLAR_MID) * 18));
 
-  const wheelScore = { yes: 16, likely: 11, unknown: 5, no: 0 }[o.wheeling] ?? 5;
+  const wheelScore = { yes: 14, likely: 10, unknown: 4, no: 0 }[o.wheeling] ?? 4;
 
   const np = nearestProject(o);
-  const distScore = np ? Math.max(0, 12 - (np.km / 60)) : 0;               // 0 km = 12, 720 km+ = 0
+  const distScore = np ? Math.max(0, 10 - (np.km / 72)) : 0;               // 0 km = 10, 720 km+ = 0
 
-  return Math.round(Math.max(0, Math.min(100, sizeScore + shapeScore + tariffScore + wheelScore + distScore)));
+  const sector = SECTOR_BY_ID[o.sector];
+  const sectorScore = sector ? (num(sector.ppaFit) / 5) * 12 : 6;          // unknown sector sits mid-range
+
+  return Math.round(Math.max(0, Math.min(100,
+    sizeScore + shapeScore + tariffScore + wheelScore + distScore + sectorScore)));
 }
 function loadFactor(o) {
   const peak = num(o.peakMw);
@@ -142,8 +183,12 @@ function fitColor(score) {
 /* Indicative annual spend and the saving against an AEE PPA tariff.
    Deliberately simple and transparent — the sales team has to be able to
    explain every number on a call. */
-const DEFAULT_PPA_TARIFF = 1.10;   // R/kWh, indicative
-const DEFAULT_ESCALATION = 5.0;    // % a year
+/* Starting assumptions, taken from the desk's own market benchmarks in
+   data/sectors.js rather than invented, so a default quote reflects the
+   real market. Both are midpoints of a published band. */
+const DEFAULT_PPA_TARIFF = MARKET_SOLAR_MID;     // R1.30/kWh wheeled solar
+const DEFAULT_CURRENT_TARIFF = MARKET_MEGAFLEX_MID; // R2.30/kWh Megaflex all-in
+const DEFAULT_ESCALATION = 5.0;    // % a year, CPI-linked PPA indexation
 const ESKOM_ESCALATION = 11.0;     // % a year, recent trend
 const GRID_EMISSION_FACTOR = 0.95; // tCO2e per MWh, SA grid
 
@@ -189,16 +234,18 @@ function lsSet(key, value) {
 async function load() {
   state.projects = JSON.parse(JSON.stringify(AEE_PROJECTS));
   try {
-    const [offtakers, contacts, deals, interactions] = await Promise.all([
+    const [offtakers, contacts, deals, interactions, prospects] = await Promise.all([
       supaFetch('aee_offtakers?select=*&order=name'),
       supaFetch('aee_contacts?select=*&order=last'),
       supaFetch('aee_deals?select=*&order=mw.desc'),
       supaFetch('aee_interactions?select=*&order=date.desc'),
+      supaFetch('aee_prospects?select=*&order=name'),
     ]);
     state.offtakers = (offtakers || []).map(rowToOfftaker);
     state.contacts = (contacts || []).map(rowToContact);
     state.deals = (deals || []).map(rowToDeal);
     state.interactions = (interactions || []).map(rowToInteraction);
+    state.prospects = (prospects || []).map(rowToProspect);
     cacheLocally();
   } catch (e) {
     console.warn('Could not reach Supabase, falling back to the local cache:', e);
@@ -208,9 +255,10 @@ async function load() {
       state.contacts = cache.contacts || [];
       state.deals = cache.deals || [];
       state.interactions = cache.interactions || [];
+      state.prospects = cache.prospects || [];
       toast('Working from a cached copy — changes will not be saved', 'warn');
     } else {
-      state.offtakers = []; state.contacts = []; state.deals = []; state.interactions = [];
+      state.offtakers = []; state.contacts = []; state.deals = []; state.interactions = []; state.prospects = [];
       toast('Could not load the CRM data', 'danger');
     }
   }
@@ -221,7 +269,7 @@ async function load() {
 function cacheLocally() {
   lsSet('cache', {
     offtakers: state.offtakers, contacts: state.contacts,
-    deals: state.deals, interactions: state.interactions,
+    deals: state.deals, interactions: state.interactions, prospects: state.prospects,
     at: new Date().toISOString(),
   });
 }
@@ -244,7 +292,7 @@ function weightedValue(d) {
 }
 
 /* ─── ROUTING ─────────────────────────────────────────────────── */
-const ID_SCOPED_VIEWS = new Set(['detail']);
+const ID_SCOPED_VIEWS = new Set(['detail', 'sector']);
 
 function navUrlFor(view, id) {
   const p = new URLSearchParams(location.search);
@@ -258,7 +306,7 @@ function navUrlFor(view, id) {
 function nav(view, extra, fromHistory) {
   extra = extra || {};
   state.view = view;
-  if (extra.id) state.detailId = extra.id;
+  if (extra.id) { if (view === 'sector') state.sectorId = extra.id; else state.detailId = extra.id; }
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const target = document.querySelector('[data-view="' + view + '"]');
   if (target) target.classList.add('active');
@@ -283,8 +331,9 @@ addEventListener('popstate', e => {
     view = p.get('view') || 'dashboard';
     id = p.get('id');
   }
-  if (ID_SCOPED_VIEWS.has(view) && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
-  if (id) state.detailId = id;
+  if (view === 'detail' && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
+  if (view === 'sector' && !(id && sectorOf(id))) { view = 'sectors'; id = null; }
+  if (id) { if (view === 'sector') state.sectorId = id; else state.detailId = id; }
   nav(view, id ? { id } : {}, true);
 });
 
@@ -302,6 +351,9 @@ function render() {
     pipeline: renderPipeline,
     offtakers: renderOfftakers,
     detail: renderDetail,
+    sectors: renderSectors,
+    sector: renderSector,
+    prospects: renderProspects,
     contacts: renderContacts,
     projects: renderProjects,
     map: renderMap,
@@ -337,6 +389,9 @@ function updateNavBadges() {
   const hot = state.offtakers.filter(o => fitScore(o) >= 70 && o.status === 'prospect').length;
   const el = document.getElementById('nav-offtakers-badge');
   if (el) { el.textContent = hot; el.style.display = hot ? '' : 'none'; }
+  const pEl = document.getElementById('nav-prospects-badge');
+  const tier1New = state.prospects.filter(p => p.status === 'new' && sectorTier(p.sectorId) === 1).length;
+  if (pEl) { pEl.textContent = tier1New; pEl.style.display = tier1New ? '' : 'none'; }
   const dueEl = document.getElementById('nav-activity-badge');
   const due = state.deals.filter(d => d.closeDate && d.closeDate <= todayISO() && d.stage !== 'signed').length;
   if (dueEl) { dueEl.textContent = due; dueEl.style.display = due ? '' : 'none'; }
@@ -387,7 +442,7 @@ function globalSearch(q) {
   const rows = [];
   state.offtakers.forEach(o => {
     if ((o.name + ' ' + o.short + ' ' + o.city + ' ' + o.province).toLowerCase().includes(term))
-      rows.push({ t: o.name, s: SECTOR_LABEL[o.sector] + ' · ' + o.city, go: "nav('detail',{id:'" + o.id + "'})" });
+      rows.push({ t: o.name, s: sectorName(o.sector) + ' · ' + o.city, go: "nav('detail',{id:'" + o.id + "'})" });
   });
   state.contacts.forEach(c => {
     const full = (c.first + ' ' + c.last + ' ' + c.title).toLowerCase();
@@ -397,6 +452,14 @@ function globalSearch(q) {
   state.projects.forEach(p => {
     if (p.name.toLowerCase().includes(term))
       rows.push({ t: p.name, s: p.mw + ' MW · ' + p.province, go: "nav('projects')" });
+  });
+  state.prospects.forEach(p => {
+    if (p.name.toLowerCase().includes(term))
+      rows.push({ t: p.name, s: 'Prospect · ' + sectorName(p.sectorId), go: "nav('prospects')" });
+  });
+  ALL_SECTORS.forEach(s => {
+    if (s.name.toLowerCase().includes(term))
+      rows.push({ t: s.name, s: 'Sector · tier ' + s.tier + ' · PPA fit ' + s.ppaFit + '/5', go: "nav('sector',{id:'" + s.id + "'})" });
   });
 
   if (!rows.length) {
@@ -437,7 +500,7 @@ function exportOfftakers() {
     'nearest_project', 'distance_km', 'contacts', 'description'];
   const rows = [head].concat(state.offtakers.map(o => {
     const np = nearestProject(o);
-    return [o.id, o.name, o.short, SECTOR_LABEL[o.sector] || o.sector, o.province, o.city, o.website,
+    return [o.id, o.name, o.short, sectorName(o.sector), o.province, o.city, o.website,
       o.annualGwh, o.peakMw, o.tariff, o.supply, WHEELING_LABEL[o.wheeling] || o.wheeling, o.nmd,
       STATUS_LABEL[o.status] || o.status, o.priority, fitScore(o),
       np ? np.project.name : '', np ? np.km : '', contactsFor(o.id).length, o.description];
@@ -450,7 +513,7 @@ function exportContacts() {
   const head = ['first', 'last', 'title', 'department', 'offtaker', 'sector', 'province', 'email', 'phone', 'linkedin', 'role', 'priority', 'status', 'notes'];
   const rows = [head].concat(state.contacts.map(c => {
     const o = getOfftaker(c.offtakerId);
-    return [c.first, c.last, c.title, c.dept, o.name || '', SECTOR_LABEL[o.sector] || '', o.province || '',
+    return [c.first, c.last, c.title, c.dept, o.name || '', sectorName(o.sector), o.province || '',
       c.email, c.phone, c.linkedin, c.role, c.priority, c.status, c.notes];
   }));
   downloadCSV('aee-contacts-' + todayISO() + '.csv', rows);
@@ -652,10 +715,11 @@ async function onSignedIn(session) {
   hideGate();
 
   const p = new URLSearchParams(location.search);
-  const view = p.get('view') || 'dashboard';
+  let view = p.get('view') || 'dashboard';
   const id = p.get('id');
-  if (id) state.detailId = id;
-  nav(ID_SCOPED_VIEWS.has(view) && !getOfftaker(id).id ? 'offtakers' : view, id ? { id } : {}, true);
+  if (view === 'detail' && !getOfftaker(id).id) view = 'offtakers';
+  if (view === 'sector' && !sectorOf(id)) view = 'sectors';
+  nav(view, id ? { id } : {}, true);
 }
 
 async function boot() {

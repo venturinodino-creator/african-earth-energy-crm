@@ -131,6 +131,18 @@ function dealToRow(d) {
     close_date: d.closeDate || null, notes: d.notes, created_at: d.createdAt || null,
   };
 }
+function rowToProspect(r) {
+  return {
+    id: r.id, name: r.name || '', sectorId: r.sector_id || '', note: r.note || '',
+    status: r.status || 'new', promotedTo: r.promoted_to || '', notes: r.notes || '',
+  };
+}
+function prospectToRow(p) {
+  return {
+    id: p.id, name: p.name, sector_id: p.sectorId || null, note: p.note,
+    status: p.status, promoted_to: p.promotedTo || null, notes: p.notes,
+  };
+}
 function rowToInteraction(r) {
   return { id: r.id, offtakerId: r.offtaker_id || '', date: r.date || '', type: r.type || 'note', summary: r.summary || '' };
 }
@@ -150,6 +162,7 @@ async function pushOfftaker(o) { await guardWrite(() => upsert('aee_offtakers', 
 async function pushContact(c) { await guardWrite(() => upsert('aee_contacts', contactToRow(c))); }
 async function pushDeal(d) { await guardWrite(() => upsert('aee_deals', dealToRow(d))); }
 async function pushInteraction(i) { await guardWrite(() => upsert('aee_interactions', interactionToRow(i))); }
+async function pushProspect(p) { await guardWrite(() => upsert('aee_prospects', prospectToRow(p))); }
 async function removeRow(table, id) {
   await guardWrite(() => supaFetch(table + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE' }));
 }

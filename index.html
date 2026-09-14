@@ -52,6 +52,11 @@
     <div class="nav-item" data-view="contacts" onclick="nav('contacts')">
       <div class="nav-icon-box" data-icon="contacts"></div> Contacts
     </div>
+    <div class="nav-item" data-view="prospects" onclick="nav('prospects')">
+      <div class="nav-icon-box" data-icon="target"></div>
+      <span style="flex:1">Prospects</span>
+      <span id="nav-prospects-badge" class="nav-badge" style="display:none"></span>
+    </div>
     <div class="nav-item" data-view="activity" onclick="nav('activity')">
       <div class="nav-icon-box" data-icon="activity"></div>
       <span style="flex:1">Activity</span>
@@ -68,6 +73,9 @@
     </div>
     <div class="nav-item" data-view="analytics" onclick="nav('analytics')">
       <div class="nav-icon-box" data-icon="chart"></div> Analytics
+    </div>
+    <div class="nav-item" data-view="sectors" onclick="nav('sectors')">
+      <div class="nav-icon-box" data-icon="grid"></div> Sectors
     </div>
 
     <div class="sb-divider"></div>
@@ -130,16 +138,7 @@
         <div class="fg full"><label>Company name *</label><input id="mo-name" placeholder="e.g. Samancor Chrome — Middelburg Ferrochrome"></div>
         <div class="fg"><label>Short name</label><input id="mo-short" placeholder="Samancor"></div>
         <div class="fg"><label>Sector</label>
-          <select id="mo-sector">
-            <option value="mining">Mining</option>
-            <option value="smelter">Smelter / Metals</option>
-            <option value="industrial">Heavy Industry</option>
-            <option value="commercial">Commercial</option>
-            <option value="agriculture">Agri-processing</option>
-            <option value="datacentre">Data Centre</option>
-            <option value="retail">Retail</option>
-            <option value="municipality">Municipality</option>
-          </select>
+          <select id="mo-sector"></select>
         </div>
         <div class="fg"><label>Province</label>
           <select id="mo-province">
@@ -311,12 +310,14 @@
   </div>
 </div>
 
+<script src="data/sectors.js"></script>
 <script src="data/seed.js"></script>
 <script src="js/icons.js"></script>
 <script src="js/supabase.js"></script>
 <script src="js/core.js"></script>
 <script src="js/views-dashboard.js"></script>
 <script src="js/views-offtakers.js"></script>
+<script src="js/views-sectors.js"></script>
 <script src="js/views-tools.js"></script>
 <script src="js/forms.js"></script>
 <script src="animations.js"></script>
