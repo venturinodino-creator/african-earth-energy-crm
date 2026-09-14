@@ -85,9 +85,14 @@ The domain is `AUTH_DOMAIN` in [`js/supabase.js`](js/supabase.js), mirrored in
 `landing.html`. Change both together if it ever moves. Input is lower-cased and
 spaces become dots, so capitalisation and stray spaces do not matter.
 
-The address is only ever an identifier — nothing is sent to it. The trade-off
-is that there is no self-service "forgot password": resetting one means an
-admin setting a new password in the Supabase dashboard.
+For a synthetic `@aeeg.co.za` address the address is only ever an identifier —
+nothing is sent to it, and there is no self-service "forgot password": resetting
+one means an admin setting a new password in the Supabase dashboard.
+
+**The owner account is deliberately on a real address** (a reachable mailbox)
+and signs in with it in full, so recovery for the one account that holds admin
+over everything does not depend on the dashboard. Short usernames are for the
+reps. The login box accepts either.
 
 ### First-time setup
 

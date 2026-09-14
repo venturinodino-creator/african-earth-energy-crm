@@ -23,9 +23,10 @@ const SUPA_KEY = 'sb_publishable_jqCjOPRXZEIKjgNDVsL3uw_ldx-I-tO';
    what the account is actually stored under. Anything typed WITH an @ is
    passed through untouched, so a real address still works.
 
-   Trade-off worth knowing: accounts created on a domain that cannot receive
-   mail have no working "forgot password" route. Resetting one means an admin
-   setting a new password in the Supabase dashboard. */
+   Accounts created on a domain that cannot receive mail have no working
+   "forgot password" route — resetting one means an admin setting a new
+   password in the Supabase dashboard. For that reason the owner account is
+   deliberately on a real, reachable address and signs in with it in full. */
 const AUTH_DOMAIN = 'aeeg.co.za';
 
 function toAuthEmail(input) {

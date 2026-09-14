@@ -151,7 +151,7 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
     <h1>African Earth Energy</h1>
     <p class="gate-sub">Offtaker CRM &mdash; internal. Sign in with the username and password you were given.</p>
     <form class="gate-form" onsubmit="event.preventDefault();doLogin()">
-      <input id="lm-email" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      <input id="lm-email" type="text" placeholder="Username or email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
       <input id="lm-password" type="password" placeholder="Password" autocomplete="current-password" required>
       <button class="btn btn-primary" id="lm-btn" type="submit">Sign in</button>
     </form>
@@ -320,7 +320,7 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
     var password = document.getElementById('lm-password').value || '';
     var msg = document.getElementById('lm-msg');
     var btn = document.getElementById('lm-btn');
-    if (!email || !password) { msg.textContent = 'Enter both a username and a password.'; return; }
+    if (!email || !password) { msg.textContent = 'Enter your username and password.'; return; }
     await init();
     btn.disabled = true; btn.textContent = 'Signing in…';
     var res = await client.auth.signInWithPassword({ email: toAuthEmail(email), password: password });

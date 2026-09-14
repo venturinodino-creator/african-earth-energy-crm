@@ -600,7 +600,7 @@ function signInScreenHtml(message) {
     '<h1>African Earth Energy</h1>' +
     '<p class="gate-sub">Offtaker CRM — internal. Sign in with the username and password you were given.</p>' +
     '<form class="gate-form" onsubmit="event.preventDefault();doSignIn()">' +
-      '<input id="gate-email" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false" required>' +
+      '<input id="gate-email" type="text" placeholder="Username or email" autocomplete="username" autocapitalize="none" spellcheck="false" required>' +
       '<input id="gate-password" type="password" placeholder="Password" autocomplete="current-password" required>' +
       '<button class="btn btn-primary" id="gate-btn" type="submit">Sign in</button>' +
     '</form>' +
@@ -622,7 +622,7 @@ async function doSignIn() {
   const password = document.getElementById('gate-password').value || '';
   const msg = document.getElementById('gate-msg');
   const btn = document.getElementById('gate-btn');
-  if (!email || !password) { msg.textContent = 'Enter both a username and a password.'; return; }
+  if (!email || !password) { msg.textContent = 'Enter your username and password.'; return; }
   btn.disabled = true; btn.textContent = 'Signing in…';
   const res = await signIn(email, password);
   btn.disabled = false; btn.textContent = 'Sign in';
