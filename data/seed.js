@@ -3,14 +3,14 @@
    Loaded as a plain script so the app works from file:// and GitHub
    Pages alike (no fetch, no server needed).
 
-   AEE_PROJECTS  — the generation portfolio, from aeeg.co.za/en/projects
-   SEED_OFFTAKERS — candidate energy buyers for the sales team to work
-   SEED_CONTACTS  — people at those offtakers
-   PLAYBOOK       — outreach scripts the sales team can copy/paste
+   AEE_PROJECTS    — the generation portfolio, from aeeg.co.za/en/projects
+   PIPELINE_STAGES — the deal stages the kanban board is built from
+   PLAYBOOK        — outreach scripts the sales team can copy/paste
 
-   Offtaker and contact records are STARTING POINTS for the sales team:
-   names of real companies with publicly known operations, plus
-   estimated load figures flagged as estimates. Verify before quoting.
+   Only public, non-sensitive reference data lives here. The offtaker
+   target list, the contacts and the pipeline are NOT in this file —
+   they are in Supabase behind Row Level Security, so they are visible
+   only to a signed-in account that has been granted a role.
    ═══════════════════════════════════════════════════════════════════ */
 
 const AEE_PROJECTS = [
@@ -48,172 +48,6 @@ const PROVINCE_COORDS = {
   'Western Cape':[-33.92,18.42], 'Eastern Cape':[-33.02,27.91], 'KwaZulu-Natal':[-29.86,31.02],
   'North West':[-25.86,25.64], 'Free State':[-29.12,26.21], 'Northern Cape':[-28.74,24.76], 'Multiple':[-28.50,24.70],
 };
-
-/* Offtaker fields
-   annualGwh   estimated annual consumption, GWh/yr
-   peakMw      estimated maximum demand, MW
-   tariff      current blended tariff, R/kWh
-   supply      'eskom' | 'municipal' | 'mixed'
-   wheeling    'yes' | 'likely' | 'unknown' | 'no'   — wheeling feasibility
-   status      prospect | engaged | qualified | negotiating | contracted | lost
-   priority    high | medium | low
-   nearest     AEE_PROJECTS id
-   estimated   true when load figures are desk estimates, not verified
-*/
-const SEED_OFFTAKERS = [
-  { id:'samancor', name:'Samancor Chrome — Middelburg Ferrochrome', short:'Samancor', sector:'smelter',
-    province:'Mpumalanga', city:'Middelburg', website:'https://www.samancorcr.com', lat:-25.775, lng:29.464,
-    annualGwh:2400, peakMw:310, tariff:1.42, supply:'eskom', wheeling:'likely', nmd:340,
-    status:'engaged', priority:'high', nearest:'middelburg', estimated:true,
-    description:'Ferrochrome smelting complex. Electricity is the dominant input cost and the smelter sits inside the Middelburg project corridor.' },
-
-  { id:'glencore-merafe', name:'Glencore–Merafe Chrome Venture', short:'Merafe', sector:'smelter',
-    province:'Mpumalanga', city:'Steelpoort', website:'https://www.merafe.co.za', lat:-24.727, lng:30.208,
-    annualGwh:1900, peakMw:250, tariff:1.40, supply:'eskom', wheeling:'likely', nmd:280,
-    status:'prospect', priority:'high', nearest:'middelburg', estimated:true,
-    description:'Ferrochrome joint venture with several smelters. Has publicly cited power cost and load curtailment as key constraints.' },
-
-  { id:'implats', name:'Impala Platinum — Rustenburg', short:'Implats', sector:'mining',
-    province:'North West', city:'Rustenburg', website:'https://www.implats.co.za', lat:-25.667, lng:27.242,
-    annualGwh:1600, peakMw:210, tariff:1.38, supply:'eskom', wheeling:'yes', nmd:240,
-    status:'qualified', priority:'high', nearest:'mokopane', estimated:true,
-    description:'Platinum mining and processing. Active renewable procurement programme with a stated decarbonisation target.' },
-
-  { id:'angloplat', name:'Anglo American Platinum — Mogalakwena', short:'Amplats', sector:'mining',
-    province:'Limpopo', city:'Mokopane', website:'https://www.angloamericanplatinum.com', lat:-24.195, lng:29.009,
-    annualGwh:1350, peakMw:180, tariff:1.36, supply:'eskom', wheeling:'yes', nmd:200,
-    status:'negotiating', priority:'high', nearest:'mokopane', estimated:true,
-    description:'Largest open-pit PGM operation in the world. Sits ~25 km from the Mokopane project site.' },
-
-  { id:'exxaro', name:'Exxaro Resources — Grootegeluk', short:'Exxaro', sector:'mining',
-    province:'Limpopo', city:'Lephalale', website:'https://www.exxaro.com', lat:-23.669, lng:27.751,
-    annualGwh:900, peakMw:120, tariff:1.34, supply:'eskom', wheeling:'yes', nmd:150,
-    status:'engaged', priority:'high', nearest:'lephalale', estimated:true,
-    description:'Coal miner with an explicit diversification strategy into renewables. Directly adjacent to the Lephalale Eco Farm site.' },
-
-  { id:'sibanye', name:'Sibanye-Stillwater — Rustenburg Operations', short:'Sibanye', sector:'mining',
-    province:'North West', city:'Rustenburg', website:'https://www.sibanyestillwater.com', lat:-25.667, lng:27.242,
-    annualGwh:1500, peakMw:200, tariff:1.39, supply:'eskom', wheeling:'yes', nmd:230,
-    status:'prospect', priority:'high', nearest:'mokopane', estimated:true,
-    description:'Deep-level gold and PGM mining. Running a multi-hundred-MW renewable procurement pipeline.' },
-
-  { id:'northam', name:'Northam Platinum — Zondereinde', short:'Northam', sector:'mining',
-    province:'Limpopo', city:'Thabazimbi', website:'https://www.northam.co.za', lat:-24.591, lng:27.411,
-    annualGwh:620, peakMw:85, tariff:1.37, supply:'eskom', wheeling:'likely', nmd:100,
-    status:'prospect', priority:'medium', nearest:'lephalale', estimated:true,
-    description:'PGM producer on the western limb. Deep mine with a stable, high load factor — attractive baseload profile.' },
-
-  { id:'arcelormittal', name:'ArcelorMittal South Africa — Vanderbijlpark', short:'AMSA', sector:'smelter',
-    province:'Gauteng', city:'Vanderbijlpark', website:'https://www.arcelormittalsa.com', lat:-26.708, lng:27.838,
-    annualGwh:2100, peakMw:270, tariff:1.41, supply:'eskom', wheeling:'likely', nmd:310,
-    status:'prospect', priority:'high', nearest:'middelburg', estimated:true,
-    description:'Integrated steel works. Power cost is existential for the plant; strong motivation for a fixed-price PPA.' },
-
-  { id:'columbus', name:'Columbus Stainless', short:'Columbus', sector:'smelter',
-    province:'Mpumalanga', city:'Middelburg', website:'https://www.columbus.co.za', lat:-25.775, lng:29.464,
-    annualGwh:780, peakMw:105, tariff:1.40, supply:'municipal', wheeling:'likely', nmd:130,
-    status:'engaged', priority:'high', nearest:'middelburg', estimated:true,
-    description:'Stainless steel producer inside the Middelburg corridor. Municipal supply point — wheeling needs Steve Tshwete agreement.' },
-
-  { id:'sasol-secunda', name:'Sasol — Secunda Operations', short:'Sasol', sector:'industrial',
-    province:'Mpumalanga', city:'Secunda', website:'https://www.sasol.com', lat:-26.516, lng:29.202,
-    annualGwh:3200, peakMw:420, tariff:1.33, supply:'mixed', wheeling:'yes', nmd:480,
-    status:'qualified', priority:'high', nearest:'middelburg', estimated:true,
-    description:'Synfuels complex with a published 1.2 GW renewable procurement target and existing wheeling agreements in place.' },
-
-  { id:'pnp', name:'Pick n Pay — National Portfolio', short:'PnP', sector:'retail',
-    province:'Western Cape', city:'Cape Town', website:'https://www.picknpay.co.za', lat:-33.925, lng:18.424,
-    annualGwh:420, peakMw:70, tariff:2.05, supply:'municipal', wheeling:'likely', nmd:90,
-    status:'engaged', priority:'medium', nearest:'riverlands', estimated:true,
-    description:'National retail estate with refrigeration-heavy load across many metered sites. Aggregated wheeling candidate.' },
-
-  { id:'shoprite', name:'Shoprite Holdings — Distribution Network', short:'Shoprite', sector:'retail',
-    province:'Western Cape', city:'Brackenfell', website:'https://www.shopriteholdings.co.za', lat:-33.873, lng:18.698,
-    annualGwh:560, peakMw:88, tariff:2.10, supply:'municipal', wheeling:'likely', nmd:110,
-    status:'prospect', priority:'medium', nearest:'riverlands', estimated:true,
-    description:'Large cold-chain distribution footprint. Already an active renewable buyer — competitive process likely.' },
-
-  { id:'teraco', name:'Teraco Data Environments', short:'Teraco', sector:'datacentre',
-    province:'Gauteng', city:'Isando', website:'https://www.teraco.co.za', lat:-26.135, lng:28.208,
-    annualGwh:640, peakMw:95, tariff:1.55, supply:'municipal', wheeling:'yes', nmd:130,
-    status:'qualified', priority:'high', nearest:'middelburg', estimated:true,
-    description:'Colocation operator with a stated 100% renewable commitment and an existing wheeling framework. Flat 24/7 load — ideal for solar+BESS.' },
-
-  { id:'vodacom', name:'Vodacom South Africa — Network Estate', short:'Vodacom', sector:'commercial',
-    province:'Gauteng', city:'Midrand', website:'https://www.vodacom.co.za', lat:-25.999, lng:28.126,
-    annualGwh:380, peakMw:58, tariff:1.72, supply:'mixed', wheeling:'likely', nmd:80,
-    status:'prospect', priority:'medium', nearest:'middelburg', estimated:true,
-    description:'Base-station and data-centre estate. Distributed load across metros — aggregation contract shape.' },
-
-  { id:'distell', name:'Heineken Beverages (Distell) — Stellenbosch', short:'Heineken Bev', sector:'industrial',
-    province:'Western Cape', city:'Stellenbosch', website:'https://www.heinekenbeverages.com', lat:-33.934, lng:18.86,
-    annualGwh:210, peakMw:34, tariff:1.88, supply:'municipal', wheeling:'likely', nmd:48,
-    status:'prospect', priority:'medium', nearest:'riverlands', estimated:true,
-    description:'Beverage production and bottling. Group-level science-based emissions target creates a clear PPA driver.' },
-
-  { id:'astral', name:'Astral Foods — Processing Plants', short:'Astral', sector:'agriculture',
-    province:'Gauteng', city:'Pretoria', website:'https://www.astralfoods.com', lat:-25.746, lng:28.188,
-    annualGwh:290, peakMw:44, tariff:1.79, supply:'mixed', wheeling:'likely', nmd:62,
-    status:'prospect', priority:'medium', nearest:'middelburg', estimated:true,
-    description:'Poultry processing with continuous refrigeration load. Has publicly quantified load-shedding cost impact.' },
-
-  { id:'clover', name:'Clover SA — Queensburgh & Clayville', short:'Clover', sector:'agriculture',
-    province:'Gauteng', city:'Clayville', website:'https://www.clover.co.za', lat:-25.996, lng:28.283,
-    annualGwh:160, peakMw:26, tariff:1.83, supply:'municipal', wheeling:'unknown', nmd:38,
-    status:'prospect', priority:'low', nearest:'middelburg', estimated:true,
-    description:'Dairy processing and cold chain. Smaller load — candidate for a portfolio/aggregated wheeling deal.' },
-
-  { id:'pgbison', name:'PG Bison — Ugie Mill', short:'PG Bison', sector:'industrial',
-    province:'Eastern Cape', city:'Ugie', website:'https://www.pgbison.co.za', lat:-31.213, lng:28.222,
-    annualGwh:240, peakMw:36, tariff:1.44, supply:'eskom', wheeling:'unknown', nmd:52,
-    status:'prospect', priority:'low', nearest:'oudtshoorn', estimated:true,
-    description:'Board manufacturing mill with continuous process load in a weak-grid area.' },
-
-  { id:'sanlam', name:'Sanlam — Bellville Campus & Property Portfolio', short:'Sanlam', sector:'commercial',
-    province:'Western Cape', city:'Bellville', website:'https://www.sanlam.com', lat:-33.898, lng:18.63,
-    annualGwh:95, peakMw:16, tariff:2.12, supply:'municipal', wheeling:'likely', nmd:24,
-    status:'prospect', priority:'low', nearest:'riverlands', estimated:true,
-    description:'Corporate campus plus managed property portfolio. ESG-reporting-driven buyer rather than cost-driven.' },
-
-  { id:'stellenbosch-muni', name:'Stellenbosch Municipality', short:'Stellenbosch', sector:'municipality',
-    province:'Western Cape', city:'Stellenbosch', website:'https://www.stellenbosch.gov.za', lat:-33.936, lng:18.86,
-    annualGwh:480, peakMw:76, tariff:1.30, supply:'eskom', wheeling:'yes', nmd:105,
-    status:'engaged', priority:'medium', nearest:'riverlands', estimated:true,
-    description:'One of the municipalities with an active IPP procurement process under the amended ERA framework.' },
-];
-
-const SEED_CONTACTS = [
-  { id:'c-sam-1', offtakerId:'samancor', first:'Procurement', last:'Lead', title:'Group Energy Procurement Manager',
-    dept:'Supply Chain', email:'', phone:'', linkedin:'', role:'decision', priority:'high', status:'active',
-    notes:'Placeholder — confirm the name before outreach. Owns the electricity contract.' },
-  { id:'c-sam-2', offtakerId:'samancor', first:'Plant', last:'Engineering', title:'Head of Plant Engineering',
-    dept:'Operations', email:'', phone:'', linkedin:'', role:'influencer', priority:'medium', status:'active',
-    notes:'Technical sign-off on the connection point and supply quality.' },
-  { id:'c-imp-1', offtakerId:'implats', first:'Renewables', last:'Programme', title:'Head of Renewable Energy Programme',
-    dept:'Group Technical', email:'', phone:'', linkedin:'', role:'decision', priority:'high', status:'active',
-    notes:'Runs the group renewable procurement process. Prefers structured RFPs over inbound approaches.' },
-  { id:'c-amp-1', offtakerId:'angloplat', first:'Energy', last:'Manager', title:'Group Energy Manager',
-    dept:'Sustainability', email:'', phone:'', linkedin:'', role:'decision', priority:'high', status:'active',
-    notes:'Mogalakwena is the anchor site nearest the Mokopane project.' },
-  { id:'c-exx-1', offtakerId:'exxaro', first:'Cennergi', last:'Team', title:'Business Development — Cennergi',
-    dept:'Energy Business', email:'', phone:'', linkedin:'', role:'decision', priority:'high', status:'active',
-    notes:'Exxaro develops its own renewables through Cennergi — position AEE as complementary, not competing.' },
-  { id:'c-ter-1', offtakerId:'teraco', first:'Energy', last:'Strategy', title:'Head of Energy Strategy',
-    dept:'Infrastructure', email:'', phone:'', linkedin:'', role:'decision', priority:'high', status:'active',
-    notes:'Already wheeling. Needs firmed 24/7 supply — lead with the BESS component.' },
-  { id:'c-col-1', offtakerId:'columbus', first:'Utilities', last:'Manager', title:'Utilities Manager',
-    dept:'Operations', email:'', phone:'', linkedin:'', role:'influencer', priority:'high', status:'active',
-    notes:'Municipal supply — a tripartite agreement with Steve Tshwete LM will be needed.' },
-  { id:'c-sas-1', offtakerId:'sasol-secunda', first:'Renewable', last:'Procurement', title:'Renewable Procurement Lead',
-    dept:'Energy Business', email:'', phone:'', linkedin:'', role:'decision', priority:'high', status:'active',
-    notes:'Runs large competitive RFPs. Pre-qualification is the realistic first goal.' },
-  { id:'c-pnp-1', offtakerId:'pnp', first:'Sustainability', last:'Lead', title:'Head of Sustainability',
-    dept:'Group Services', email:'', phone:'', linkedin:'', role:'influencer', priority:'medium', status:'active',
-    notes:'Drives the renewable mandate; finance signs the PPA.' },
-  { id:'c-stb-1', offtakerId:'stellenbosch-muni', first:'Electrical', last:'Services', title:'Director: Electrical Services',
-    dept:'Infrastructure', email:'', phone:'', linkedin:'', role:'decision', priority:'medium', status:'active',
-    notes:'Municipal IPP procurement must follow MFMA process — expect a formal tender.' },
-];
 
 /* Stages the sales team moves a PPA opportunity through. */
 const PIPELINE_STAGES = [

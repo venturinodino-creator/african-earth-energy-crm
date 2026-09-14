@@ -48,14 +48,17 @@ function saveOfftaker() {
     supply: val('mo-supply'), wheeling: val('mo-wheeling'), nmd: num(val('mo-nmd')),
     status: val('mo-status'), priority: val('mo-priority'), description: val('mo-desc'),
   };
+  let saved;
   if (state.editOfftakerId) {
     const i = state.offtakers.findIndex(o => o.id === state.editOfftakerId);
     /* Keep the estimated flag and any coordinates already on the record. */
-    state.offtakers[i] = { ...state.offtakers[i], ...rec };
+    saved = state.offtakers[i] = { ...state.offtakers[i], ...rec };
   } else {
-    state.offtakers.push({ id: uid('off'), estimated: true, ...rec });
+    saved = { id: uid('off'), estimated: true, ...rec };
+    state.offtakers.push(saved);
   }
   save();
+  pushOfftaker(saved);
   closeModal('modal-offtaker');
   toast(state.editOfftakerId ? 'Offtaker updated' : 'Offtaker added');
   state.editOfftakerId = null;
@@ -101,13 +104,16 @@ function saveContact() {
     email: val('mc-email'), phone: val('mc-phone'), linkedin: val('mc-linkedin'),
     role: val('mc-role'), priority: val('mc-priority'), status: val('mc-status'), notes: val('mc-notes'),
   };
+  let saved;
   if (state.editContactId) {
     const i = state.contacts.findIndex(c => c.id === state.editContactId);
-    state.contacts[i] = { ...state.contacts[i], ...rec };
+    saved = state.contacts[i] = { ...state.contacts[i], ...rec };
   } else {
-    state.contacts.push({ id: uid('c'), ...rec });
+    saved = { id: uid('c'), ...rec };
+    state.contacts.push(saved);
   }
   save();
+  pushContact(saved);
   closeModal('modal-contact');
   toast(state.editContactId ? 'Contact updated' : 'Contact added');
   state.editContactId = null;
@@ -188,13 +194,16 @@ function saveDeal() {
     probability: num(val('md-probability')), closeDate: val('md-close'), notes: val('md-notes'),
     name: (o.short || o.name) + ' — ' + fmtNum(num(val('md-mw'))) + ' MW PPA',
   };
+  let saved;
   if (state.editDealId) {
     const i = state.deals.findIndex(d => d.id === state.editDealId);
-    state.deals[i] = { ...state.deals[i], ...rec };
+    saved = state.deals[i] = { ...state.deals[i], ...rec };
   } else {
-    state.deals.push({ id: uid('deal'), createdAt: todayISO(), ...rec });
+    saved = { id: uid('deal'), createdAt: todayISO(), ...rec };
+    state.deals.push(saved);
   }
   save();
+  pushDeal(saved);
   closeModal('modal-deal');
   toast(state.editDealId ? 'Opportunity updated' : 'Opportunity created');
   state.editDealId = null;
@@ -204,6 +213,7 @@ function saveDeal() {
 function deleteDeal() {
   if (!state.editDealId) return;
   if (!confirm('Delete this opportunity?')) return;
+  removeRow('aee_deals', state.editDealId);
   state.deals = state.deals.filter(d => d.id !== state.editDealId);
   save();
   closeModal('modal-deal');
@@ -227,14 +237,16 @@ function saveInteraction() {
   const summary = val('mi-summary');
   if (!offtakerId) { toast('Pick an offtaker', 'warn'); return; }
   if (!summary) { toast('Write a one-line summary — future you will need it', 'warn'); return; }
-  state.interactions.push({
+  const entry = {
     id: uid('int'), offtakerId, date: val('mi-date') || todayISO(),
     type: val('mi-type'), summary,
-  });
+  };
+  state.interactions.push(entry);
+  pushInteraction(entry);
   /* Logging the first real contact nudges a cold prospect forward, so the
      status on the record stops lying about where the account stands. */
   const o = state.offtakers.find(x => x.id === offtakerId);
-  if (o && o.status === 'prospect') o.status = 'engaged';
+  if (o && o.status === 'prospect') { o.status = 'engaged'; pushOfftaker(o); }
   save();
   closeModal('modal-interaction');
   toast('Activity logged');
@@ -243,6 +255,7 @@ function saveInteraction() {
 
 function deleteInteraction(id) {
   if (!confirm('Delete this log entry?')) return;
+  removeRow('aee_interactions', id);
   state.interactions = state.interactions.filter(i => i.id !== id);
   save();
   toast('Entry deleted');
@@ -260,12 +273,19 @@ function confirmDelete(kind, id) {
   if (!confirm('Delete ' + name + '?' + extra)) return;
 
   if (kind === 'offtaker') {
+    /* Delete the children first: the database has no cascade on these,
+       so removing the parent alone would orphan them. */
+    contactsFor(id).forEach(c => removeRow('aee_contacts', c.id));
+    dealsFor(id).forEach(d => removeRow('aee_deals', d.id));
+    interactionsFor(id).forEach(i => removeRow('aee_interactions', i.id));
+    removeRow('aee_offtakers', id);
     state.offtakers = state.offtakers.filter(o => o.id !== id);
     state.contacts = state.contacts.filter(c => c.offtakerId !== id);
     state.deals = state.deals.filter(d => d.offtakerId !== id);
     state.interactions = state.interactions.filter(i => i.offtakerId !== id);
     if (state.detailId === id) { save(); nav('offtakers'); toast('Offtaker deleted'); return; }
   } else {
+    removeRow('aee_contacts', id);
     state.contacts = state.contacts.filter(c => c.id !== id);
   }
   save();

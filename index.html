@@ -15,6 +15,13 @@
 </head>
 <body>
 
+<!-- Auth gate. Everything below stays hidden until Supabase confirms a
+     session AND the profile carries a role, so a signed-out visitor never
+     sees the app shell at all. -->
+<div id="auth-gate"></div>
+
+<div id="app-shell" style="display:none;width:100%">
+
 <nav class="sb">
   <a class="sb-logo" href="landing.html" title="Back to home">
     <div class="sb-logo-mark">
@@ -74,19 +81,19 @@
 
     <div class="sb-divider"></div>
     <div class="nav-section">Data</div>
-    <div class="nav-item" onclick="openImport()">
+    <div class="nav-item" data-admin-only onclick="openImport()">
       <div class="nav-icon-box" data-icon="upload"></div>
       <div style="flex:1"><div>Import contacts</div><div style="font-size:10px;opacity:.55;margin-top:1px">from CSV</div></div>
     </div>
     <div class="nav-item" onclick="exportOfftakers()">
       <div class="nav-icon-box" data-icon="download"></div> Export offtakers
     </div>
-    <div class="nav-item" onclick="resetData()">
-      <div class="nav-icon-box" data-icon="refresh"></div> Reset data
+    <div class="nav-item" onclick="refreshData()">
+      <div class="nav-icon-box" data-icon="refresh"></div> Reload from server
     </div>
   </div>
 
-  <div class="sb-footer"><span class="sb-footer-dot"></span> Saved in this browser</div>
+  <div class="sb-footer"><span class="sb-footer-dot"></span> Synced to Supabase</div>
 </nav>
 
 <div class="main">
@@ -107,10 +114,13 @@
       <div id="global-search-results" class="gs-results"></div>
     </div>
     <div class="topbar-right" id="topbar-actions"></div>
+    <div id="user-badge" class="user-badge" style="display:none"></div>
   </div>
   <div id="back-to-main"></div>
   <div class="content" id="content"></div>
 </div>
+
+</div><!-- /app-shell -->
 
 <div id="toast"></div>
 
@@ -306,15 +316,12 @@
 
 <script src="data/seed.js"></script>
 <script src="js/icons.js"></script>
+<script src="js/supabase.js"></script>
 <script src="js/core.js"></script>
 <script src="js/views-dashboard.js"></script>
 <script src="js/views-offtakers.js"></script>
 <script src="js/views-tools.js"></script>
 <script src="js/forms.js"></script>
 <script src="animations.js"></script>
-<script>
-  /* Paint the sidebar glyphs once the icon set is available. */
-  document.querySelectorAll('[data-icon]').forEach(function (el) { el.innerHTML = icon(el.dataset.icon, 17); });
-</script>
 </body>
 </html>

@@ -39,7 +39,7 @@ function renderOfftakers() {
       '<button class="vt-btn ' + (state.offView === 'table' ? 'active' : '') + '" onclick="setOffView(\'table\')">Table</button>' +
     '</div>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
-    '<button class="btn btn-primary btn-sm" onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
 
   const provinces = [...new Set(state.offtakers.map(o => o.province))].sort();
   const toolbar =
@@ -104,8 +104,8 @@ function offtakerCardHtml(o) {
     '<div class="ec-footer" style="border-top:none;padding-top:0;margin-top:6px">' +
       '<span>' + icon('contacts', 13) + ' ' + cc + ' contact' + (cc === 1 ? '' : 's') + '</span>' +
       '<div class="ec-actions">' +
-        '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 12) + '</button>' +
-        '<button class="btn btn-xs btn-danger" onclick="event.stopPropagation();confirmDelete(\'offtaker\',\'' + o.id + '\')">' + icon('trash', 12) + '</button>' +
+        '<button class="btn btn-xs btn-outline" data-admin-only onclick="event.stopPropagation();openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 12) + '</button>' +
+        '<button class="btn btn-xs btn-danger" data-admin-only onclick="event.stopPropagation();confirmDelete(\'offtaker\',\'' + o.id + '\')">' + icon('trash', 12) + '</button>' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -136,8 +136,8 @@ function offtakerTableHtml(list) {
         '<td class="num">' + contactsFor(o.id).length + '</td>' +
         '<td onclick="event.stopPropagation()" style="white-space:nowrap">' +
           (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Site</a> ' : '') +
-          '<button class="btn btn-xs btn-outline" onclick="openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 12) + '</button> ' +
-          '<button class="btn btn-xs btn-danger" onclick="confirmDelete(\'offtaker\',\'' + o.id + '\')">' + icon('trash', 12) + '</button>' +
+          '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 12) + '</button> ' +
+          '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'offtaker\',\'' + o.id + '\')">' + icon('trash', 12) + '</button>' +
         '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
@@ -240,8 +240,8 @@ function renderDetail() {
               (c.phone ? esc(c.phone) : '') + '</div>' : '') +
           '</div>' +
           '<div class="person-actions">' +
-            '<button class="btn btn-xs btn-outline" onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button>' +
-            '<button class="btn btn-xs btn-danger" onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
+            '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button>' +
+            '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
           '</div>' +
         '</div>').join('')
         : '<div class="empty" style="padding:26px 10px"><h3>No contacts yet</h3><p>Add the person who signs the electricity contract, not just the person who answers the phone.</p></div>') +
@@ -272,7 +272,7 @@ function renderDetail() {
         '<div class="int-row"><div class="int-dot"></div><div class="int-body">' +
         '<div class="int-meta">' + esc(i.type) + ' · ' + esc(i.date) + ' · ' + relTime(i.date) + '</div>' +
         '<div class="int-text">' + esc(i.summary) + '</div></div>' +
-        '<button class="btn btn-xs btn-ghost" onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('')
+        '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('')
         : '<div class="empty" style="padding:26px 10px"><h3>Nothing logged</h3><p>Log every call. The next rep to pick this account up will thank you.</p></div>') +
     '</div>';
 
@@ -362,9 +362,9 @@ function renderContacts() {
 
   setPage('Contacts', state.contacts.length + ' people across ' +
     new Set(state.contacts.map(c => c.offtakerId).filter(Boolean)).size + ' offtakers',
-    '<button class="btn btn-outline btn-sm" onclick="openImport()">' + icon('upload', 14) + ' Import CSV</button>' +
+    '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport()">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportContacts()">' + icon('download', 14) + ' Export</button>' +
-    '<button class="btn btn-primary btn-sm" onclick="openAddContact()">' + icon('plus', 14) + ' Add contact</button>');
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact()">' + icon('plus', 14) + ' Add contact</button>');
 
   const toolbar =
     '<div class="toolbar">' +
@@ -413,8 +413,8 @@ function renderContacts() {
         '<td><span class="badge b-' + c.priority + '">' + esc(c.priority) + '</span></td>' +
         '<td style="white-space:nowrap">' +
           (safeHref(c.linkedin) ? '<a class="btn btn-xs btn-outline" href="' + esc(safeHref(c.linkedin)) + '" target="_blank" rel="noopener">' + icon('link', 11) + '</a> ' : '') +
-          '<button class="btn btn-xs btn-outline" onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button> ' +
-          '<button class="btn btn-xs btn-danger" onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
+          '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button> ' +
+          '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
         '</td></tr>';
     }).join('') + '</tbody></table></div>' +
     (pages > 1 ? '<div class="pagination">' +

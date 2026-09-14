@@ -16,6 +16,9 @@ let state = {
   interactions: [],
   projects: [],
 
+  role: null,   // 'admin' | 'viewer' | 'pending' | null (signed out)
+  email: null,
+
   view: 'dashboard',
   detailId: null,
   editOfftakerId: null,
@@ -180,56 +183,52 @@ function lsSet(key, value) {
   catch (e) { console.warn('Could not save', key, e); }
 }
 
-function load() {
-  const version = localStorage.getItem(STORE_PREFIX + 'version');
-  const fresh = version !== SEED_VERSION;
-
-  state.projects = lsGet('projects', null) || JSON.parse(JSON.stringify(AEE_PROJECTS));
-  state.offtakers = (fresh ? null : lsGet('offtakers', null)) || JSON.parse(JSON.stringify(SEED_OFFTAKERS));
-  state.contacts = (fresh ? null : lsGet('contacts', null)) || JSON.parse(JSON.stringify(SEED_CONTACTS));
-  state.deals = (fresh ? null : lsGet('deals', null)) || seedDeals();
-  state.interactions = lsGet('interactions', null) || [];
-
-  if (fresh) localStorage.setItem(STORE_PREFIX + 'version', SEED_VERSION);
-  save();
+/* Pull every record the signed-in user is allowed to see. The generation
+   portfolio is not in the database — it is AEE's own published project
+   list, so it ships with the app and needs no sync. */
+async function load() {
+  state.projects = JSON.parse(JSON.stringify(AEE_PROJECTS));
+  try {
+    const [offtakers, contacts, deals, interactions] = await Promise.all([
+      supaFetch('aee_offtakers?select=*&order=name'),
+      supaFetch('aee_contacts?select=*&order=last'),
+      supaFetch('aee_deals?select=*&order=mw.desc'),
+      supaFetch('aee_interactions?select=*&order=date.desc'),
+    ]);
+    state.offtakers = (offtakers || []).map(rowToOfftaker);
+    state.contacts = (contacts || []).map(rowToContact);
+    state.deals = (deals || []).map(rowToDeal);
+    state.interactions = (interactions || []).map(rowToInteraction);
+    cacheLocally();
+  } catch (e) {
+    console.warn('Could not reach Supabase, falling back to the local cache:', e);
+    const cache = lsGet('cache', null);
+    if (cache) {
+      state.offtakers = cache.offtakers || [];
+      state.contacts = cache.contacts || [];
+      state.deals = cache.deals || [];
+      state.interactions = cache.interactions || [];
+      toast('Working from a cached copy — changes will not be saved', 'warn');
+    } else {
+      state.offtakers = []; state.contacts = []; state.deals = []; state.interactions = [];
+      toast('Could not load the CRM data', 'danger');
+    }
+  }
 }
 
-/* Opening pipeline, derived from the seeded offtakers so the board is not
-   empty on first run. Regenerated only when there is nothing stored.
-   Volumes are kept inside each site's capacity — an oversubscribed site is
-   a real signal the app raises, not something the seed should fake. */
-function seedDeals() {
-  const map = [
-    // offtaker,          site,          MW,  stage,         tariff, tenor, probability %
-    ['sasol-secunda',     'limpopo300',  120, 'qualified',   1.05,   20,    35],
-    ['arcelormittal',     'limpopo150',   60, 'identified',  1.07,   20,    10],
-    ['exxaro',            'lephalale',    50, 'contacted',   1.06,   20,    20],
-    ['implats',           'lephalale',    40, 'qualified',   1.09,   20,    35],
-    ['angloplat',         'mokopane',     25, 'negotiation', 1.08,   20,    75],
-    ['samancor',          'middelburg',   25, 'contacted',   1.10,   20,    20],
-    ['teraco',            'middelburg',   15, 'proposal',    1.12,   15,    45],
-    ['columbus',          'middelburg',    8, 'identified',  1.12,   15,    10],
-    ['shoprite',          'overberg',      6, 'identified',  1.26,   15,    10],
-    ['stellenbosch-muni', 'riverlands',    4, 'contacted',   1.15,   15,    20],
-    ['pnp',               'riverlands',    4, 'identified',  1.28,   15,    10],
-  ];
-  return map.map(([offtakerId, projectId, mw, stage, tariff, tenor, probability]) => {
-    const o = SEED_OFFTAKERS.find(x => x.id === offtakerId) || {};
-    return {
-      id: uid('deal'), offtakerId, projectId, mw, stage, tariff, tenor, probability,
-      name: (o.short || o.name || 'Opportunity') + ' — ' + mw + ' MW PPA',
-      closeDate: '', notes: '', createdAt: todayISO(),
-    };
+/* A read-only snapshot so a dropped connection shows the last known data
+   instead of an empty app. Never written back to the server. */
+function cacheLocally() {
+  lsSet('cache', {
+    offtakers: state.offtakers, contacts: state.contacts,
+    deals: state.deals, interactions: state.interactions,
+    at: new Date().toISOString(),
   });
 }
 
-function save() {
-  lsSet('offtakers', state.offtakers);
-  lsSet('contacts', state.contacts);
-  lsSet('deals', state.deals);
-  lsSet('interactions', state.interactions);
-  lsSet('projects', state.projects);
-}
+/* Kept as the local-cache refresh. Server writes happen per record via the
+   push* helpers in js/supabase.js, called from the form handlers. */
+function save() { cacheLocally(); }
 
 /* Annual contract value of a deal, R. MW × load hours × tariff, using an
    assumed 30% capacity factor for the generation side. */
@@ -314,6 +313,17 @@ function render() {
   (views[state.view] || renderDashboard)();
   renderBackToMain();
   updateNavBadges();
+  applyRoleUI();
+}
+
+/* Hides everything marked data-admin-only from viewers. This is a courtesy
+   so read-only users are not shown buttons that will fail — the actual
+   enforcement is the Row Level Security policies in the database. */
+function applyRoleUI() {
+  const isAdmin = state.role === 'admin';
+  document.querySelectorAll('[data-admin-only]').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
 }
 
 function setPage(title, sub, actions) {
@@ -560,22 +570,119 @@ function runImport() {
   nav('contacts');
 }
 
-/* ─── RESET ───────────────────────────────────────────────────── */
-function resetData() {
-  if (!confirm('Reset every offtaker, contact and opportunity back to the seeded starting set?\n\nAnything you have added or edited in this browser will be lost.')) return;
-  ['offtakers', 'contacts', 'deals', 'interactions', 'projects', 'version'].forEach(k => localStorage.removeItem(STORE_PREFIX + k));
-  load();
-  nav('dashboard');
-  toast('Data reset to the seeded starting set');
+/* ─── REFRESH ─────────────────────────────────────────────────── */
+/* Re-reads everything from the server, discarding the local cache. */
+async function refreshData() {
+  try { localStorage.removeItem(STORE_PREFIX + 'cache'); } catch (e) {}
+  await load();
+  render();
+  toast('Reloaded from the server');
 }
 
-/* ─── BOOT ────────────────────────────────────────────────────── */
-function boot() {
-  load();
+/* ─── BOOT / AUTH GATE ────────────────────────────────────────────
+   Nothing renders until Supabase confirms a session and the profile
+   carries a role. A signed-out visitor gets the sign-in screen; a
+   signed-in account still on 'pending' is told to ask for access. */
+function showGate(html) {
+  document.getElementById('app-shell').style.display = 'none';
+  const gate = document.getElementById('auth-gate');
+  gate.innerHTML = html;
+  gate.style.display = 'flex';
+}
+function hideGate() {
+  document.getElementById('auth-gate').style.display = 'none';
+  document.getElementById('app-shell').style.display = '';
+}
+
+function signInScreenHtml(message) {
+  return '<div class="gate-card">' +
+    '<div class="gate-mark">' + icon('bolt', 22) + '</div>' +
+    '<h1>African Earth Energy</h1>' +
+    '<p class="gate-sub">Offtaker CRM — internal. Sign in with the account you were given.</p>' +
+    '<form class="gate-form" onsubmit="event.preventDefault();doSignIn()">' +
+      '<input id="gate-email" type="email" placeholder="you@aeeg.co.za" autocomplete="username" required>' +
+      '<input id="gate-password" type="password" placeholder="Password" autocomplete="current-password" required>' +
+      '<button class="btn btn-primary" id="gate-btn" type="submit">Sign in</button>' +
+    '</form>' +
+    '<div class="gate-msg" id="gate-msg">' + (message ? esc(message) : '') + '</div>' +
+  '</div>';
+}
+
+function pendingScreenHtml(email) {
+  return '<div class="gate-card">' +
+    '<div class="gate-mark">' + icon('clock', 22) + '</div>' +
+    '<h1>Access not granted yet</h1>' +
+    '<p class="gate-sub">You are signed in as <b>' + esc(email) + '</b>, but this account has not been given access to the CRM. Ask an administrator to grant it.</p>' +
+    '<button class="btn btn-outline" onclick="signOut()">Sign out</button>' +
+  '</div>';
+}
+
+async function doSignIn() {
+  const email = (document.getElementById('gate-email').value || '').trim();
+  const password = document.getElementById('gate-password').value || '';
+  const msg = document.getElementById('gate-msg');
+  const btn = document.getElementById('gate-btn');
+  if (!email || !password) { msg.textContent = 'Enter both an email address and a password.'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const res = await signIn(email, password);
+  btn.disabled = false; btn.textContent = 'Sign in';
+  if (res.error) {
+    msg.textContent = /invalid/i.test(res.error.message)
+      ? 'That email and password combination was not recognised.'
+      : res.error.message;
+  }
+  /* A success fires onAuthStateChange, which takes it from here. */
+}
+
+function setUserBadge(email, role) {
+  const el = document.getElementById('user-badge');
+  if (!el) return;
+  if (!email) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML =
+    '<div class="av" style="width:24px;height:24px;font-size:9px;background:' + avatarColor(email) + '">' +
+      esc((email[0] || '?').toUpperCase()) + '</div>' +
+    '<div class="ub-text"><div class="ub-email">' + esc(email) + '</div>' +
+    '<div class="ub-role">' + (role === 'admin' ? 'Admin' : 'Read only') + '</div></div>' +
+    '<button class="btn btn-ghost btn-xs" onclick="signOut()" title="Sign out">' + icon('logout', 13) + '</button>';
+}
+
+async function onSignedIn(session) {
+  state.email = (session.user.email || '').toLowerCase();
+  state.role = await currentRole(session.user.id);
+
+  if (state.role !== 'admin' && state.role !== 'viewer') {
+    showGate(pendingScreenHtml(state.email));
+    return;
+  }
+
+  await load();
+  setUserBadge(state.email, state.role);
+  hideGate();
+
   const p = new URLSearchParams(location.search);
   const view = p.get('view') || 'dashboard';
   const id = p.get('id');
   if (id) state.detailId = id;
   nav(ID_SCOPED_VIEWS.has(view) && !getOfftaker(id).id ? 'offtakers' : view, id ? { id } : {}, true);
+}
+
+async function boot() {
+  document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon, 17); });
+  showGate('<div class="gate-card"><div class="gate-spinner"></div><p class="gate-sub">Checking your session…</p></div>');
+
+  await initSupabase();
+  const { data } = await supabaseClient.auth.getSession();
+  if (data && data.session) await onSignedIn(data.session);
+  else showGate(signInScreenHtml());
+
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) await onSignedIn(session);
+    else if (event === 'SIGNED_OUT') {
+      state.role = null; state.email = null;
+      setUserBadge(null);
+      showGate(signInScreenHtml());
+    }
+  });
 }
 document.addEventListener('DOMContentLoaded', boot);

@@ -12,7 +12,7 @@ function pipelineMw() { return state.deals.filter(d => d.stage !== 'signed').red
 function renderDashboard() {
   setPage('Dashboard', 'Offtaker pipeline for African Earth Energy',
     '<button class="btn btn-outline btn-sm" onclick="nav(\'calculator\')">' + icon('calc', 14) + ' Savings calculator</button>' +
-    '<button class="btn btn-primary btn-sm" onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
 
   const offtakers = state.offtakers;
   const openDeals = state.deals.filter(d => d.stage !== 'signed');
@@ -149,7 +149,7 @@ function renderPipeline() {
   const open = state.deals.filter(d => d.stage !== 'signed');
   setPage('Pipeline', open.length + ' live opportunities · ' + fmtNum(pipelineMw()) + ' MW under discussion',
     '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
-    '<button class="btn btn-primary btn-sm" onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
   const totalWeighted = state.deals.reduce((s, d) => s + weightedValue(d), 0);
   const summary =
@@ -203,6 +203,9 @@ function dealCardHtml(d) {
 
 let _dragDealId = null;
 function pipeDragStart(e) {
+  /* Read-only users cannot move deals; the server would refuse the write
+     anyway, so stop it here rather than showing a card that snaps back. */
+  if (state.role !== 'admin') { e.preventDefault(); return; }
   _dragDealId = e.currentTarget.dataset.id;
   e.currentTarget.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'move';
@@ -224,11 +227,14 @@ function pipeDrop(e) {
   const defaults = { identified: 10, contacted: 20, qualified: 35, proposal: 45, diligence: 60, negotiation: 75, signed: 100 };
   d.probability = defaults[stage] ?? d.probability;
   const o = getOfftaker(d.offtakerId);
-  state.interactions.push({
+  const entry = {
     id: uid('int'), offtakerId: d.offtakerId, date: todayISO(), type: 'stage change',
     summary: (o.short || 'Deal') + ' moved from ' + (from ? from.label : d.stage) + ' to ' +
       (PIPELINE_STAGES.find(s => s.id === stage) || {}).label,
-  });
+  };
+  state.interactions.push(entry);
+  pushDeal(d);
+  pushInteraction(entry);
   save();
   renderPipeline();
   toast('Moved to ' + (PIPELINE_STAGES.find(s => s.id === stage) || {}).label);

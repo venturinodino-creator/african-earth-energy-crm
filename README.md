@@ -41,6 +41,51 @@ most likely to sign. It weighs five things:
 The maths is in [`js/core.js`](js/core.js) — `fitScore()`. Change the weights there
 if the team's experience says something different.
 
+## Access and security
+
+The CRM is **not public**. Everything is behind Supabase email-and-password
+authentication, and the data itself is protected by Postgres Row Level Security
+— not by anything in the JavaScript. An unauthenticated visitor who opens the
+page, reads the source, or calls the API directly gets an empty list and cannot
+write a single row.
+
+Three roles, stored in `public.profiles`:
+
+| Role | Can do |
+| --- | --- |
+| `pending` | **Nothing.** New accounts start here — even a self-registered one sees no data |
+| `viewer` | Read every record; export CSV. All editing controls are hidden |
+| `admin` | Everything, including add / edit / delete and CSV import |
+
+`pending` being the default is deliberate: access is granted explicitly, so
+leaving public signups enabled in Supabase still exposes nothing.
+
+### First-time setup
+
+1. **Create your admin account.** In the Supabase dashboard for the
+   *Energy Lead Dashboard* project → **Authentication → Users → Add user**.
+   Enter your email and a password, and tick *Auto Confirm User*.
+2. **Give yourself admin.** In **SQL Editor**, run:
+   ```sql
+   update public.profiles set role = 'admin' where email = 'you@aeeg.co.za';
+   ```
+3. **Add your sales team** the same way, then grant each of them a role:
+   ```sql
+   update public.profiles set role = 'viewer' where email = 'rep@aeeg.co.za';
+   ```
+   Use `viewer` for reps who should not change the shared data, `admin` for
+   those who should.
+4. **Turn off public signups** (recommended, belt and braces):
+   **Authentication → Sign In / Providers → Email → uncheck "Allow new users
+   to sign up"**. Role-gating already blocks self-registered accounts from
+   seeing anything; this stops them being created at all.
+
+### Checking who has access
+
+```sql
+select email, role, created_at from public.profiles order by created_at;
+```
+
 ## The numbers, and how much to trust them
 
 - **Generation portfolio** — real, taken from <https://www.aeeg.co.za/en/projects>.
@@ -67,19 +112,26 @@ fetched, precisely so that it does.
 
 ## Data and storage
 
-Everything is kept in the browser's `localStorage` under the `aee_crm_` prefix.
-That means:
+Offtakers, contacts, opportunities and the activity log live in Supabase, so the
+whole team sees the same data on every device. Edits are written per record as
+they happen.
 
-- each person has their own working copy, and nothing is shared automatically
-- clearing site data wipes it — export before doing that
-- **Export offtakers / contacts / pipeline** produces CSV for sharing or backup
+- **Supabase project:** `Energy Lead Dashboard` (`pkzfazjtpswqjmnzzrgt`, eu-west-1)
+- **Tables:** `aee_offtakers`, `aee_contacts`, `aee_deals`, `aee_interactions`,
+  plus `profiles` for roles. They are namespaced `aee_*` so they sit alongside
+  the pre-existing `mining_leads` table without touching it.
+- **The generation portfolio is not in the database.** It is AEE's own published
+  project list, so it ships in `data/seed.js` and needs no sync.
+- **Local cache:** the last successful read is kept in `localStorage` purely so a
+  dropped connection shows the last known data instead of an empty app. It is
+  never written back to the server.
+- **Export offtakers / contacts / pipeline** produces CSV for sharing or backup.
 - **Import contacts** reads a CSV with a header row and matches companies to
-  existing offtakers by name; anything unmatched is filed as unassigned
-- **Reset data** in the sidebar restores the seeded starting set
+  existing offtakers by name; anything unmatched is filed as unassigned.
+- **Reload from server** in the sidebar discards the cache and re-reads everything.
 
-If the team outgrows per-browser storage, the natural next step is a shared backend
-(the netherlands-crm repo uses Supabase for this) — `load()` and `save()` in
-`js/core.js` are the only two functions that would need to change.
+The URL and publishable key in `js/supabase.js` are meant to be public — they
+identify the project and grant nothing on their own.
 
 ## Layout
 
@@ -88,9 +140,10 @@ index.html              app shell, sidebar, modals
 landing.html            public-facing entry page
 styles.css              design system
 animations.css/.js      motion layer (decorative, honours prefers-reduced-motion)
-data/seed.js            projects, offtakers, contacts, playbook
+data/seed.js            generation portfolio, pipeline stages, playbook (public reference data only)
 js/icons.js             inline SVG icon set
-js/core.js              state, storage, routing, helpers, fit score, CSV
+js/supabase.js          auth, row mapping, reads and writes
+js/core.js              state, routing, helpers, fit score, auth gate, CSV
 js/views-dashboard.js   dashboard + pipeline board
 js/views-offtakers.js   offtaker list, detail page, contacts
 js/views-tools.js       projects, map, analytics, calculator, playbook, activity

@@ -388,7 +388,7 @@ function renderActivity() {
     .sort((a, b) => (a.closeDate || '').localeCompare(b.closeDate || ''));
 
   setPage('Activity', logs.length + ' logged interactions',
-    '<button class="btn btn-primary btn-sm" onclick="openLogInteraction()">' + icon('plus', 14) + ' Log activity</button>');
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openLogInteraction()">' + icon('plus', 14) + ' Log activity</button>');
 
   const dueHtml = dueDeals.length
     ? '<div class="card"><div class="card-header"><div><div class="card-title">Target close dates</div>' +
@@ -408,7 +408,7 @@ function renderActivity() {
       '<div class="int-meta">' + esc(i.type) + ' · <span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + i.offtakerId + '\'})">' +
       esc(getOfftaker(i.offtakerId).short || 'Unknown') + '</span> · ' + esc(i.date) + '</div>' +
       '<div class="int-text">' + esc(i.summary) + '</div></div>' +
-      '<button class="btn btn-xs btn-ghost" onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('')
+      '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('')
       : '<div class="empty"><div class="ei">' + icon('activity', 30) + '</div><h3>Nothing logged yet</h3>' +
         '<p>Every call, email and meeting logged here is context the next person picking up the account will need.</p></div>') +
     '</div>';
