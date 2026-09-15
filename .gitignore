@@ -25,3 +25,17 @@ npm-debug.log*
 .claude-flow/
 .swarm/
 memory/
+
+# Shell-quoting debris — an unbalanced quote in a shell command makes the
+# shell read fragments of JavaScript as redirection targets, creating empty
+# root files named things like `[r.title` or `upsert('aee_prospects'`.
+# These match the punctuation such a fragment carries and a real file never
+# does. Bare-word debris (`name`, `v`, `d.id`) cannot be matched safely and
+# still has to be caught by eye — `git clean -n` lists it.
+/*'*
+/*"*
+/*(*
+/*)*
+/*\[*
+/*\]*
+/*+*
