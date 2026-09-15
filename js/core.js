@@ -627,18 +627,53 @@ function parseCSV(text) {
 let _importRows = [];
 let _importKind = 'contacts';
 
-const IMPORT_HINT =
-  'Choose a CSV with a header row.<br>' +
-  '<b style="color:var(--text2)">Contacts</b> — first, last, title, department, company, email, phone, linkedin, notes.<br>' +
-  '<b style="color:var(--text2)">Offtakers</b> — name, short, sector, province, city, website, gwh, peak mw, tariff, nmd, supply, wheeling, status, priority, description.';
+const IMPORT_HINT_CONTACTS =
+  'Choose a CSV with a header row.<br>Recognised columns: ' +
+  '<b style="color:var(--text2)">first, last</b>, title, department, company, email, phone, linkedin, notes.';
 
-function openImport() {
+const IMPORT_HINT_OFFTAKERS =
+  'Choose a CSV with a header row.<br>Recognised columns: ' +
+  '<b style="color:var(--text2)">name</b>, short, sector, province, city, website, gwh, peak mw, tariff, ' +
+  'nmd, supply, wheeling, status, priority, description.<br><br>' +
+  'Sector accepts either the id (<i>mining</i>) or the full name (<i>Mining &amp; Minerals (Producer)</i>). ' +
+  'Province accepts abbreviations — WC, KZN, Limpopo — and is what places the record on the map.';
+
+/* Opened from a specific button, so the kind is known up front rather
+   than guessed from the columns. The guess survives only as a check that
+   the file matches the button that was pressed. */
+function openImport(kind) {
   _importRows = [];
-  _importKind = 'contacts';
+  _importKind = kind === 'offtakers' ? 'offtakers' : 'contacts';
+  document.getElementById('imp-title').textContent =
+    _importKind === 'offtakers' ? 'Import offtakers from CSV' : 'Import contacts from CSV';
   document.getElementById('imp-file').value = '';
-  document.getElementById('imp-preview').innerHTML = '<div class="fg-hint">' + IMPORT_HINT + '</div>';
+  document.getElementById('imp-preview').innerHTML = '<div class="fg-hint">' +
+    (_importKind === 'offtakers' ? IMPORT_HINT_OFFTAKERS : IMPORT_HINT_CONTACTS) + '</div>';
   document.getElementById('imp-go').disabled = true;
   openModal('modal-import');
+}
+
+/* The nine provinces, plus the abbreviations and spellings people
+   actually type. Getting this right is what puts an imported offtaker
+   on the map and into the province filter: coordinates fall back to the
+   province centroid, so "WC" or "Kwazulu Natal" left as raw text would
+   strand the record with no location at all. */
+const PROVINCE_ALIASES = {
+  'gauteng': 'Gauteng', 'gp': 'Gauteng', 'gt': 'Gauteng',
+  'limpopo': 'Limpopo', 'lp': 'Limpopo', 'northern province': 'Limpopo',
+  'mpumalanga': 'Mpumalanga', 'mp': 'Mpumalanga',
+  'north west': 'North West', 'north-west': 'North West', 'northwest': 'North West', 'nw': 'North West',
+  'free state': 'Free State', 'freestate': 'Free State', 'fs': 'Free State',
+  'kwazulu-natal': 'KwaZulu-Natal', 'kwazulu natal': 'KwaZulu-Natal', 'kwazulunatal': 'KwaZulu-Natal',
+  'kzn': 'KwaZulu-Natal', 'kn': 'KwaZulu-Natal', 'natal': 'KwaZulu-Natal',
+  'eastern cape': 'Eastern Cape', 'easterncape': 'Eastern Cape', 'ec': 'Eastern Cape',
+  'western cape': 'Western Cape', 'westerncape': 'Western Cape', 'wc': 'Western Cape',
+  'northern cape': 'Northern Cape', 'northerncape': 'Northern Cape', 'nc': 'Northern Cape',
+};
+function provinceFromText(text) {
+  const v = String(text || '').trim();
+  if (!v) return '';
+  return PROVINCE_ALIASES[v.toLowerCase().replace(/\s+/g, ' ')] || v;
 }
 
 /* Accepts a sector by id ("mining") or by the name shown in the app
@@ -648,9 +683,32 @@ function sectorIdFromText(text) {
   const v = String(text || '').trim();
   if (!v) return '';
   if (SECTOR_BY_ID[v]) return v;
-  const lower = v.toLowerCase();
-  const byName = ALL_SECTORS.find(s => s.name.toLowerCase() === lower);
-  return byName ? byName.id : '';
+
+  /* Sector names carry commas, ampersands, slashes and brackets, and a
+     hand-made CSV will differ from the canonical spelling by exactly one
+     of those. Comparing on letters and digits alone means
+     "Smelting Ferroalloys & Primary Metals" still finds
+     "Smelting, Ferroalloys & Primary Metals". */
+  const key = t => String(t || '').toLowerCase()
+    .replace(/&/g, ' and ')            // "Food & Beverage" and "Food and Beverage" must agree
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+  const want = key(v);
+  if (!want) return '';
+
+  const exact = ALL_SECTORS.find(s => key(s.name) === want || key(s.id) === want);
+  if (exact) return exact.id;
+
+  /* A sub-sector is a perfectly reasonable thing to write in a sector
+     column — "Ferrochrome" should land under Smelting. */
+  const sub = SUB_SECTORS.find(x => key(x.name) === want);
+  if (sub && SECTOR_BY_ID[sub.sectorId]) return sub.sectorId;
+
+  /* Last resort: one containing the other, longest match wins so
+     "Retail" does not beat "Retail Chains (Multi-Site)". */
+  const loose = ALL_SECTORS
+    .filter(s => { const k = key(s.name); return k.includes(want) || want.includes(k); })
+    .sort((a, b) => key(b.name).length - key(a.name).length)[0];
+  return loose ? loose.id : '';
 }
 /* Free text to one of the stored enum values, falling back to the
    safe default rather than writing a value nothing can render. */
@@ -671,7 +729,22 @@ function previewImport(input) {
 
     const firstIdx = find('first', 'first name', 'firstname', 'given name');
     const lastIdx = find('last', 'last name', 'lastname', 'surname', 'family name');
-    _importKind = (firstIdx < 0 && lastIdx < 0) ? 'offtakers' : 'contacts';
+    const looksLikeContacts = firstIdx >= 0 || lastIdx >= 0;
+
+    /* The button decides what this is. But a contacts file dropped into
+       the offtaker importer would silently create companies named after
+       people, so say so rather than quietly doing the wrong thing. */
+    if (_importKind === 'offtakers' && looksLikeContacts && find('name') < 0) {
+      importMsg('This looks like a <b>contacts</b> file \u2014 it has name columns but no company ' +
+        '<b>name</b> column. Close this and use Import contacts instead.<br><br>' + IMPORT_HINT_OFFTAKERS, true);
+      return;
+    }
+    if (_importKind === 'contacts' && !looksLikeContacts) {
+      importMsg('This does not look like a <b>contacts</b> file \u2014 no first or last name column. ' +
+        'If it is a list of companies, close this and use Import offtakers instead.<br><br>' +
+        IMPORT_HINT_CONTACTS, true);
+      return;
+    }
 
     if (_importKind === 'offtakers') previewOfftakerImport(rows, head, find);
     else previewContactImport(rows, find, firstIdx, lastIdx);
@@ -756,7 +829,8 @@ function previewOfftakerImport(rows, head, find) {
       short: v(idx.short) || name,
       sector: sectorIdFromText(v(idx.sector)),
       sectorRaw: v(idx.sector),
-      province: v(idx.province),
+      province: provinceFromText(v(idx.province)),
+      provinceRaw: v(idx.province),
       city: v(idx.city),
       website: v(idx.website),
       annualGwh: gwh, peakMw: num(v(idx.peak)), tariff: num(v(idx.tariff)), nmd: num(v(idx.nmd)),
@@ -786,6 +860,9 @@ function previewOfftakerImport(rows, head, find) {
   const fresh = _importRows.filter(o => !o.dup);
   const noSector = fresh.filter(o => !o.sector);
   const noLoad = fresh.filter(o => !o.annualGwh).length;
+  /* A province that did not resolve to one of the nine leaves the record
+     without coordinates, so it never shows on the map or under Regions. */
+  const badProvince = fresh.filter(o => o.provinceRaw && !PROVINCE_COORDS[o.province]);
 
   document.getElementById('imp-preview').innerHTML =
     '<div class="fg-hint"><b style="color:var(--text2)">' + fresh.length + ' offtakers</b> will be added' +
@@ -796,6 +873,11 @@ function previewOfftakerImport(rows, head, find) {
       ' row' + (noSector.length === 1 ? '' : 's') + ' had no sector I could match' +
       (noSector[0].sectorRaw ? ' (e.g. &ldquo;' + esc(noSector[0].sectorRaw) + '&rdquo;)' : '') +
       ' — those will be filed under Mining &amp; Minerals. Fix the sector column to place them properly.</div>' : '') +
+    (badProvince.length ? '<div class="fg-hint" style="color:var(--warn);margin-top:8px">' + badProvince.length +
+      ' row' + (badProvince.length === 1 ? '' : 's') + ' had a province I could not match (e.g. &ldquo;' +
+      esc(badProvince[0].provinceRaw) + '&rdquo;) \u2014 those fall back to the centre of the country, so ' +
+      'they will sit in the wrong place on the map and against the wrong site under Regions. ' +
+      'Worth fixing the province column before importing.</div>' : '') +
     '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr>' +
     '<th>Company</th><th>Sector</th><th>Province</th><th class="num">GWh/yr</th><th></th></tr></thead><tbody>' +
     _importRows.slice(0, 10).map(o => '<tr><td>' + esc(o.name) + '</td>' +

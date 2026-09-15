@@ -35,6 +35,7 @@ function renderOfftakers() {
   const totalGwh = list.reduce((s, o) => s + num(o.annualGwh), 0);
   setPage('Offtakers', state.offtakers.length + ' companies tracked · ' + fmtNum(totalGwh) + ' GWh/yr addressable',
     viewToggle('offView') +
+    '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
 
@@ -370,7 +371,7 @@ function renderContacts() {
   setPage('Contacts', state.contacts.length + ' people across ' +
     new Set(state.contacts.map(c => c.offtakerId).filter(Boolean)).size + ' offtakers',
     viewToggle('contactView') +
-    '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport()">' + icon('upload', 14) + ' Import CSV</button>' +
+    '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'contacts\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportContacts()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact()">' + icon('plus', 14) + ' Add contact</button>');
 
