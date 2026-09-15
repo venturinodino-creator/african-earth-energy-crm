@@ -135,12 +135,16 @@ function rowToProspect(r) {
   return {
     id: r.id, name: r.name || '', sectorId: r.sector_id || '', note: r.note || '',
     status: r.status || 'new', promotedTo: r.promoted_to || '', notes: r.notes || '',
+    town: r.town || '', province: r.province || '',
+    lat: r.lat, lng: r.lng, nearSite: r.near_site || '',
   };
 }
 function prospectToRow(p) {
   return {
     id: p.id, name: p.name, sector_id: p.sectorId || null, note: p.note,
     status: p.status, promoted_to: p.promotedTo || null, notes: p.notes,
+    town: p.town || null, province: p.province || null,
+    lat: p.lat ?? null, lng: p.lng ?? null, near_site: p.nearSite || null,
   };
 }
 function rowToInteraction(r) {

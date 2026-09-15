@@ -34,10 +34,7 @@ function renderOfftakers() {
   const list = filteredOfftakers();
   const totalGwh = list.reduce((s, o) => s + num(o.annualGwh), 0);
   setPage('Offtakers', state.offtakers.length + ' companies tracked · ' + fmtNum(totalGwh) + ' GWh/yr addressable',
-    '<div class="view-toggle">' +
-      '<button class="vt-btn ' + (state.offView === 'grid' ? 'active' : '') + '" onclick="setOffView(\'grid\')">Grid</button>' +
-      '<button class="vt-btn ' + (state.offView === 'table' ? 'active' : '') + '" onclick="setOffView(\'table\')">Table</button>' +
-    '</div>' +
+    viewToggle('offView') +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
 
@@ -67,8 +64,6 @@ function renderOfftakers() {
   }
   growBars();
 }
-
-function setOffView(v) { state.offView = v; localStorage.setItem(STORE_PREFIX + 'off_view', v); renderOfftakers(); }
 
 function selectFlt(key, allLabel, pairs) {
   return '<select class="flt" onchange="state.' + key + '=this.value;state.offPage=1;renderOfftakers()">' +
@@ -373,6 +368,7 @@ function renderContacts() {
 
   setPage('Contacts', state.contacts.length + ' people across ' +
     new Set(state.contacts.map(c => c.offtakerId).filter(Boolean)).size + ' offtakers',
+    viewToggle('contactView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport()">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportContacts()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact()">' + icon('plus', 14) + ' Add contact</button>');
@@ -402,11 +398,58 @@ function renderContacts() {
   const pages = Math.ceil(list.length / PER_PAGE);
   state.contactPage = Math.min(Math.max(1, state.contactPage), pages);
   const page = list.slice((state.contactPage - 1) * PER_PAGE, state.contactPage * PER_PAGE);
+
+  const body = state.contactView === 'grid'
+    ? '<div class="ent-grid">' + page.map(contactCardHtml).join('') + '</div>'
+    : contactTableHtml(page);
+
+  setContent(toolbar + body +
+    (pages > 1 ? '<div class="pagination">' +
+      '<button class="pg-btn" ' + (state.contactPage === 1 ? 'disabled' : '') + ' onclick="state.contactPage--;renderContacts()">Previous</button>' +
+      '<span class="pg-info">Page ' + state.contactPage + ' of ' + pages + '</span>' +
+      '<button class="pg-btn" ' + (state.contactPage === pages ? 'disabled' : '') + ' onclick="state.contactPage++;renderContacts()">Next</button>' +
+    '</div>' : ''));
+}
+
+function contactCardHtml(c) {
+  const o = getOfftaker(c.offtakerId);
+  return '<div class="ec" style="cursor:default">' +
+    '<div class="ec-head">' +
+      '<div class="name-cell"><div class="av" style="background:' + avatarColor(c.first + c.last) + '">' +
+        esc(initials(c.first, c.last).toUpperCase()) + '</div>' +
+        '<div style="min-width:0"><div style="font-weight:700;font-size:12.5px;color:var(--text2)">' +
+          esc(c.first + ' ' + c.last) + '</div>' +
+        '<div style="font-size:10.5px;color:var(--muted)">' + esc(c.title || '—') +
+          (c.dept ? ' · ' + esc(c.dept) : '') + '</div></div></div>' +
+      '<span class="badge b-' + c.priority + '">' + esc(c.priority) + '</span>' +
+    '</div>' +
+    '<div class="meta">' + icon('building', 13) +
+      (o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
+        : '<span style="color:var(--muted)">unassigned</span>') + '</div>' +
+    '<div class="meta">' + icon('contacts', 13) +
+      '<span class="badge ' + (c.role === 'decision' ? 'b-contracted' : 'b-prospect') + '">' +
+      esc(ROLE_LABEL[c.role] || c.role) + '</span></div>' +
+    '<div class="meta">' + icon('mail', 13) +
+      (c.email ? '<a class="ext-link" href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>'
+        : '<span style="color:var(--muted)">no email on file</span>') + '</div>' +
+    '<div class="meta">' + icon('phone', 13) +
+      (c.phone ? esc(c.phone) : '<span style="color:var(--muted)">no number on file</span>') + '</div>' +
+    '<div class="ec-footer">' +
+      '<span>' + (o.id ? 'Org map available' : 'Not linked to an offtaker') + '</span>' +
+      '<div style="display:flex;gap:4px">' +
+        (o.id ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 12) + '</button>' : '') +
+        (safeHref(c.linkedin) ? '<a class="btn btn-xs btn-outline" href="' + esc(safeHref(c.linkedin)) + '" target="_blank" rel="noopener">' + icon('link', 12) + '</a>' : '') +
+        '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 12) + '</button>' +
+        '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 12) + '</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function contactTableHtml(page) {
   const s = state.contactSort;
   const th = (field, label) => '<th class="' + thClass(field, s) + '" onclick="toggleSort(state.contactSort,\'' + field + '\',renderContacts)">' + label + sortArrow(field, s) + '</th>';
-
-  setContent(toolbar +
-    '<div class="table-wrap"><table><thead><tr>' +
+  return '<div class="table-wrap"><table><thead><tr>' +
       th('last', 'Name') + th('title', 'Title') + th('offtaker', 'Offtaker') +
       th('role', 'Role') + '<th>Email</th><th>Phone</th>' + th('priority', 'Priority') + '<th>Actions</th>' +
     '</tr></thead><tbody>' +
@@ -428,10 +471,5 @@ function renderContacts() {
           '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button> ' +
           '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
         '</td></tr>';
-    }).join('') + '</tbody></table></div>' +
-    (pages > 1 ? '<div class="pagination">' +
-      '<button class="pg-btn" ' + (state.contactPage === 1 ? 'disabled' : '') + ' onclick="state.contactPage--;renderContacts()">Previous</button>' +
-      '<span class="pg-info">Page ' + state.contactPage + ' of ' + pages + '</span>' +
-      '<button class="pg-btn" ' + (state.contactPage === pages ? 'disabled' : '') + ' onclick="state.contactPage++;renderContacts()">Next</button>' +
-    '</div>' : ''));
+    }).join('') + '</tbody></table></div>';
 }

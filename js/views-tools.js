@@ -11,11 +11,36 @@ function renderProjects() {
   const total = live.reduce((s, p) => s + num(p.mw), 0);
   const pipelineOnly = state.projects.filter(p => p.status === 'pipeline').reduce((s, p) => s + num(p.mw), 0);
 
-  setPage('Generation portfolio', fmtNum(total) + ' MW in development plus ' + fmtNum(pipelineOnly) + ' MW early-stage', '');
+  setPage('Generation portfolio', fmtNum(total) + ' MW in development plus ' + fmtNum(pipelineOnly) + ' MW early-stage',
+    viewToggle('projectView'));
 
-  const cards = state.projects.map(p => {
-    const committed = state.deals.filter(d => d.projectId === p.id && d.stage !== 'lost').reduce((s, d) => s + num(d.mw), 0);
-    const signed = state.deals.filter(d => d.projectId === p.id && d.stage === 'signed').reduce((s, d) => s + num(d.mw), 0);
+  setContent(
+    '<div class="stats-grid">' +
+      statTile('sun', 'amber', 'Portfolio', fmtNum(total) + ' MW', live.length + ' named sites') +
+      statTile('check', 'green', 'Contracted', fmtNum(contractedMw()) + ' MW', 'signed PPAs') +
+      statTile('pipeline', 'blue', 'Under discussion', fmtNum(pipelineMw()) + ' MW', 'across the open pipeline') +
+      statTile('target', 'purple', 'Still to sell', fmtNum(Math.max(0, total - contractedMw() - pipelineMw())) + ' MW', 'uncommitted capacity') +
+    '</div>' +
+    (state.projectView === 'table'
+      ? projectTableHtml(state.projects)
+      : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>'));
+  growBars();
+}
+
+/* Committed MW on a site, ignoring deals that have been lost. */
+function projectCommitted(p) {
+  return state.deals.filter(d => d.projectId === p.id && d.stage !== 'lost').reduce((s, d) => s + num(d.mw), 0);
+}
+function projectSigned(p) {
+  return state.deals.filter(d => d.projectId === p.id && d.stage === 'signed').reduce((s, d) => s + num(d.mw), 0);
+}
+function allocationColor(pct) {
+  return pct >= 90 ? 'var(--danger)' : pct >= 50 ? 'var(--accent2)' : 'var(--accent)';
+}
+
+function projectCardHtml(p) {
+    const committed = projectCommitted(p);
+    const signed = projectSigned(p);
     const pct = Math.min(100, (committed / Math.max(1, p.mw)) * 100);
     const buyers = state.deals.filter(d => d.projectId === p.id).map(d => getOfftaker(d.offtakerId).short).filter(Boolean);
     return '<div class="ec" style="cursor:default">' +
@@ -33,22 +58,36 @@ function renderProjects() {
         '<div class="ec-metric"><div class="ec-metric-v">' + fmtNum(Math.round(num(p.mw) * 8760 * CAPACITY_FACTOR / 1000)) + '</div><div class="ec-metric-l">GWh / yr</div></div>' +
         '<div class="ec-metric"><div class="ec-metric-v">' + fmtNum(signed) + '</div><div class="ec-metric-l">MW signed</div></div>' +
       '</div>' +
-      '<div class="fit-row"><span>Allocated</span><span style="color:' + (pct >= 90 ? 'var(--danger)' : pct >= 50 ? 'var(--accent2)' : 'var(--accent)') + '">' + Math.round(pct) + '%</span></div>' +
-      '<div class="fit-bar"><span data-w="' + pct + '" style="background:' + (pct >= 90 ? 'var(--danger)' : pct >= 50 ? 'var(--accent2)' : 'var(--accent)') + '"></span></div>' +
+      '<div class="fit-row"><span>Allocated</span><span style="color:' + allocationColor(pct) + '">' + Math.round(pct) + '%</span></div>' +
+      '<div class="fit-bar"><span data-w="' + pct + '" style="background:' + allocationColor(pct) + '"></span></div>' +
       '<div style="font-size:11.5px;color:var(--muted2);line-height:1.55;margin-top:11px">' + esc(p.note) + '</div>' +
       (buyers.length ? '<div class="ec-footer"><span style="font-size:10.5px">In discussion: ' + esc(buyers.join(', ')) + '</span></div>' : '') +
     '</div>';
-  }).join('');
+}
 
-  setContent(
-    '<div class="stats-grid">' +
-      statTile('sun', 'amber', 'Portfolio', fmtNum(total) + ' MW', live.length + ' named sites') +
-      statTile('check', 'green', 'Contracted', fmtNum(contractedMw()) + ' MW', 'signed PPAs') +
-      statTile('pipeline', 'blue', 'Under discussion', fmtNum(pipelineMw()) + ' MW', 'across the open pipeline') +
-      statTile('target', 'purple', 'Still to sell', fmtNum(Math.max(0, total - contractedMw() - pipelineMw())) + ' MW', 'uncommitted capacity') +
-    '</div>' +
-    '<div class="ent-grid">' + cards + '</div>');
-  growBars();
+function projectTableHtml(list) {
+  return '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Site</th><th>Province</th><th>COD</th><th class="num">MW</th><th class="num">GWh/yr</th>' +
+    '<th class="num">MW signed</th><th class="num">MW unsold</th><th>Allocated</th><th>In discussion</th>' +
+    '</tr></thead><tbody>' +
+    list.map(p => {
+      const committed = projectCommitted(p);
+      const pct = Math.min(100, (committed / Math.max(1, num(p.mw))) * 100);
+      const buyers = state.deals.filter(d => d.projectId === p.id).map(d => getOfftaker(d.offtakerId).short).filter(Boolean);
+      return '<tr>' +
+        '<td><div class="name-cell"><span style="opacity:.6;display:flex">' + icon('sun', 15) + '</span>' +
+          '<div><div style="font-weight:700">' + esc(p.name) + '</div>' +
+          '<div style="font-size:10.5px;color:var(--muted)">' + esc(p.town) + '</div></div></div></td>' +
+        '<td>' + esc(p.province) + '</td>' +
+        '<td>' + esc(p.cod) + '</td>' +
+        '<td class="num">' + fmtNum(p.mw) + '</td>' +
+        '<td class="num">' + fmtNum(Math.round(num(p.mw) * 8760 * CAPACITY_FACTOR / 1000)) + '</td>' +
+        '<td class="num">' + fmtNum(projectSigned(p)) + '</td>' +
+        '<td class="num">' + fmtNum(Math.max(0, num(p.mw) - committed)) + '</td>' +
+        '<td class="num" style="color:' + allocationColor(pct) + ';font-weight:800">' + Math.round(pct) + '%</td>' +
+        '<td>' + (buyers.length ? esc(buyers.join(', ')) : '<span style="color:var(--muted)">—</span>') + '</td>' +
+      '</tr>';
+    }).join('') + '</tbody></table></div>';
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -478,6 +517,7 @@ function renderActivity() {
     .sort((a, b) => (a.closeDate || '').localeCompare(b.closeDate || ''));
 
   setPage('Activity', logs.length + ' logged interactions',
+    viewToggle('activityView', [['timeline', 'Timeline'], ['table', 'Table']]) +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openLogInteraction()">' + icon('plus', 14) + ' Log activity</button>');
 
   const dueHtml = dueDeals.length
@@ -492,16 +532,47 @@ function renderActivity() {
       }).join('') + '</div>'
     : '';
 
-  const logHtml = '<div class="card"><div class="card-header"><div class="card-title">Interaction log</div></div>' +
-    (logs.length ? logs.map(i =>
+  let logBody;
+  if (!logs.length) {
+    logBody = '<div class="empty"><div class="ei">' + icon('activity', 30) + '</div><h3>Nothing logged yet</h3>' +
+      '<p>Every call, email and meeting logged here is context the next person picking up the account will need.</p></div>';
+  } else if (state.activityView === 'table') {
+    logBody = interactionTableHtml(logs);
+  } else {
+    logBody = logs.map(i =>
       '<div class="int-row"><div class="int-dot"></div><div class="int-body">' +
       '<div class="int-meta">' + esc(i.type) + ' · <span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + i.offtakerId + '\'})">' +
       esc(getOfftaker(i.offtakerId).short || 'Unknown') + '</span> · ' + esc(i.date) + '</div>' +
       '<div class="int-text">' + esc(i.summary) + '</div></div>' +
-      '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('')
-      : '<div class="empty"><div class="ei">' + icon('activity', 30) + '</div><h3>Nothing logged yet</h3>' +
-        '<p>Every call, email and meeting logged here is context the next person picking up the account will need.</p></div>') +
-    '</div>';
+      '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('');
+  }
 
-  setContent(dueHtml ? '<div class="cols-2">' + logHtml + dueHtml + '</div>' : logHtml);
+  const logHtml = '<div class="card"><div class="card-header"><div class="card-title">Interaction log</div></div>' +
+    logBody + '</div>';
+
+  /* The table wants the full width; the timeline reads fine in a column. */
+  setContent(!dueHtml ? logHtml
+    : state.activityView === 'table' ? logHtml + dueHtml
+    : '<div class="cols-2">' + logHtml + dueHtml + '</div>');
+}
+
+/* The log read as a register rather than a timeline — newest first either
+   way, but the table puts date and type in fixed columns for scanning. */
+function interactionTableHtml(logs) {
+  return '<div class="table-wrap" style="border:none;background:transparent"><table><thead><tr>' +
+    '<th>Date</th><th>Type</th><th>Offtaker</th><th>Summary</th><th></th>' +
+    '</tr></thead><tbody>' +
+    logs.map(i => {
+      const o = getOfftaker(i.offtakerId);
+      return '<tr>' +
+        '<td style="white-space:nowrap">' + esc(i.date) + '</td>' +
+        '<td>' + esc(i.type) + '</td>' +
+        '<td>' + (o.id
+          ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
+          : '<span style="color:var(--muted)">Unknown</span>') + '</td>' +
+        '<td>' + esc(i.summary) + '</td>' +
+        '<td style="white-space:nowrap">' +
+          '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button>' +
+        '</td></tr>';
+    }).join('') + '</tbody></table></div>';
 }

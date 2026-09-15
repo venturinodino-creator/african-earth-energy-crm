@@ -148,6 +148,7 @@ function growBars() {
 function renderPipeline() {
   const open = state.deals.filter(d => d.stage !== 'signed');
   setPage('Pipeline', open.length + ' live opportunities · ' + fmtNum(pipelineMw()) + ' MW under discussion',
+    viewToggle('pipeView', [['board', 'Board'], ['table', 'Table']]) +
     '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
@@ -162,6 +163,13 @@ function renderPipeline() {
         state.deals.length ? Math.round(state.deals.reduce((s, d) => s + num(d.tenor), 0) / state.deals.length) + ' yrs' : '—',
         'weighted by opportunity count') +
     '</div>';
+
+  if (state.pipeView === 'table') {
+    setContent(summary + dealTableHtml() +
+      '<div class="fg-hint" style="margin-top:12px">The table reads the whole pipeline in stage order. ' +
+      'Switch back to the board to move a deal between stages by dragging it.</div>');
+    return;
+  }
 
   const cols = PIPELINE_STAGES.map(s => {
     const list = state.deals.filter(d => d.stage === s.id);
@@ -179,6 +187,45 @@ function renderPipeline() {
   setContent(summary + '<div class="kanban">' + cols + '</div>' +
     '<div class="fg-hint" style="margin-top:12px">Drag a card between columns to move the deal. Values assume a ' +
     Math.round(CAPACITY_FACTOR * 100) + '% capacity factor on contracted MW and are indicative only.</div>');
+}
+
+/* Same deals as the board, ordered by stage then by size — the reading a
+   manager wants when the question is "what is actually in there". */
+function dealTableHtml() {
+  const order = PIPELINE_STAGES.map(s => s.id);
+  const list = state.deals.slice().sort((a, b) =>
+    order.indexOf(a.stage) - order.indexOf(b.stage) || num(b.mw) - num(a.mw));
+
+  if (!list.length) {
+    return '<div class="empty"><div class="ei">' + icon('pipeline', 30) + '</div>' +
+      '<h3>No opportunities yet</h3><p>Open one from an offtaker page, or add it here.</p></div>';
+  }
+
+  return '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Offtaker</th><th>Site</th><th>Stage</th><th class="num">MW</th><th class="num">R/kWh</th>' +
+    '<th class="num">Tenor</th><th class="num">Likely</th><th class="num">Weighted</th><th>Close</th><th>Actions</th>' +
+    '</tr></thead><tbody>' +
+    list.map(d => {
+      const o = getOfftaker(d.offtakerId);
+      const p = getProject(d.projectId);
+      const stage = PIPELINE_STAGES.find(s => s.id === d.stage);
+      return '<tr>' +
+        '<td>' + (o.id
+          ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
+          : '<span style="color:var(--muted)">Unknown offtaker</span>') + '</td>' +
+        '<td>' + esc(p.town || p.name || '—') + '</td>' +
+        '<td><span class="badge ' + (d.stage === 'signed' ? 'b-contracted' : 'b-prospect') + '">' +
+          esc(stage ? stage.label : d.stage) + '</span></td>' +
+        '<td class="num">' + fmtNum(d.mw) + '</td>' +
+        '<td class="num">' + num(d.tariff).toFixed(2) + '</td>' +
+        '<td class="num">' + num(d.tenor) + ' yr</td>' +
+        '<td class="num">' + num(d.probability) + '%</td>' +
+        '<td class="num" style="font-weight:800">' + fmtR(weightedValue(d)) + '</td>' +
+        '<td>' + (d.closeDate ? esc(d.closeDate) : '<span style="color:var(--muted)">—</span>') + '</td>' +
+        '<td style="white-space:nowrap">' +
+          '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditDeal(\'' + d.id + '\')">' + icon('edit', 11) + '</button>' +
+        '</td></tr>';
+    }).join('') + '</tbody></table></div>';
 }
 
 function statTile(ic, cls, label, value, sub, go) {

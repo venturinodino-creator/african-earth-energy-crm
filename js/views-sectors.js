@@ -14,6 +14,7 @@ function renderSectors() {
   ALL_SECTORS.forEach(s => { tierCounts[s.tier] = (tierCounts[s.tier] || 0) + 1; });
 
   setPage('Sectors', ALL_SECTORS.length + ' sectors · ' + SUB_SECTORS.length + ' sub-sectors · market as at ' + MARKET.asAt,
+    viewToggle('sectorView') +
     '<button class="btn btn-outline btn-sm" onclick="nav(\'prospects\')">' + icon('target', 14) + ' Prospect list</button>');
 
   const list = ALL_SECTORS
@@ -49,9 +50,20 @@ function renderSectors() {
       statTile('building', 'purple', 'Named prospects', state.prospects.length, 'across every sector') +
     '</div>';
 
-  const cards = list.map(s => {
-    const promoted = state.prospects.filter(p => p.sectorId === s.id).length;
-    return '<div class="sector-card" onclick="nav(\'sector\',{id:\'' + s.id + '\'})">' +
+  if (!list.length) {
+    setContent(stats + toolbar + '<div class="empty"><div class="ei">' + icon('search', 30) + '</div>' +
+      '<h3>No sectors match</h3><p>Loosen the tier or group filter to see more of the taxonomy.</p></div>');
+    return;
+  }
+
+  setContent(stats + toolbar + (state.sectorView === 'table'
+    ? sectorTableHtml(list)
+    : '<div class="ent-grid">' + list.map(sectorCardHtml).join('') + '</div>'));
+}
+
+function sectorCardHtml(s) {
+  const promoted = state.prospects.filter(p => p.sectorId === s.id).length;
+  return '<div class="sector-card" onclick="nav(\'sector\',{id:\'' + s.id + '\'})">' +
       '<div class="ec-head">' +
         '<div style="min-width:0">' +
           '<h3>' + esc(s.name) + '</h3>' +
@@ -75,9 +87,34 @@ function renderSectors() {
         '<span>' + (SECTOR_QUESTIONS[s.id] || []).length + ' questions · ' + (SECTOR_OBJECTIONS[s.id] || []).length + ' objections</span>' +
       '</div>' +
     '</div>';
-  }).join('');
+}
 
-  setContent(stats + toolbar + '<div class="ent-grid">' + cards + '</div>');
+/* The same taxonomy read as a ranking sheet: tier order first, which is the
+   order the desk works the market in. */
+function sectorTableHtml(list) {
+  return '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Sector</th><th>Tier</th><th>Group</th><th>PPA fit</th>' +
+    '<th>Typical load</th><th>Typical deal</th><th>Sales cycle</th><th>Solar match</th>' +
+    '<th class="num">Prospects</th><th class="num">Offtakers</th>' +
+    '</tr></thead><tbody>' +
+    list.map(s => {
+      const promoted = state.prospects.filter(p => p.sectorId === s.id).length;
+      const tracked = state.offtakers.filter(o => o.sector === s.id).length;
+      return '<tr class="clickable" onclick="nav(\'sector\',{id:\'' + s.id + '\'})">' +
+        '<td><div class="name-cell"><span style="opacity:.6;display:flex">' + sectorIcon(s.id, 15) + '</span>' +
+          '<div><div style="font-weight:700">' + esc(s.name) + '</div>' +
+          '<div style="font-size:10.5px;color:var(--muted)">' + esc(s.profile) + '</div></div></div></td>' +
+        '<td><span class="badge b-tier-' + s.tier + '">Tier ' + s.tier + '</span></td>' +
+        '<td><span class="badge b-grp-' + s.group + '">' + esc(SECTOR_GROUPS[s.group] || s.group) + '</span></td>' +
+        '<td>' + ppaDots(s.ppaFit) + '</td>' +
+        '<td>' + esc(s.loadMw) + ' MW</td>' +
+        '<td>' + esc(s.dealMw) + ' MW</td>' +
+        '<td>' + esc(s.cycleMonths) + ' mo</td>' +
+        '<td>' + esc(s.solarMatch) + '</td>' +
+        '<td class="num">' + promoted + '</td>' +
+        '<td class="num">' + tracked + '</td>' +
+      '</tr>';
+    }).join('') + '</tbody></table></div>';
 }
 
 /* ─── ONE SECTOR ──────────────────────────────────────────────── */
@@ -242,6 +279,7 @@ function renderProspects() {
 
   const open = state.prospects.filter(p => p.status === 'new').length;
   setPage('Prospects', state.prospects.length + ' named companies · ' + open + ' not yet started',
+    viewToggle('prospectView') +
     '<button class="btn btn-outline btn-sm" onclick="exportProspects()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-outline btn-sm" onclick="nav(\'sectors\')">' + icon('grid', 14) + ' Sectors</button>');
 
@@ -286,8 +324,49 @@ function renderProspects() {
   state.prospectPage = Math.min(Math.max(1, state.prospectPage), pages);
   const page = list.slice((state.prospectPage - 1) * PER_PAGE, state.prospectPage * PER_PAGE);
 
-  setContent(stats + toolbar +
-    '<div class="table-wrap"><table><thead><tr>' +
+  const body = state.prospectView === 'grid'
+    ? '<div class="ent-grid">' + page.map(prospectCardHtml).join('') + '</div>'
+    : prospectTableHtml(page);
+
+  setContent(stats + toolbar + body +
+    (pages > 1 ? '<div class="pagination">' +
+      '<button class="pg-btn" ' + (state.prospectPage === 1 ? 'disabled' : '') + ' onclick="state.prospectPage--;renderProspects()">Previous</button>' +
+      '<span class="pg-info">Page ' + state.prospectPage + ' of ' + pages + '</span>' +
+      '<button class="pg-btn" ' + (state.prospectPage === pages ? 'disabled' : '') + ' onclick="state.prospectPage++;renderProspects()">Next</button>' +
+    '</div>' : '') +
+    '<div class="fg-hint" style="margin-top:12px">Prospects carry a name and a sector but no load data, so they are not ' +
+    'fit-scored. Promote one to an offtaker once you know roughly what it consumes — that is when it starts being ranked.</div>');
+}
+
+function prospectCardHtml(p) {
+  const s = sectorOf(p.sectorId);
+  const promotedTo = p.promotedTo ? getOfftaker(p.promotedTo) : null;
+  return '<div class="ec" style="cursor:default">' +
+    '<div class="ec-head">' +
+      '<div class="ec-icon">' + sectorIcon(p.sectorId, 18) + '</div>' +
+      '<span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : p.status === 'new' ? 'b-prospect' : 'b-medium') + '">' +
+        esc(PROSPECT_STATUS[p.status] || p.status) + '</span>' +
+    '</div>' +
+    '<h3>' + esc(p.name) + '</h3>' +
+    (p.note ? '<div class="short">' + esc(p.note) + '</div>' : '') +
+    '<div class="meta">' + icon('grid', 13) +
+      '<span class="ext-link" style="cursor:pointer" onclick="nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
+      esc(sectorName(p.sectorId)) + '</span></div>' +
+    '<div class="fit-row"><span>Tier ' + sectorTier(p.sectorId) + '</span>' + ppaDots(s ? s.ppaFit : 0) + '</div>' +
+    '<div class="ec-footer">' +
+      '<span>' + esc(SECTOR_GROUPS[sectorGroup(p.sectorId)] || '—') + '</span>' +
+      '<div style="display:flex;gap:4px">' +
+        (promotedTo && promotedTo.id
+          ? '<button class="btn btn-xs btn-outline" onclick="nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
+          : '<button class="btn btn-xs btn-primary" data-admin-only onclick="promoteProspect(\'' + p.id + '\')">' +
+            icon('plus', 11) + ' Promote</button>') +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function prospectTableHtml(page) {
+  return '<div class="table-wrap"><table><thead><tr>' +
       '<th>Company</th><th>Sector</th><th>Tier</th><th>PPA fit</th><th>Status</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
     page.map(p => {
@@ -308,14 +387,7 @@ function renderProspects() {
             : '<button class="btn btn-xs btn-primary" data-admin-only onclick="promoteProspect(\'' + p.id + '\')">' +
               icon('plus', 11) + ' Promote</button>') +
         '</td></tr>';
-    }).join('') + '</tbody></table></div>' +
-    (pages > 1 ? '<div class="pagination">' +
-      '<button class="pg-btn" ' + (state.prospectPage === 1 ? 'disabled' : '') + ' onclick="state.prospectPage--;renderProspects()">Previous</button>' +
-      '<span class="pg-info">Page ' + state.prospectPage + ' of ' + pages + '</span>' +
-      '<button class="pg-btn" ' + (state.prospectPage === pages ? 'disabled' : '') + ' onclick="state.prospectPage++;renderProspects()">Next</button>' +
-    '</div>' : '') +
-    '<div class="fg-hint" style="margin-top:12px">Prospects carry a name and a sector but no load data, so they are not ' +
-    'fit-scored. Promote one to an offtaker once you know roughly what it consumes — that is when it starts being ranked.</div>');
+    }).join('') + '</tbody></table></div>';
 }
 
 function prospectRowHtml(p) {

@@ -27,7 +27,15 @@ let state = {
   editDealId: null,
   deleteTarget: null,
 
-  offView: localStorage.getItem(STORE_PREFIX + 'off_view') || 'grid',
+  /* Each list keeps its own grid/table preference, remembered per browser. */
+  offView: storedView('offView', 'grid'),
+  contactView: storedView('contactView', 'table'),
+  sectorView: storedView('sectorView', 'grid'),
+  prospectView: storedView('prospectView', 'table'),
+  projectView: storedView('projectView', 'grid'),
+  activityView: storedView('activityView', 'timeline'),
+  pipeView: storedView('pipeView', 'board'),
+
   offSearch: '', offSector: '', offStatus: '', offProvince: '',
   offSort: { field: 'fit', dir: 'desc' },
   offPage: 1,
@@ -45,6 +53,36 @@ let state = {
   mapFilter: 'all',
   pbFilter: '',
 };
+
+/* ─── GRID / TABLE TOGGLE ─────────────────────────────────────────
+   Every list view offers the same two readings of the same records: cards
+   for scanning and comparing, a table for ranking and bulk reading. The
+   choice is per list and persists, because a rep who works the pipeline in
+   a table rarely wants cards back tomorrow. */
+function storedView(key, fallback) {
+  /* offView predates this helper and was stored under its own key. */
+  const legacy = key === 'offView' ? 'off_view' : null;
+  try {
+    return localStorage.getItem(STORE_PREFIX + key) ||
+      (legacy ? localStorage.getItem(STORE_PREFIX + legacy) : null) || fallback;
+  } catch (e) { return fallback; }
+}
+
+/* `options` defaults to grid/table; the pipeline passes board/table. */
+function viewToggle(key, options) {
+  return '<div class="view-toggle">' +
+    (options || [['grid', 'Grid'], ['table', 'Table']]).map(([v, label]) =>
+      '<button class="vt-btn ' + (state[key] === v ? 'active' : '') + '" ' +
+      'onclick="setViewMode(\'' + key + '\',\'' + v + '\')">' + label + '</button>').join('') +
+    '</div>';
+}
+
+function setViewMode(key, v) {
+  if (state[key] === v) return;
+  state[key] = v;
+  try { localStorage.setItem(STORE_PREFIX + key, v); } catch (e) {}
+  render();
+}
 
 /* ─── HELPERS ─────────────────────────────────────────────────── */
 function uid(p) { return (p || 'id') + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
@@ -355,6 +393,7 @@ function render() {
     sectors: renderSectors,
     sector: renderSector,
     prospects: renderProspects,
+    regions: renderRegions,
     contacts: renderContacts,
     projects: renderProjects,
     map: renderMap,
