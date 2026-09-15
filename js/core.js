@@ -167,7 +167,18 @@ function offtakerCoords(o) {
   if (num(o.lat) && num(o.lng)) return [o.lat, o.lng];
   return PROVINCE_COORDS[o.province] || PROVINCE_COORDS['Multiple'];
 }
+/* Nearest generation site, and whether that distance is worth trusting.
+
+   An offtaker with no coordinates of its own falls back to the centre of
+   its province, and several of those centres ARE the town an AEE site
+   sits in — Limpopo's centroid is Polokwane, Mpumalanga's is Middelburg.
+   Reported plainly, that reads as "0 km", which looks like the mine is
+   on top of the solar farm. So a distance derived from a province rather
+   than from real coordinates comes back flagged, and every place that
+   prints it says so. The number is still useful for rough ordering; it
+   just must not be dressed up as a survey. */
 function nearestProject(o) {
+  const approx = !(num(o.lat) && num(o.lng));
   const [lat, lng] = offtakerCoords(o);
   let best = null, bestKm = Infinity;
   for (const p of state.projects) {
@@ -175,8 +186,16 @@ function nearestProject(o) {
     const km = haversineKm(lat, lng, p.lat, p.lng);
     if (km < bestKm) { bestKm = km; best = p; }
   }
-  return best ? { project: best, km: bestKm } : null;
+  return best ? { project: best, km: bestKm, approx } : null;
 }
+/* "412 km" when the location is pinned, "~412 km" when it was inferred
+   from the province. One helper so every screen says it the same way. */
+function distanceLabel(np) {
+  if (!np) return '—';
+  return (np.approx ? '~' : '') + np.km + ' km';
+}
+const APPROX_DISTANCE_NOTE =
+  'Measured from the centre of the province — this offtaker has no site coordinates recorded yet, so treat the distance as indicative.';
 
 /* Fit score, 0–100. A single number the sales team can sort by so the
    call list starts with the offtakers most likely to sign. Six factors:
@@ -592,68 +611,204 @@ function parseCSV(text) {
   return rows.filter(r => r.some(c => String(c).trim()));
 }
 
+/* ─── CSV IMPORT ──────────────────────────────────────────────────
+   One importer, two shapes. A file with a first/last name column is a
+   contact list; one with a company name and no person on it is an
+   offtaker list. Which one it is gets decided from the header row
+   rather than asked, because the answer is never ambiguous and asking
+   would only be a chance to pick wrong.
+
+   Offtaker rows carry no load figures most of the time — a target
+   list is usually just names and places, and the GWh comes later,
+   from the customer. That is fine: a record with no load is honest
+   about it and sorts to the bottom until someone fills it in. What it
+   must NOT do is wear the "estimated load" badge, which promises a
+   desk estimate that nobody made. */
 let _importRows = [];
+let _importKind = 'contacts';
+
+const IMPORT_HINT =
+  'Choose a CSV with a header row.<br>' +
+  '<b style="color:var(--text2)">Contacts</b> — first, last, title, department, company, email, phone, linkedin, notes.<br>' +
+  '<b style="color:var(--text2)">Offtakers</b> — name, short, sector, province, city, website, gwh, peak mw, tariff, nmd, supply, wheeling, status, priority, description.';
+
 function openImport() {
   _importRows = [];
+  _importKind = 'contacts';
   document.getElementById('imp-file').value = '';
-  document.getElementById('imp-preview').innerHTML =
-    '<div class="fg-hint">Choose a CSV with a header row. Recognised columns: first, last, title, department, company, email, phone, linkedin, notes.</div>';
+  document.getElementById('imp-preview').innerHTML = '<div class="fg-hint">' + IMPORT_HINT + '</div>';
   document.getElementById('imp-go').disabled = true;
   openModal('modal-import');
 }
+
+/* Accepts a sector by id ("mining") or by the name shown in the app
+   ("Mining & Minerals (Producer)"), so a list can be written either
+   way round without anyone having to look the ids up. */
+function sectorIdFromText(text) {
+  const v = String(text || '').trim();
+  if (!v) return '';
+  if (SECTOR_BY_ID[v]) return v;
+  const lower = v.toLowerCase();
+  const byName = ALL_SECTORS.find(s => s.name.toLowerCase() === lower);
+  return byName ? byName.id : '';
+}
+/* Free text to one of the stored enum values, falling back to the
+   safe default rather than writing a value nothing can render. */
+function enumFromText(text, allowed, fallback) {
+  const v = String(text || '').trim().toLowerCase();
+  return allowed.includes(v) ? v : fallback;
+}
+
 function previewImport(input) {
   const file = input.files && input.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     const rows = parseCSV(String(reader.result));
-    if (rows.length < 2) { document.getElementById('imp-preview').innerHTML = '<div class="fg-hint">That file has no data rows.</div>'; return; }
+    if (rows.length < 2) { importMsg('That file has no data rows.'); return; }
     const head = rows[0].map(h => h.trim().toLowerCase());
     const find = (...names) => { for (const n of names) { const i = head.indexOf(n); if (i >= 0) return i; } return -1; };
-    const idx = {
-      first: find('first', 'first name', 'firstname', 'given name'),
-      last: find('last', 'last name', 'lastname', 'surname', 'family name'),
-      title: find('title', 'job title', 'position', 'role'),
-      dept: find('department', 'dept', 'division'),
-      company: find('company', 'organisation', 'organization', 'offtaker', 'account'),
-      email: find('email', 'email address', 'e-mail'),
-      phone: find('phone', 'mobile', 'telephone', 'cell'),
-      linkedin: find('linkedin', 'linkedin url', 'profile'),
-      notes: find('notes', 'note', 'comment'),
-    };
-    if (idx.first < 0 && idx.last < 0) {
-      document.getElementById('imp-preview').innerHTML = '<div class="fg-hint" style="color:var(--warn)">No name column found. Add a "First" and "Last" column and try again.</div>';
-      return;
-    }
-    _importRows = rows.slice(1).map(r => {
-      const v = i => (i >= 0 ? String(r[i] || '').trim() : '');
-      const companyName = v(idx.company);
-      const match = state.offtakers.find(o =>
-        companyName && (o.name.toLowerCase().includes(companyName.toLowerCase()) ||
-          (o.short || '').toLowerCase() === companyName.toLowerCase()));
-      return {
-        first: v(idx.first), last: v(idx.last), title: v(idx.title), dept: v(idx.dept),
-        email: v(idx.email), phone: v(idx.phone), linkedin: v(idx.linkedin), notes: v(idx.notes),
-        companyName, offtakerId: match ? match.id : '',
-      };
-    }).filter(c => c.first || c.last);
 
-    const matched = _importRows.filter(r => r.offtakerId).length;
-    document.getElementById('imp-preview').innerHTML =
-      '<div class="fg-hint"><b style="color:var(--text2)">' + _importRows.length + ' contacts</b> found. ' +
-      matched + ' matched to an existing offtaker; ' + (_importRows.length - matched) +
-      ' will be filed as unassigned and can be linked later.</div>' +
-      '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Matched</th></tr></thead><tbody>' +
-      _importRows.slice(0, 8).map(r => '<tr><td>' + esc(r.first + ' ' + r.last) + '</td><td>' + esc(r.title) +
-        '</td><td>' + esc(r.companyName) + '</td><td>' + (r.offtakerId
-          ? '<span class="badge b-contracted">' + esc(getOfftaker(r.offtakerId).short || '') + '</span>'
-          : '<span class="badge b-low">unassigned</span>') + '</td></tr>').join('') +
-      '</tbody></table></div>';
-    document.getElementById('imp-go').disabled = false;
+    const firstIdx = find('first', 'first name', 'firstname', 'given name');
+    const lastIdx = find('last', 'last name', 'lastname', 'surname', 'family name');
+    _importKind = (firstIdx < 0 && lastIdx < 0) ? 'offtakers' : 'contacts';
+
+    if (_importKind === 'offtakers') previewOfftakerImport(rows, head, find);
+    else previewContactImport(rows, find, firstIdx, lastIdx);
   };
   reader.readAsText(file);
 }
+
+function importMsg(html, warn) {
+  document.getElementById('imp-preview').innerHTML =
+    '<div class="fg-hint"' + (warn ? ' style="color:var(--warn)"' : '') + '>' + html + '</div>';
+  document.getElementById('imp-go').disabled = true;
+}
+
+function previewContactImport(rows, find, firstIdx, lastIdx) {
+  const idx = {
+    title: find('title', 'job title', 'position', 'role'),
+    dept: find('department', 'dept', 'division'),
+    company: find('company', 'organisation', 'organization', 'offtaker', 'account'),
+    email: find('email', 'email address', 'e-mail'),
+    phone: find('phone', 'mobile', 'telephone', 'cell'),
+    linkedin: find('linkedin', 'linkedin url', 'profile'),
+    notes: find('notes', 'note', 'comment'),
+  };
+  _importRows = rows.slice(1).map(r => {
+    const v = i => (i >= 0 ? String(r[i] || '').trim() : '');
+    const companyName = v(idx.company);
+    const match = state.offtakers.find(o =>
+      companyName && (o.name.toLowerCase().includes(companyName.toLowerCase()) ||
+        (o.short || '').toLowerCase() === companyName.toLowerCase()));
+    return {
+      first: v(firstIdx), last: v(lastIdx), title: v(idx.title), dept: v(idx.dept),
+      email: v(idx.email), phone: v(idx.phone), linkedin: v(idx.linkedin), notes: v(idx.notes),
+      companyName, offtakerId: match ? match.id : '',
+    };
+  }).filter(c => c.first || c.last);
+
+  const matched = _importRows.filter(r => r.offtakerId).length;
+  document.getElementById('imp-preview').innerHTML =
+    '<div class="fg-hint"><b style="color:var(--text2)">' + _importRows.length + ' contacts</b> found. ' +
+    matched + ' matched to an existing offtaker; ' + (_importRows.length - matched) +
+    ' will be filed as unassigned and can be linked later.</div>' +
+    '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Matched</th></tr></thead><tbody>' +
+    _importRows.slice(0, 8).map(r => '<tr><td>' + esc(r.first + ' ' + r.last) + '</td><td>' + esc(r.title) +
+      '</td><td>' + esc(r.companyName) + '</td><td>' + (r.offtakerId
+        ? '<span class="badge b-contracted">' + esc(getOfftaker(r.offtakerId).short || '') + '</span>'
+        : '<span class="badge b-low">unassigned</span>') + '</td></tr>').join('') +
+    '</tbody></table></div>';
+  document.getElementById('imp-go').disabled = false;
+}
+
+function previewOfftakerImport(rows, head, find) {
+  const idx = {
+    name: find('name', 'company', 'offtaker', 'organisation', 'organization', 'account'),
+    short: find('short', 'short name', 'shortname'),
+    sector: find('sector', 'industry'),
+    province: find('province', 'region'),
+    city: find('city', 'town', 'location'),
+    website: find('website', 'url', 'web'),
+    gwh: find('gwh', 'annual gwh', 'annualgwh', 'gwh/yr', 'annual use'),
+    peak: find('peak mw', 'peakmw', 'peak', 'peak demand'),
+    tariff: find('tariff', 'r/kwh', 'current tariff'),
+    nmd: find('nmd', 'notified max demand', 'mva'),
+    supply: find('supply', 'supply authority'),
+    wheeling: find('wheeling'),
+    status: find('status'),
+    priority: find('priority'),
+    description: find('description', 'notes', 'note'),
+  };
+  if (idx.name < 0) {
+    importMsg('No company name column found. Add a <b>name</b> column and try again.<br><br>' + IMPORT_HINT, true);
+    return;
+  }
+
+  const seen = new Set();
+  _importRows = rows.slice(1).map(r => {
+    const v = i => (i >= 0 ? String(r[i] || '').trim() : '');
+    const name = v(idx.name);
+    if (!name) return null;
+    const gwh = num(v(idx.gwh));
+    return {
+      name,
+      short: v(idx.short) || name,
+      sector: sectorIdFromText(v(idx.sector)),
+      sectorRaw: v(idx.sector),
+      province: v(idx.province),
+      city: v(idx.city),
+      website: v(idx.website),
+      annualGwh: gwh, peakMw: num(v(idx.peak)), tariff: num(v(idx.tariff)), nmd: num(v(idx.nmd)),
+      supply: enumFromText(v(idx.supply), ['eskom', 'municipal', 'mixed'], 'eskom'),
+      wheeling: enumFromText(v(idx.wheeling), ['yes', 'likely', 'unknown', 'no'], 'unknown'),
+      status: enumFromText(v(idx.status), Object.keys(STATUS_LABEL), 'prospect'),
+      priority: enumFromText(v(idx.priority), ['high', 'medium', 'low'], 'medium'),
+      description: v(idx.description),
+      /* No load figure means no estimate was made. Saying "estimated"
+         here would claim a number that does not exist. */
+      estimated: gwh > 0,
+      dup: false,
+    };
+  }).filter(Boolean);
+
+  /* Two kinds of duplicate: already in the CRM, and repeated inside
+     the file itself. Both are skipped on import and both are counted
+     here, so the number in the preview is what will actually land. */
+  _importRows.forEach(o => {
+    const key = o.name.toLowerCase();
+    const existing = state.offtakers.some(x =>
+      x.name.toLowerCase() === key || (x.short || '').toLowerCase() === o.short.toLowerCase());
+    o.dup = existing || seen.has(key);
+    seen.add(key);
+  });
+
+  const fresh = _importRows.filter(o => !o.dup);
+  const noSector = fresh.filter(o => !o.sector);
+  const noLoad = fresh.filter(o => !o.annualGwh).length;
+
+  document.getElementById('imp-preview').innerHTML =
+    '<div class="fg-hint"><b style="color:var(--text2)">' + fresh.length + ' offtakers</b> will be added' +
+    (_importRows.length - fresh.length ? ', ' + (_importRows.length - fresh.length) + ' skipped as duplicates' : '') + '. ' +
+    (noLoad ? noLoad + ' carry no load figures yet — they will sit at the bottom of the list until someone adds them.' : '') +
+    '</div>' +
+    (noSector.length ? '<div class="fg-hint" style="color:var(--warn);margin-top:8px">' + noSector.length +
+      ' row' + (noSector.length === 1 ? '' : 's') + ' had no sector I could match' +
+      (noSector[0].sectorRaw ? ' (e.g. &ldquo;' + esc(noSector[0].sectorRaw) + '&rdquo;)' : '') +
+      ' — those will be filed under Mining &amp; Minerals. Fix the sector column to place them properly.</div>' : '') +
+    '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr>' +
+    '<th>Company</th><th>Sector</th><th>Province</th><th class="num">GWh/yr</th><th></th></tr></thead><tbody>' +
+    _importRows.slice(0, 10).map(o => '<tr><td>' + esc(o.name) + '</td>' +
+      '<td>' + (o.sector ? sectorBadge(o.sector) : '<span class="badge b-low">unmatched</span>') + '</td>' +
+      '<td>' + esc(o.province || '—') + '</td>' +
+      '<td class="num">' + (o.annualGwh || '—') + '</td>' +
+      '<td>' + (o.dup ? '<span class="badge b-lost">duplicate</span>' : '') + '</td></tr>').join('') +
+    '</tbody></table></div>';
+  document.getElementById('imp-go').disabled = fresh.length === 0;
+}
+
 function runImport() {
+  if (_importKind === 'offtakers') return runOfftakerImport();
   let added = 0;
   _importRows.forEach(r => {
     const dup = state.contacts.some(c =>
@@ -671,6 +826,27 @@ function runImport() {
   closeModal('modal-import');
   toast('Imported ' + added + ' new contact' + (added === 1 ? '' : 's'));
   nav('contacts');
+}
+
+function runOfftakerImport() {
+  let added = 0;
+  _importRows.forEach(r => {
+    if (r.dup) return;
+    const rec = {
+      id: uid('o'), name: r.name, short: r.short,
+      sector: r.sector || 'mining', province: r.province, city: r.city, website: r.website,
+      annualGwh: r.annualGwh, peakMw: r.peakMw, tariff: r.tariff, nmd: r.nmd,
+      supply: r.supply, wheeling: r.wheeling, status: r.status, priority: r.priority,
+      description: r.description, estimated: r.estimated,
+    };
+    state.offtakers.push(rec);
+    pushOfftaker(rec);
+    added++;
+  });
+  save();
+  closeModal('modal-import');
+  toast('Imported ' + added + ' new offtaker' + (added === 1 ? '' : 's'));
+  nav('offtakers');
 }
 
 /* ─── BOOT / AUTH GATE ────────────────────────────────────────────

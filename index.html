@@ -94,7 +94,7 @@
     <div class="nav-section">Data</div>
     <div class="nav-item" data-admin-only onclick="openImport()">
       <div class="nav-icon-box" data-icon="upload"></div>
-      <div style="flex:1"><div>Import contacts</div><div style="font-size:10px;opacity:.55;margin-top:1px">from CSV</div></div>
+      <div style="flex:1"><div>Import from CSV</div><div style="font-size:10px;opacity:.55;margin-top:1px">contacts or offtakers</div></div>
     </div>
     <div class="nav-item" onclick="exportOfftakers()">
       <div class="nav-icon-box" data-icon="download"></div> Export offtakers
@@ -301,7 +301,7 @@
 <!-- ══ MODAL: IMPORT ════════════════════════════════════════════ -->
 <div class="overlay" id="modal-import">
   <div class="modal">
-    <div class="mh"><h3>Import contacts from CSV</h3><button class="modal-close" onclick="closeModal('modal-import')">&times;</button></div>
+    <div class="mh"><h3>Import from CSV</h3><button class="modal-close" onclick="closeModal('modal-import')">&times;</button></div>
     <div class="mc">
       <div class="fg"><label>CSV file</label><input id="imp-file" type="file" accept=".csv,text/csv" onchange="previewImport(this)"></div>
       <div id="imp-preview" style="margin-top:12px"></div>

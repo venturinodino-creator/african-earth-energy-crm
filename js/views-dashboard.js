@@ -7,7 +7,14 @@
 
 function portfolioMw() { return state.projects.filter(p => p.status !== 'pipeline').reduce((s, p) => s + num(p.mw), 0); }
 function contractedMw() { return state.deals.filter(d => d.stage === 'signed').reduce((s, d) => s + num(d.mw), 0); }
-function pipelineMw() { return state.deals.filter(d => d.stage !== 'signed').reduce((s, d) => s + num(d.mw), 0); }
+
+/* A deal is live until it is signed or lost. 'lost' has no column on the
+   board, so without excluding it here a closed opportunity would keep
+   inflating the open pipeline for ever. */
+function isLiveDeal(d) { return d.stage !== 'signed' && d.stage !== 'lost'; }
+function liveDeals() { return state.deals.filter(isLiveDeal); }
+function lostDeals() { return state.deals.filter(d => d.stage === 'lost'); }
+function pipelineMw() { return liveDeals().reduce((s, d) => s + num(d.mw), 0); }
 
 function renderDashboard() {
   setPage('Dashboard', 'Offtaker pipeline for African Earth Energy',
@@ -15,7 +22,7 @@ function renderDashboard() {
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
 
   const offtakers = state.offtakers;
-  const openDeals = state.deals.filter(d => d.stage !== 'signed');
+  const openDeals = liveDeals();
   const weighted = openDeals.reduce((s, d) => s + weightedValue(d), 0);
   const available = portfolioMw() - contractedMw();
   const hot = offtakers.map(o => ({ o, f: fitScore(o) })).sort((a, b) => b.f - a.f);
@@ -55,7 +62,7 @@ function renderDashboard() {
           '<div style="min-width:0;flex:1">' +
             '<div class="person-name">' + esc(o.short || o.name) + '</div>' +
             '<div class="person-title">' + fmtNum(o.annualGwh) + ' GWh/yr · R' + num(o.tariff).toFixed(2) + '/kWh · ' +
-            (np ? esc(np.project.town) + ' ' + np.km + ' km' : 'no nearby site') +
+            (np ? esc(np.project.town) + ' ' + distanceLabel(np) : 'no nearby site') +
             (c ? ' · ' + esc(c.title) : '') + '</div>' +
           '</div>' +
           '<div class="person-actions"><span class="badge b-' + o.status + '">' + (STATUS_LABEL[o.status] || o.status) + '</span></div>' +
@@ -146,13 +153,14 @@ function growBars() {
    PIPELINE — drag-and-drop kanban of PPA opportunities
    ═══════════════════════════════════════════════════════════════ */
 function renderPipeline() {
-  const open = state.deals.filter(d => d.stage !== 'signed');
+  const open = liveDeals();
   setPage('Pipeline', open.length + ' live opportunities · ' + fmtNum(pipelineMw()) + ' MW under discussion',
     viewToggle('pipeView', [['board', 'Board'], ['table', 'Table']]) +
     '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
-  const totalWeighted = state.deals.reduce((s, d) => s + weightedValue(d), 0);
+  const totalWeighted = liveDeals().reduce((s, d) => s + weightedValue(d), 0);
+  const lost = lostDeals();
   const summary =
     '<div class="stats-grid">' +
       statTile('pipeline', 'amber', 'Open opportunities', open.length, fmtNum(pipelineMw()) + ' MW') +
@@ -160,9 +168,25 @@ function renderPipeline() {
       statTile('bolt', 'green', 'Signed', fmtNum(contractedMw()) + ' MW',
         state.deals.filter(d => d.stage === 'signed').length + ' executed PPAs') +
       statTile('clock', 'purple', 'Average tenor',
-        state.deals.length ? Math.round(state.deals.reduce((s, d) => s + num(d.tenor), 0) / state.deals.length) + ' yrs' : '—',
-        'weighted by opportunity count') +
-    '</div>';
+        open.length ? Math.round(open.reduce((s, d) => s + num(d.tenor), 0) / open.length) + ' yrs' : '—',
+        'across live opportunities') +
+    '</div>' +
+    /* Closed-lost deals have no column on the board, so say they exist
+       rather than letting them disappear without trace. */
+    (lost.length
+      ? '<div class="card" style="margin-bottom:14px;border-left:3px solid var(--danger)">' +
+          '<div class="card-header"><div><div class="card-title">Closed lost (' + lost.length + ')</div>' +
+          '<div class="card-sub">Off the board and out of the totals. The capacity is back with the site.</div></div></div>' +
+          lost.map(d =>
+            '<div class="person-row" style="cursor:pointer" onclick="openEditDeal(\'' + d.id + '\')">' +
+              '<div style="min-width:0;flex:1">' +
+                '<div class="person-name">' + esc(getOfftaker(d.offtakerId).short || d.name) +
+                  ' · ' + fmtNum(d.mw) + ' MW</div>' +
+                (d.notes ? '<div class="person-title">' + esc(d.notes) + '</div>' : '') +
+              '</div>' +
+            '</div>').join('') +
+        '</div>'
+      : '');
 
   if (state.pipeView === 'table') {
     setContent(summary + dealTableHtml() +

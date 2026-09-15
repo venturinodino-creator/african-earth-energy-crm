@@ -4,8 +4,12 @@
     {
       "name": "aee-crm",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8130"],
-      "port": 8130
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8140"
+      ],
+      "port": 8140
     }
   ]
 }

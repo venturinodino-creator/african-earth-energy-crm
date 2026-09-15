@@ -94,7 +94,7 @@ function offtakerCardHtml(o) {
     '<div class="fit-row"><span>Fit score</span><span style="color:' + fitColor(f) + '">' + f + ' / 100</span></div>' +
     '<div class="fit-bar"><span data-w="' + f + '" style="background:' + fitColor(f) + '"></span></div>' +
     '<div class="ec-footer">' +
-      '<span>' + (np ? esc(np.project.town) + ' · ' + np.km + ' km' : 'no nearby site') + '</span>' +
+      '<span>' + (np ? esc(np.project.town) + ' · ' + distanceLabel(np) : 'no nearby site') + '</span>' +
       '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
     '</div>' +
     '<div class="ec-footer" style="border-top:none;padding-top:0;margin-top:6px">' +
@@ -126,7 +126,7 @@ function offtakerTableHtml(list) {
         '<td class="num">' + fmtNum(o.annualGwh) + '</td>' +
         '<td class="num">' + fmtNum(o.peakMw) + '</td>' +
         '<td class="num">' + num(o.tariff).toFixed(2) + '</td>' +
-        '<td>' + (np ? esc(np.project.town) + ' <span style="color:var(--muted)">' + np.km + ' km</span>' : '—') + '</td>' +
+        '<td>' + (np ? esc(np.project.town) + ' <span style="color:var(--muted)">' + distanceLabel(np) + '</span>' : '—') + '</td>' +
         '<td class="num" style="color:' + fitColor(f) + ';font-weight:800">' + f + '</td>' +
         '<td><span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></td>' +
         '<td class="num">' + contactsFor(o.id).length + '</td>' +
@@ -183,7 +183,7 @@ function renderDetail() {
         dhMetric(Math.round(loadFactor(o) * 100) + '%', 'Load factor') +
         dhMetric('R' + num(o.tariff).toFixed(2), 'Current tariff') +
         dhMetric(f + '/100', 'Fit score', true) +
-        dhMetric(np ? np.km + ' km' : '—', np ? 'to ' + np.project.town : 'no nearby site') +
+        dhMetric(distanceLabel(np), np ? 'to ' + np.project.town + (np.approx ? ' (approx)' : '') : 'no nearby site') +
       '</div>' +
     '</div>';
 
@@ -231,9 +231,10 @@ function renderDetail() {
         '<dt>Supply authority</dt><dd>' + esc({ eskom: 'Eskom direct', municipal: 'Municipal', mixed: 'Mixed' }[o.supply] || o.supply || '—') + '</dd>' +
         '<dt>Wheeling</dt><dd>' + esc(WHEELING_LABEL[o.wheeling] || '—') + '</dd>' +
         '<dt>Notified max demand</dt><dd>' + (num(o.nmd) ? fmtNum(o.nmd) + ' MVA' : '—') + '</dd>' +
-        '<dt>Nearest AEE site</dt><dd>' + (np ? esc(np.project.name) + ' — ' + np.km + ' km' : '—') + '</dd>' +
+        '<dt>Nearest AEE site</dt><dd>' + (np ? esc(np.project.name) + ' — ' + distanceLabel(np) : '—') + '</dd>' +
         '<dt>Site capacity</dt><dd>' + (np ? fmtNum(np.project.mw) + ' MW, COD ' + esc(np.project.cod) : '—') + '</dd>' +
       '</dl>' +
+      (np && np.approx ? '<div class="fg-hint" style="margin-top:12px;color:var(--warn)">' + esc(APPROX_DISTANCE_NOTE) + '</div>' : '') +
       (np ? '<div class="fg-hint" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">' + esc(np.project.note) + '</div>' : '') +
     '</div>';
 
@@ -318,7 +319,7 @@ function fillTemplate(body, o) {
     projectMw: np ? fmtNum(np.project.mw) : '',
     projectProvince: np ? np.project.province : '',
     cod: np ? np.project.cod : '',
-    distance: np ? np.km + ' km' : 'a short wheeling distance',
+    distance: np && !np.approx ? np.km + ' km' : 'a short wheeling distance',
     sender: 'Your name, African Earth Energy',
   };
   return body.replace(/\{\{(\w+)\}\}/g, (m, k) => (map[k] !== undefined ? map[k] : m));
