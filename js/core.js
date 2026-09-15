@@ -292,7 +292,7 @@ function weightedValue(d) {
 }
 
 /* ─── ROUTING ─────────────────────────────────────────────────── */
-const ID_SCOPED_VIEWS = new Set(['detail', 'sector']);
+const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map']);
 
 function navUrlFor(view, id) {
   const p = new URLSearchParams(location.search);
@@ -331,7 +331,7 @@ addEventListener('popstate', e => {
     view = p.get('view') || 'dashboard';
     id = p.get('id');
   }
-  if (view === 'detail' && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
+  if ((view === 'detail' || view === 'org-map') && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
   if (view === 'sector' && !(id && sectorOf(id))) { view = 'sectors'; id = null; }
   if (id) { if (view === 'sector') state.sectorId = id; else state.detailId = id; }
   nav(view, id ? { id } : {}, true);
@@ -351,6 +351,7 @@ function render() {
     pipeline: renderPipeline,
     offtakers: renderOfftakers,
     detail: renderDetail,
+    'org-map': renderOrgMap,
     sectors: renderSectors,
     sector: renderSector,
     prospects: renderProspects,
@@ -717,7 +718,7 @@ async function onSignedIn(session) {
   const p = new URLSearchParams(location.search);
   let view = p.get('view') || 'dashboard';
   const id = p.get('id');
-  if (view === 'detail' && !getOfftaker(id).id) view = 'offtakers';
+  if ((view === 'detail' || view === 'org-map') && !getOfftaker(id).id) view = 'offtakers';
   if (view === 'sector' && !sectorOf(id)) view = 'sectors';
   nav(view, id ? { id } : {}, true);
 }

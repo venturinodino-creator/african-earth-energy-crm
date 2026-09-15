@@ -158,6 +158,7 @@ function renderDetail() {
   const model = savingsModel(o.annualGwh, o.tariff, DEFAULT_PPA_TARIFF, 100, 20, ESKOM_ESCALATION, DEFAULT_ESCALATION);
 
   setPage(o.short || o.name, sectorName(o.sector) + ' · ' + esc(o.city) + ', ' + esc(o.province),
+    '<button class="btn btn-outline btn-sm" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})" title="Visual org chart: who sits where">' + icon('grid', 14) + ' Org map</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openLogInteraction(\'' + o.id + '\')">' + icon('note', 14) + ' Log activity</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add contact</button>' +
     '<button class="btn btn-primary btn-sm" onclick="openAddDeal(\'' + o.id + '\')">' + icon('bolt', 14) + ' New opportunity</button>');
@@ -241,28 +242,10 @@ function renderDetail() {
       (np ? '<div class="fg-hint" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">' + esc(np.project.note) + '</div>' : '') +
     '</div>';
 
-  const peopleHtml =
-    '<div class="card">' +
-      '<div class="card-header"><div class="card-title">People (' + people.length + ')</div>' +
-      '<button class="btn btn-ghost btn-xs" onclick="openAddContact(\'' + o.id + '\')">Add</button></div>' +
-      (people.length ? people.map(c =>
-        '<div class="person-row">' +
-          '<div class="av" style="background:' + avatarColor(c.first + c.last) + '">' + esc(initials(c.first, c.last).toUpperCase()) + '</div>' +
-          '<div style="min-width:0;flex:1">' +
-            '<div class="person-name">' + esc(c.first + ' ' + c.last) +
-            (c.role === 'decision' ? ' <span class="badge b-contracted" style="font-size:9px">decision maker</span>' : '') + '</div>' +
-            '<div class="person-title">' + esc(c.title) + (c.dept ? ' · ' + esc(c.dept) : '') + '</div>' +
-            (c.email || c.phone ? '<div class="person-title" style="margin-top:2px">' +
-              (c.email ? '<a class="ext-link" href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a> ' : '') +
-              (c.phone ? esc(c.phone) : '') + '</div>' : '') +
-          '</div>' +
-          '<div class="person-actions">' +
-            '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button>' +
-            '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
-          '</div>' +
-        '</div>').join('')
-        : '<div class="empty" style="padding:26px 10px"><h3>No contacts yet</h3><p>Add the person who signs the electricity contract, not just the person who answers the phone.</p></div>') +
-    '</div>';
+  /* The contacts card. Rendered from views-orgmap.js so the "who is
+     here" panel above it and this list stay in step — the panel's
+     segments filter exactly what this card shows. */
+  const contactsHtml = contactsCardHtml(o);
 
   const dealsHtml =
     '<div class="card">' +
@@ -307,15 +290,21 @@ function renderDetail() {
     '</div>';
 
   /* The sector workbook's own questions and objections, filtered to this
-     account's sector — the thing a rep actually wants open on the call. */
+     account's sector. Reference material a rep reads once and then keeps
+     open, rather than something they act on first — so it sits at the
+     bottom of the page, full width, below everything account-specific. */
   const qCard = questionsCardHtml(o.sector, 'For ' + sectorName(o.sector));
   const oCard = objectionsCardHtml(o.sector);
+  const reference = (qCard || oCard)
+    ? '<div class="cols-2" style="margin-top:14px">' + qCard + oCard + '</div>'
+    : '';
 
   setContent(hero + pitch +
+    '<div style="margin-top:14px">' + contactMixHtml(o, people) + '</div>' +
     '<div class="cols-2" style="margin-top:14px">' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + peopleHtml + qCard + oCard + logHtml + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:14px">' + contactsHtml + logHtml + '</div>' +
       '<div style="display:flex;flex-direction:column;gap:14px">' + supply + sectorCard + dealsHtml + outreach + '</div>' +
-    '</div>');
+    '</div>' + reference);
 }
 
 function dhMetric(value, label, hl) {
@@ -434,6 +423,7 @@ function renderContacts() {
         '<td>' + (c.phone ? esc(c.phone) : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td><span class="badge b-' + c.priority + '">' + esc(c.priority) + '</span></td>' +
         '<td style="white-space:nowrap">' +
+          (o.id ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 11) + '</button> ' : '') +
           (safeHref(c.linkedin) ? '<a class="btn btn-xs btn-outline" href="' + esc(safeHref(c.linkedin)) + '" target="_blank" rel="noopener">' + icon('link', 11) + '</a> ' : '') +
           '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button> ' +
           '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +

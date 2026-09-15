@@ -163,11 +163,18 @@ function renderSector() {
         : '<div class="fg-hint">No named companies in this sector yet.</div>') +
     '</div>';
 
+  /* Questions and objections are reference material — read once, then
+     kept open on the call — so they sit at the bottom of the page,
+     below the shape of the sector and the companies in it. */
+  const reference = (qCard || oCard)
+    ? '<div class="cols-2" style="margin-top:14px">' + qCard + oCard + '</div>'
+    : '';
+
   setContent(hero +
     '<div class="cols-2">' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + qCard + oCard + '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + shape + who + listCard + '</div>' +
-    '</div>');
+      '<div style="display:flex;flex-direction:column;gap:14px">' + shape + who + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:14px">' + listCard + '</div>' +
+    '</div>' + reference);
 }
 
 /* Shared with the offtaker detail page, so a rep sees the same
