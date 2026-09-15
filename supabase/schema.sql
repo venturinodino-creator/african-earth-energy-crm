@@ -119,6 +119,14 @@ create table if not exists public.aee_prospects (
   email          text,
   address        text,
   contact_source text,       -- where the detail came from, so it can be re-verified
+  -- Load is stored as a BAND with its basis, never as a bare number. A
+  -- single figure reads as fact and ends up in a quote; a band plus a
+  -- stated basis stays honest about what is actually known.
+  annual_gwh_low  numeric,
+  annual_gwh_high numeric,
+  peak_mw_est     numeric,
+  load_basis      text check (load_basis in ('disclosed','derived','sector-range','unknown')),
+  load_method     text,      -- the citation, or the working behind a derivation
   updated_at     timestamptz not null default now()
 );
 
@@ -148,6 +156,7 @@ create index if not exists aee_prospects_sector_idx      on public.aee_prospects
 create index if not exists aee_prospects_status_idx      on public.aee_prospects(status);
 create index if not exists aee_prospects_near_site_idx   on public.aee_prospects(near_site);
 create index if not exists aee_prospects_province_idx    on public.aee_prospects(province);
+create index if not exists aee_prospects_load_basis_idx  on public.aee_prospects(load_basis);
 
 -- ─── ROLE HELPERS ──────────────────────────────────────────────────
 -- security definer so the policies can read profiles without the

@@ -39,7 +39,9 @@ function loadNearSite(project, maxKm) {
       rows.push({ kind: 'prospect', id: p.id, name: p.name, sectorId: p.sectorId,
         km, gwh: 0, status: p.status, town: p.town, note: p.note,
         phone: p.phone, email: p.email, website: p.website, address: p.address,
-        contactSource: p.contactSource });
+        contactSource: p.contactSource,
+        gwhLow: p.gwhLow, gwhHigh: p.gwhHigh, peakMwEst: p.peakMwEst,
+        loadBasis: p.loadBasis, loadMethod: p.loadMethod });
     }
   });
 
@@ -82,7 +84,12 @@ function renderRegions() {
     const pct = Math.min(100, (committed / Math.max(1, num(p.mw))) * 100);
     const offtakers = near.filter(x => x.kind === 'offtaker');
     const prospects = near.filter(x => x.kind === 'prospect');
-    const knownGwh = offtakers.reduce((s, x) => s + x.gwh, 0);
+    /* Tracked offtakers carry a figure; so do prospects whose load has
+       actually been established. A sector range is not knowledge and is
+       deliberately excluded. */
+    const establishedProspects = prospects.filter(x => x.loadBasis === 'disclosed' || x.loadBasis === 'derived');
+    const knownGwh = offtakers.reduce((s, x) => s + x.gwh, 0) +
+      establishedProspects.reduce((s, x) => s + ((num(x.gwhLow) + num(x.gwhHigh)) / 2), 0);
 
     const bands = CATCHMENT_BANDS.map((band, i) => {
       const lo = i === 0 ? 0 : CATCHMENT_BANDS[i - 1].max;
@@ -109,8 +116,9 @@ function renderRegions() {
         '<div class="calc-tile-l">Load in catchment</div>' +
         '<div class="calc-tile-s">' + offtakers.length + ' tracked, ' + prospects.length + ' to work</div></div>' +
         '<div class="calc-tile amber"><div class="calc-tile-v">' + (knownGwh ? fmtNum(knownGwh) + ' GWh' : '—') + '</div>' +
-        '<div class="calc-tile-l">Known annual load</div>' +
-        '<div class="calc-tile-s">from tracked offtakers only</div></div>' +
+        '<div class="calc-tile-l">Established annual load</div>' +
+        '<div class="calc-tile-s">' + (offtakers.length + establishedProspects.length) +
+        ' of ' + near.length + ' have a real figure</div></div>' +
         '<div class="calc-tile blue"><div class="calc-tile-v">' + (near[0] ? near[0].km + ' km' : '—') + '</div>' +
         '<div class="calc-tile-l">Nearest load</div>' +
         '<div class="calc-tile-s">' + (near[0] ? esc(near[0].name) : 'nothing located yet') + '</div></div>' +
@@ -143,13 +151,35 @@ function regionRowHtml(x) {
       '</div>' +
       '<div class="person-title">' + esc(sectorName(x.sectorId)) +
         (x.town ? ' · ' + esc(x.town) : '') +
-        (x.gwh ? ' · ' + fmtNum(x.gwh) + ' GWh/yr' : '') +
+        loadLabelHtml(x) +
       '</div>' +
       contactLineHtml(x) +
     '</div>' +
     '<span style="font-size:11.5px;color:var(--muted2);font-variant-numeric:tabular-nums;white-space:nowrap">' +
       x.km + ' km</span>' +
   '</div>';
+}
+
+/* How much load, and how much that figure is worth. A band with its
+   basis attached stays honest; a bare number reads as fact and ends up
+   in a quote. */
+const LOAD_BASIS_LABEL = {
+  disclosed: 'disclosed', derived: 'derived', 'sector-range': 'sector range only', unknown: '',
+};
+function loadLabelHtml(x) {
+  /* A tracked offtaker already carries an established figure. */
+  if (x.kind === 'offtaker') return x.gwh ? ' · ' + fmtNum(x.gwh) + ' GWh/yr' : '';
+
+  const lo = num(x.gwhLow), hi = num(x.gwhHigh);
+  if (!lo && !hi) {
+    return x.loadBasis === 'sector-range'
+      ? ' · <span style="color:var(--muted)">load not established</span>'
+      : '';
+  }
+  const band = lo === hi ? fmtNum(lo) : fmtNum(lo) + '–' + fmtNum(hi);
+  const colour = x.loadBasis === 'disclosed' ? 'var(--accent)' : 'var(--accent2)';
+  return ' · <b style="color:' + colour + '">' + band + ' GWh/yr</b>' +
+    ' <span style="color:var(--muted)">' + esc(LOAD_BASIS_LABEL[x.loadBasis] || '') + '</span>';
 }
 
 /* Published switchboard and enquiries address, plus the role the sector
@@ -191,7 +221,8 @@ function openProspectFromRegion(name) {
 function exportRegions() {
   const head = ['site', 'site_province', 'site_mw', 'unsold_mw', 'company', 'kind',
     'sector', 'town', 'distance_km', 'known_gwh', 'status',
-    'phone', 'email', 'website', 'address', 'ask_for', 'contact_source'];
+    'phone', 'email', 'website', 'address', 'ask_for', 'contact_source',
+    'annual_gwh_low', 'annual_gwh_high', 'peak_mw_est', 'load_basis', 'load_method'];
   const rows = [head];
   state.projects.filter(p => p.status !== 'pipeline').forEach(p => {
     const unsold = Math.max(0, num(p.mw) - siteCommitted(p));
@@ -200,7 +231,8 @@ function exportRegions() {
       rows.push([p.town, p.province, p.mw, unsold, x.name, x.kind,
         sectorName(x.sectorId), x.town || '', x.km, x.gwh || '', x.status,
         x.phone || '', x.email || '', x.website || '', x.address || '',
-        sec && sec.roles && sec.roles.length ? sec.roles[0] : '', x.contactSource || '']);
+        sec && sec.roles && sec.roles.length ? sec.roles[0] : '', x.contactSource || '',
+        x.gwhLow ?? '', x.gwhHigh ?? '', x.peakMwEst ?? '', x.loadBasis || '', x.loadMethod || '']);
     });
   });
   downloadCSV('aee-regional-targets-' + todayISO() + '.csv', rows);

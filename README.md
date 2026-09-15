@@ -175,6 +175,29 @@ scoring a record with no load data would put 264 zeros at the top of the call
 list. **Promote** moves it across once the load is known, and that is when it
 starts being ranked.
 
+## Load data: the band and its basis
+
+A prospect's consumption is stored as a **band with its basis attached**, never as a
+bare number. A single figure reads as fact and finds its way into a quote; a band
+plus a stated basis stays honest about what is actually known.
+
+| Basis | Means | Shown as |
+| --- | --- | --- |
+| `disclosed` | The company or a regulator has stated it | Green, "disclosed" |
+| `derived` | Published throughput × published energy intensity, with the working in `load_method` | Amber, "derived" |
+| `sector-range` | Only the taxonomy's typical band — not company-specific | "load not established" |
+| `unknown` | Nothing established yet | Nothing shown |
+
+The "Established annual load" tile on each site counts only `disclosed` and `derived`,
+and says how many of the targets in that catchment actually have a real figure. A
+sector range is not knowledge and is excluded from the total on purpose.
+
+`load_method` carries the citation or the arithmetic, so any number can be audited
+rather than taken on trust. For example, Silicon Smelters' 140–585 GWh band is
+throughput (1,150–3,750 t/month, per Ferroglobe) times metallurgical silicon's
+10–13 MWh per tonne — the band is wide because the ramp position is not public, and
+that is the honest answer until someone asks them.
+
 ## The numbers, and how much to trust them
 
 - **Generation portfolio** — real, taken from <https://www.aeeg.co.za/en/projects>.

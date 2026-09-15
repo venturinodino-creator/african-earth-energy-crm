@@ -139,6 +139,8 @@ function rowToProspect(r) {
     lat: r.lat, lng: r.lng, nearSite: r.near_site || '',
     website: r.website || '', phone: r.phone || '', email: r.email || '',
     address: r.address || '', contactSource: r.contact_source || '',
+    gwhLow: r.annual_gwh_low, gwhHigh: r.annual_gwh_high, peakMwEst: r.peak_mw_est,
+    loadBasis: r.load_basis || 'unknown', loadMethod: r.load_method || '',
   };
 }
 function prospectToRow(p) {
@@ -149,6 +151,9 @@ function prospectToRow(p) {
     lat: p.lat ?? null, lng: p.lng ?? null, near_site: p.nearSite || null,
     website: p.website || null, phone: p.phone || null, email: p.email || null,
     address: p.address || null, contact_source: p.contactSource || null,
+    annual_gwh_low: p.gwhLow ?? null, annual_gwh_high: p.gwhHigh ?? null,
+    peak_mw_est: p.peakMwEst ?? null,
+    load_basis: p.loadBasis || 'unknown', load_method: p.loadMethod || null,
   };
 }
 function rowToInteraction(r) {
