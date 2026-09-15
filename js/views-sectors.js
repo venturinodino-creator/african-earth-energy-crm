@@ -349,7 +349,19 @@ function prospectCardHtml(p) {
     '</div>' +
     '<h3>' + esc(p.name) + '</h3>' +
     (p.note ? '<div class="short">' + esc(p.note) + '</div>' : '') +
-    '<div class="meta">' + icon('grid', 13) +
+    /* The switchboard and who to ask for. contactLineHtml lives in
+       views-regions.js and is shared so a prospect reads the same way
+       here as it does in a site catchment. */
+    contactLineHtml(p) +
+    /* Why this number and not another, and what to know before dialling.
+       Kept visible rather than buried: most of these records carry a
+       caveat — a number from a directory rather than the company, a
+       parent that holds the decision, a town that is wrong. */
+    (p.contactSource ? '<div style="font-size:10px;color:var(--muted);margin-top:2px">' +
+      'Source: ' + esc(p.contactSource) + '</div>' : '') +
+    (p.notes ? '<div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.45">' +
+      esc(p.notes) + '</div>' : '') +
+    '<div class="meta" style="margin-top:6px">' + icon('grid', 13) +
       '<span class="ext-link" style="cursor:pointer" onclick="nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
       esc(sectorName(p.sectorId)) + '</span></div>' +
     '<div class="fit-row"><span>Tier ' + sectorTier(p.sectorId) + '</span>' + ppaDots(s ? s.ppaFit : 0) + '</div>' +
@@ -374,7 +386,12 @@ function prospectTableHtml(page) {
       const promotedTo = p.promotedTo ? getOfftaker(p.promotedTo) : null;
       return '<tr>' +
         '<td><div style="font-weight:700">' + esc(p.name) + '</div>' +
-          (p.note ? '<div style="font-size:10.5px;color:var(--muted)">' + esc(p.note) + '</div>' : '') + '</td>' +
+          (p.note ? '<div style="font-size:10.5px;color:var(--muted)">' + esc(p.note) + '</div>' : '') +
+          /* Table is the default view, so the number has to be here and
+             not only on the card — this is the list a rep works down. */
+          (p.phone ? '<div style="font-size:10.5px;margin-top:2px">' +
+            '<a href="tel:' + esc(p.phone.replace(/\s/g, '')) + '" class="ext-link">' +
+            esc(p.phone) + '</a></div>' : '') + '</td>' +
         '<td><span class="ext-link" style="cursor:pointer" onclick="nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
           esc(sectorName(p.sectorId)) + '</span></td>' +
         '<td><span class="badge b-tier-' + sectorTier(p.sectorId) + '">' + sectorTier(p.sectorId) + '</span></td>' +
