@@ -37,7 +37,9 @@ function loadNearSite(project, maxKm) {
     const km = haversineKm(p.lat, p.lng, project.lat, project.lng);
     if (km <= maxKm) {
       rows.push({ kind: 'prospect', id: p.id, name: p.name, sectorId: p.sectorId,
-        km, gwh: 0, status: p.status, town: p.town, note: p.note });
+        km, gwh: 0, status: p.status, town: p.town, note: p.note,
+        phone: p.phone, email: p.email, website: p.website, address: p.address,
+        contactSource: p.contactSource });
     }
   });
 
@@ -136,10 +138,39 @@ function regionRowHtml(x) {
         (x.town ? ' · ' + esc(x.town) : '') +
         (x.gwh ? ' · ' + fmtNum(x.gwh) + ' GWh/yr' : '') +
       '</div>' +
+      contactLineHtml(x) +
     '</div>' +
     '<span style="font-size:11.5px;color:var(--muted2);font-variant-numeric:tabular-nums;white-space:nowrap">' +
       x.km + ' km</span>' +
   '</div>';
+}
+
+/* Published switchboard and enquiries address, plus the role the sector
+   taxonomy says to ask for. Clicking a number or address must not also
+   open the record, hence the stopPropagation. */
+function contactLineHtml(x) {
+  const bits = [];
+  if (x.phone) {
+    bits.push('<a href="tel:' + esc(x.phone.replace(/\s/g, '')) + '" class="ext-link" ' +
+      'onclick="event.stopPropagation()">' + esc(x.phone) + '</a>');
+  }
+  if (x.email) {
+    bits.push('<a href="mailto:' + esc(x.email) + '" class="ext-link" ' +
+      'onclick="event.stopPropagation()">' + esc(x.email) + '</a>');
+  }
+  if (safeHref(x.website)) {
+    bits.push('<a href="' + esc(safeHref(x.website)) + '" target="_blank" rel="noopener" ' +
+      'class="ext-link" onclick="event.stopPropagation()">site</a>');
+  }
+  if (!bits.length) {
+    return '<div class="person-title" style="color:var(--muted);font-style:italic">' +
+      'No contact details yet</div>';
+  }
+  const sec = sectorOf(x.sectorId);
+  const ask = sec && sec.roles && sec.roles.length ? sec.roles[0] : '';
+  return '<div class="person-title" style="margin-top:3px">' + bits.join(' · ') +
+    (ask ? ' <span style="color:var(--muted)">· ask for the ' + esc(ask) + '</span>' : '') +
+    '</div>';
 }
 
 /* Jump to the prospect list filtered to one company. */
@@ -152,13 +183,17 @@ function openProspectFromRegion(name) {
 
 function exportRegions() {
   const head = ['site', 'site_province', 'site_mw', 'unsold_mw', 'company', 'kind',
-    'sector', 'town', 'distance_km', 'known_gwh', 'status'];
+    'sector', 'town', 'distance_km', 'known_gwh', 'status',
+    'phone', 'email', 'website', 'address', 'ask_for', 'contact_source'];
   const rows = [head];
   state.projects.filter(p => p.status !== 'pipeline').forEach(p => {
     const unsold = Math.max(0, num(p.mw) - siteCommitted(p));
     loadNearSite(p, 300).forEach(x => {
+      const sec = sectorOf(x.sectorId);
       rows.push([p.town, p.province, p.mw, unsold, x.name, x.kind,
-        sectorName(x.sectorId), x.town || '', x.km, x.gwh || '', x.status]);
+        sectorName(x.sectorId), x.town || '', x.km, x.gwh || '', x.status,
+        x.phone || '', x.email || '', x.website || '', x.address || '',
+        sec && sec.roles && sec.roles.length ? sec.roles[0] : '', x.contactSource || '']);
     });
   });
   downloadCSV('aee-regional-targets-' + todayISO() + '.csv', rows);

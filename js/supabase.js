@@ -137,6 +137,8 @@ function rowToProspect(r) {
     status: r.status || 'new', promotedTo: r.promoted_to || '', notes: r.notes || '',
     town: r.town || '', province: r.province || '',
     lat: r.lat, lng: r.lng, nearSite: r.near_site || '',
+    website: r.website || '', phone: r.phone || '', email: r.email || '',
+    address: r.address || '', contactSource: r.contact_source || '',
   };
 }
 function prospectToRow(p) {
@@ -145,6 +147,8 @@ function prospectToRow(p) {
     status: p.status, promoted_to: p.promotedTo || null, notes: p.notes,
     town: p.town || null, province: p.province || null,
     lat: p.lat ?? null, lng: p.lng ?? null, near_site: p.nearSite || null,
+    website: p.website || null, phone: p.phone || null, email: p.email || null,
+    address: p.address || null, contact_source: p.contactSource || null,
   };
 }
 function rowToInteraction(r) {
