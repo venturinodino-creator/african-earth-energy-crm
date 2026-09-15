@@ -132,7 +132,14 @@ function regionRowHtml(x) {
   return '<div class="person-row" style="cursor:pointer" onclick="' + go + '">' +
     '<div style="min-width:0;flex:1">' +
       '<div class="person-name">' + esc(x.name) +
-        (x.kind === 'offtaker' ? ' <span class="badge b-contracted" style="font-size:9px">offtaker</span>' : '') +
+        (x.kind === 'offtaker'
+          ? ' <span class="badge b-contracted" style="font-size:9px">offtaker</span>'
+          /* Anything not on 'new' has already been triaged — say so here, or a
+             rep works a target someone has deliberately set aside. */
+          : x.status && x.status !== 'new'
+            ? ' <span class="badge ' + (x.status === 'parked' || x.status === 'rejected' ? 'b-low' : 'b-medium') +
+              '" style="font-size:9px">' + esc(PROSPECT_STATUS[x.status] || x.status) + '</span>'
+            : '') +
       '</div>' +
       '<div class="person-title">' + esc(sectorName(x.sectorId)) +
         (x.town ? ' · ' + esc(x.town) : '') +
