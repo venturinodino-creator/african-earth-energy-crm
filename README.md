@@ -24,7 +24,8 @@ Company site: <https://www.aeeg.co.za/en>
 | **Analytics** | Load by province and sector, fit distribution, where the pipeline value actually sits |
 | **Savings calculator** | Model a wheeled PPA against the buyer's current tariff over the contract life |
 | **Sectors** | 30 sectors with tier, PPA fit, load shape, deal structures, sales cycle and who to call. Each opens to its own page with qualifying questions and objections |
-| **Prospects** | The 264-company prospecting list, filterable by sector, tier and status, with one-click promotion to an offtaker |
+| **Prospects** | The prospecting list, filterable by sector, tier and status, with one-click promotion to an offtaker |
+| **Regions** | Each generation site against the industrial load in its catchment, ordered by unsold capacity then by distance, with published contacts inline |
 | **Playbook** | Ranked shortlists, market context, cold emails, discovery script, objection handling, qualification checklist |
 
 ## The fit score
@@ -205,6 +206,11 @@ whole team sees the same data on every device. Edits are written per record as
 they happen.
 
 - **Supabase project:** `Energy Lead Dashboard` (`pkzfazjtpswqjmnzzrgt`, eu-west-1)
+- **Schema:** [`supabase/schema.sql`](supabase/schema.sql) is a reference copy of the
+  live structure and, more importantly, the access rules. Running it against an empty
+  project reproduces the schema and the security model. It does not carry the data —
+  offtakers, contacts and the pipeline are customer records and are not committed to a
+  public repository. Use the CSV exports for a data backup.
 - **Tables:** `aee_offtakers`, `aee_contacts`, `aee_deals`, `aee_interactions`,
   `aee_prospects`, plus `profiles` for roles. They are namespaced `aee_*` so they sit alongside
   the pre-existing `mining_leads` table without touching it.
@@ -235,6 +241,7 @@ js/core.js              state, routing, helpers, fit score, auth gate, CSV
 js/views-dashboard.js   dashboard + pipeline board
 js/views-offtakers.js   offtaker list, detail page, contacts
 js/views-sectors.js     sectors, one-sector page, prospects list
+js/views-regions.js     per-site catchment and the regional target list
 js/views-tools.js       projects, map, analytics, calculator, playbook, activity
 js/forms.js             create / edit / delete
 ```
