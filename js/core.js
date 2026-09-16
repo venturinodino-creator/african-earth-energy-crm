@@ -33,6 +33,7 @@ let state = {
   contactView: storedView('contactView', 'table'),
   sectorView: storedView('sectorView', 'grid'),
   prospectView: storedView('prospectView', 'table'),
+  muniView: storedView('muniView', 'table'),
   projectView: storedView('projectView', 'grid'),
   activityView: storedView('activityView', 'timeline'),
   pipeView: storedView('pipeView', 'board'),
@@ -50,6 +51,10 @@ let state = {
 
   prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '', prospectStage: '',
   prospectPage: 1,
+
+  muniSearch: '', muniProvince: '', muniCat: '', muniWorked: '',
+  muniSort: { field: 'name', dir: 'asc' },
+  muniPage: 1,
 
   newsTopic: 'all', newsProvince: '', newsSearch: '',
 
@@ -160,6 +165,22 @@ function getOfftaker(id) { return state.offtakers.find(o => o.id === id) || {}; 
 /* Returns undefined rather than {} — the router uses it as an existence
    check before routing to a prospect profile. */
 function getProspect(id) { return state.prospects.find(p => p.id === id); }
+/* Contacts, interactions and the org map all hang off one id column, and
+   that id is now either an offtaker or a municipality. Anything generic
+   resolves through getAccount; getOfftaker stays offtaker-only, so an
+   offtaker-specific screen cannot quietly accept a municipality and
+   render half a page from an empty object. */
+function isMunicipalityId(id) {
+  return typeof MUNI_BY_ID !== 'undefined' && !!MUNI_BY_ID[id];
+}
+function getAccount(id) {
+  const o = state.offtakers.find(x => x.id === id);
+  if (o) return o;
+  return isMunicipalityId(id) ? muniAsAccount(MUNI_BY_ID[id]) : {};
+}
+/* Which detail view an id belongs to, for anything that links to "the
+   record this contact or log entry is filed against". */
+function accountView(id) { return isMunicipalityId(id) ? 'municipality' : 'detail'; }
 function getProject(id) { return state.projects.find(p => p.id === id) || {}; }
 function contactsFor(id) { return state.contacts.filter(c => c.offtakerId === id); }
 function dealsFor(id) { return state.deals.filter(d => d.offtakerId === id); }
@@ -501,6 +522,8 @@ function render() {
     pipeline: renderPipeline,
     offtakers: renderOfftakers,
     detail: renderDetail,
+    municipalities: renderMunicipalities,
+    municipality: renderMunicipality,
     'org-map': renderOrgMap,
     sectors: renderSectors,
     sector: renderSector,
