@@ -7,9 +7,11 @@
    a claim the source does not make — the `summary` restates the article,
    while `whyItMatters` is our own read and is clearly a separate line.
 
-   Curated by hand as at 2026-09-16. When a scan job eventually feeds this
-   page, it should write the same shape and keep the same rule: a story
-   without a working source link does not belong in the feed.
+   Curated by hand as at 2026-09-16. Most entries are from 2026; a short
+   tail of older ones is kept deliberately and marked as such where the
+   array turns. When a scan job eventually feeds this page, it should
+   write the same shape and keep the same rule: a story without a working
+   source link does not belong in the feed.
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
@@ -124,5 +126,46 @@ const NEWS_ARTICLES = [
     whyItMatters: 'The reference deal in this market. Expect its tariff and tenor quoted back at us.',
     source: 'Mining Weekly',
     url: 'https://www.miningweekly.com/article/more-renewable-energy-secured-by-sibanye-stillwater-for-its-south-african-mines-2026-02-06',
+  },
+
+  /* ─── Older, deliberately kept ────────────────────────────────────
+     The three below pre-date 2026. They are background rather than
+     news — the deals that set the pattern the 2026 stories follow, and
+     the consultation behind today's wheeling charges. The feed sorts
+     newest first, so they sit at the bottom where they belong; read the
+     date on the card before repeating any of it to an offtaker. */
+  {
+    id: 'news-pan-african-noa-wheeling-2025',
+    topic: 'new_ppa', province: 'Mpumalanga', date: '2025-08-07',
+    title: 'Gold miner Pan African Resources signs 10 year wheeling PPA with energy trader in South Africa',
+    summary: 'Pan African Resources signed a ten-year agreement with trader NOA covering about 10% of ' +
+      'its 112 GWh annual demand, serving the Barberton and Evander operations in Mpumalanga and Mogale ' +
+      'Tailings Retreatment in Gauteng. It adds to roughly 18.7 MW of existing solar and a stated goal ' +
+      'of 50% renewable supply by 2035.',
+    whyItMatters: 'A mid-tier miner starting at 10% of load — the small first tranche is a real way in.',
+    source: 'Green Building Africa',
+    url: 'https://www.greenbuildingafrica.co.za/gold-miner-pan-african-resources-signs-10-year-wheeling-ppa-with-energy-trader-in-south-africa/',
+  },
+  {
+    id: 'news-nersa-wheeling-charges-2024',
+    topic: 'ppa_contracts', province: 'Multiple', date: '2024-08-22',
+    title: 'NERSA calls for feedback on new network charges for wheeling',
+    summary: 'The regulator invited comment on updated guidelines for charging users of the transmission ' +
+      'and distribution networks, replacing rules dating from 2012.',
+    whyItMatters: 'The consultation behind the use-of-system charges in every delivered-cost number we quote.',
+    source: 'Energize',
+    url: 'https://www.energize.co.za/article/nersa-calls-for-feedback-on-new-network-charges-for-wheeling',
+  },
+  {
+    id: 'news-tharisa-etana-wheeling-2024',
+    topic: 'new_ppa', province: 'North West', date: '2024-08-04',
+    title: 'Tharisa mine in South Africa signs power wheeling PPA with energy trader',
+    summary: 'Tharisa signed a 15-year agreement with Etana Energy for wheeled wind and solar covering up ' +
+      'to 44% of the Tharisa Mine\'s electricity, from generation in the Western and Northern Cape, with ' +
+      'supply from 2026. Alongside a 40 MW solar facility, the company put renewables at up to 76% of the ' +
+      'mine\'s requirement.',
+    whyItMatters: 'The earliest of the Etana mining deals — the template Sibanye\'s 2026 agreement follows.',
+    source: 'Green Building Africa',
+    url: 'https://www.greenbuildingafrica.co.za/tharisa-mine-in-south-africa-signs-power-wheeling-ppa-with-energy-trader/',
   },
 ];
