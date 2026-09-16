@@ -50,6 +50,8 @@ let state = {
   prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '',
   prospectPage: 1,
 
+  newsTopic: 'all', newsProvince: '', newsSearch: '',
+
   mapFilter: 'all',
   pbFilter: '',
 };
@@ -420,6 +422,7 @@ function render() {
     calculator: renderCalculator,
     playbook: renderPlaybook,
     activity: renderActivity,
+    news: renderNews,
   };
   (views[state.view] || renderDashboard)();
   renderBackToMain();
