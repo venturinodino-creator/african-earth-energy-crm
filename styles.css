@@ -231,15 +231,31 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
   color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:9px}
 
 /* ─── PIPELINE / KANBAN ───────────────────────────────────────── */
-.kanban{display:flex;gap:11px;overflow-x:auto;padding-bottom:12px;align-items:flex-start}
-.kcol{min-width:252px;flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px}
-.kcol-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;padding:0 2px}
-.kcol-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2)}
+/* Every stage on screen at once, with no horizontal scrolling. A fixed
+   column width plus overflow-x meant the last stages sat off the right
+   edge, and a pipeline you have to scroll to read is a pipeline nobody
+   reads. grid-auto-flow:column lays out however many stages the board
+   has — seven for the deal board, five for the account board — and
+   minmax(0,1fr) is what actually lets a track shrink below its content
+   width, which a plain 1fr will not do. */
+.kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);
+  gap:9px;padding-bottom:12px;align-items:start}
+.kcol{min-width:0;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 8px}
+
+/* Below roughly a laptop width seven columns stop being legible, so the
+   board wraps onto several rows instead — still no sideways scrolling. */
+@media(max-width:1180px){
+  .kanban{grid-auto-flow:row;grid-auto-columns:auto;
+    grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+}
+.kcol-head{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:9px;padding:0 2px}
+.kcol-title{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);
+  min-width:0;overflow-wrap:anywhere}
 .kcol-count{font-size:10px;font-weight:800;color:var(--muted);background:rgba(255,255,255,.06);
   border-radius:9px;padding:1px 7px;font-variant-numeric:tabular-nums}
 .kcol-value{font-size:10.5px;color:var(--accent);font-weight:700;margin-bottom:8px;padding:0 2px;font-variant-numeric:tabular-nums}
-.pipeline-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:11px;
-  margin-bottom:8px;cursor:grab;transition:all .18s}
+.pipeline-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 9px;
+  margin-bottom:8px;cursor:grab;transition:all .18s;min-width:0}
 .pipeline-card:hover{border-color:var(--border2)}
 .pipeline-card.dragging{opacity:.4}
 .kcol.drop-target{border-color:var(--accent);background:rgba(61,220,132,.04)}
@@ -277,9 +293,13 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .sfp-step.current.lost{background:var(--danger);border-color:var(--danger);color:#2b0a0a;
   box-shadow:0 3px 12px rgba(239,68,68,.22)}
 @media(max-width:720px){.sfp-step{min-width:calc(50% - 4px)}}
-.pc-name{font-size:12px;font-weight:700;color:var(--text2);line-height:1.35;margin-bottom:3px}
-.pc-sub{font-size:10.5px;color:var(--muted);margin-bottom:8px}
-.pc-row{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:var(--muted2);margin-top:5px}
+.pc-name{font-size:12px;font-weight:700;color:var(--text2);line-height:1.35;margin-bottom:3px;
+  overflow-wrap:anywhere}
+.pc-sub{font-size:10.5px;color:var(--muted);margin-bottom:8px;overflow-wrap:anywhere}
+/* The MW / value and likelihood / date rows wrap rather than overflow once
+   a column is narrow — the figures stay readable, just stacked. */
+.pc-row{display:flex;align-items:baseline;justify-content:space-between;gap:4px;flex-wrap:wrap;
+  font-size:10.5px;color:var(--muted2);margin-top:5px}
 .pc-val{font-size:12.5px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
 
 /* ─── MODAL ───────────────────────────────────────────────────── */
@@ -427,7 +447,9 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
   .topbar-left{flex:1;min-width:0}
   .topbar-left h2{font-size:14px}
   .gs-wrap{order:3;flex-basis:100%;max-width:none}
-  .topbar-right{flex-wrap:wrap;justify-content:flex-end}
+  /* flex-wrap alone does not help while the base rule pins flex-shrink:0 —
+     the row keeps its full content width and pushes the page sideways. */
+  .topbar-right{flex-wrap:wrap;justify-content:flex-end;flex-shrink:1;min-width:0}
   .content{padding:14px 14px 40px}
   #back-to-main:not(:empty){padding:14px 14px 0}
   .stats-grid{grid-template-columns:1fr}
