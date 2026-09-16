@@ -343,7 +343,7 @@ function renderProspects() {
       '<button class="pg-btn" ' + (state.prospectPage === pages ? 'disabled' : '') + ' onclick="state.prospectPage++;renderProspects()">Next</button>' +
     '</div>' : '') +
     '<div class="fg-hint" style="margin-top:12px">Prospects carry a name and a sector but no load data, so they are not ' +
-    'fit-scored. Promote one to an offtaker once you know roughly what it consumes — that is when it starts being ranked.</div>');
+    'fit-scored. Convert one to an offtaker once you know roughly what it consumes — that is when it starts being ranked.</div>');
 }
 
 function prospectCardHtml(p) {
@@ -377,7 +377,7 @@ function prospectCardHtml(p) {
         (promotedTo && promotedTo.id
           ? '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
           : '<button class="btn btn-xs btn-primary" data-admin-only onclick="event.stopPropagation();promoteProspect(\'' + p.id + '\')">' +
-            icon('plus', 11) + ' Promote</button>') +
+            icon('plus', 11) + ' Convert</button>') +
       '</div>' +
     '</div>' +
   '</div>';
@@ -409,7 +409,7 @@ function prospectTableHtml(page) {
           (promotedTo && promotedTo.id
             ? '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
             : '<button class="btn btn-xs btn-primary" data-admin-only onclick="event.stopPropagation();promoteProspect(\'' + p.id + '\')">' +
-              icon('plus', 11) + ' Promote</button>') +
+              icon('plus', 11) + ' Convert</button>') +
         '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
@@ -431,7 +431,7 @@ function prospectRowHtml(p) {
 async function promoteProspect(id) {
   const p = state.prospects.find(x => x.id === id);
   if (!p) return;
-  if (state.role !== 'admin') { toast('Read-only access — ask an admin to promote this', 'warn'); return; }
+  if (state.role !== 'admin') { toast('Read-only access — ask an admin to convert this', 'warn'); return; }
 
   const s = sectorOf(p.sectorId);
   /* Where the lead had got to in the sales process comes with it — a lead
@@ -464,13 +464,18 @@ async function promoteProspect(id) {
   const movedLogs = interactionsForProspect(p.id);
   movedLogs.forEach(i => { i.offtakerId = offtaker.id; i.prospectId = ''; });
 
+  /* Move the screen before syncing. Local state is already correct, and
+     awaiting four round-trips first meant the user clicked Convert and
+     watched nothing happen for seconds — longer, or for ever, when the
+     network is slow or down. guardWrite still surfaces a failed write. */
+  save();
+  toast('Converted — add the load figures to start ranking it');
+  nav('detail', { id: offtaker.id });
+
   await pushOfftaker(offtaker);
   await pushProspect(p);
   await Promise.all(moved.map(d => pushDeal(d)));
   await Promise.all(movedLogs.map(i => pushInteraction(i)));
-  save();
-  toast('Promoted — add the load figures to start ranking it');
-  nav('detail', { id: offtaker.id });
 }
 
 function exportProspects() {

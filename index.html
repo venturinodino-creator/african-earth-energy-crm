@@ -46,16 +46,19 @@
     </div>
     <div class="nav-item" data-view="offtakers" onclick="nav('offtakers')">
       <div class="nav-icon-box" data-icon="building"></div>
-      <span style="flex:1">Prospects</span>
+      <span style="flex:1">Offtakers</span>
       <span id="nav-offtakers-badge" class="nav-badge" style="display:none"></span>
     </div>
     <div class="nav-item" data-view="contacts" onclick="nav('contacts')">
       <div class="nav-icon-box" data-icon="contacts"></div> Contacts
     </div>
-    <div class="nav-item" data-view="prospects" onclick="nav('prospects')">
+    <div class="nav-item" data-view="prospect-companies" onclick="nav('prospect-companies')">
       <div class="nav-icon-box" data-icon="target"></div>
-      <span style="flex:1">Offtakers</span>
+      <span style="flex:1">Prospects</span>
       <span id="nav-prospects-badge" class="nav-badge" style="display:none"></span>
+    </div>
+    <div class="nav-item" data-view="prospects" onclick="nav('prospects')">
+      <div class="nav-icon-box" data-icon="contacts"></div> Contact finder
     </div>
     <div class="nav-item" data-view="municipalities" onclick="nav('municipalities')">
       <div class="nav-icon-box" data-icon="pin"></div> Municipalities
@@ -388,6 +391,21 @@
 </div>
 
 <!-- ══ MODAL: IMPORT ════════════════════════════════════════════ -->
+<!-- ══ MODAL: CONVERT A PROSPECT ════════════════════════════════ -->
+<div class="overlay" id="modal-convert">
+  <div class="modal">
+    <div class="mh"><h3>Convert a prospect to an offtaker</h3><button class="modal-close" onclick="closeModal('modal-convert')">&times;</button></div>
+    <div class="mc">
+      <div class="fg"><label>Search prospects</label>
+        <input id="conv-search" placeholder="Company, sector, town or province..." oninput="renderConvertList()" autocomplete="off"></div>
+      <div id="conv-list" style="margin-top:10px"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-outline" onclick="closeModal('modal-convert')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="modal-import">
   <div class="modal">
     <div class="mh"><h3 id="imp-title">Import from CSV</h3><button class="modal-close" onclick="closeModal('modal-import')">&times;</button></div>

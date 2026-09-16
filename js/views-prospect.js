@@ -42,7 +42,7 @@ function renderProspect() {
     (promotedTo && promotedTo.id
       ? '<button class="btn btn-primary btn-sm" onclick="nav(\'detail\',{id:\'' + esc(promotedTo.id) + '\'})">Open offtaker</button>'
       : '<button class="btn btn-primary btn-sm" data-admin-only onclick="promoteProspect(\'' + esc(p.id) + '\')">' +
-        icon('plus', 14) + ' Promote to offtaker</button>'));
+        icon('plus', 14) + ' Convert to offtaker</button>'));
 
   const hero =
     '<div class="detail-hero">' +
@@ -106,7 +106,7 @@ function renderProspect() {
         '<dt>Site capacity</dt><dd>' + (site ? fmtNum(site.mw) + ' MW, COD ' + esc(site.cod) : '—') + '</dd>' +
       '</dl>' +
       '<div class="fg-hint" style="margin-top:12px">A prospect carries no verified load, so it is not fit-scored. ' +
-      'Promote it once you know roughly what it consumes — that is when it starts being ranked.</div>' +
+      'Convert it once you know roughly what it consumes — that is when it starts being ranked.</div>' +
     '</div>';
 
   const sectorCard = sec ? '<div class="card">' +
