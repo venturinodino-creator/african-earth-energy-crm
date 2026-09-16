@@ -1,37 +1,32 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Contact finder — scaffolding for the contact-discovery agent.
+   Contact finder — people at the offtakers, found by an agent.
 
-   The desk picks which offtakers it wants people found for, and which
-   roles it wants, and queues a run. An agent then goes and finds the
-   people and writes them back for review.
+   Laid out like the pending-contacts screen in the Netherlands CRM: a
+   chip row that both filters the list and sets what the next run will
+   target, then the found people in a flat table a reviewer works down.
 
-   THE AGENT DOES NOT EXIST YET. Everything here is the surface it will
-   plug into, so runs queue and sit at 'queued' rather than pretending to
-   search. The contract is deliberately small:
+   THE AGENT DOES NOT EXIST YET. "Find contacts now" records a run and
+   leaves it queued rather than pretending to search. The contract:
 
-     A run  (state.contactRuns)   { id, created, status, scope, roles,
-                                    offtakerIds, found, note }
-       status: 'queued' | 'running' | 'done' | 'failed'
-       The agent claims a queued run, sets status 'running', appends
-       results to state.foundContacts, then sets 'done' and `found`.
+     run   (state.contactRuns)   { id, created, status, industry, roles,
+                                   offtakerIds, found, note }
+           status: 'queued' | 'running' | 'done' | 'failed'
+     find  (state.foundContacts) { id, runId, offtakerId, first, last,
+                                   title, role, phone, email, source,
+                                   confidence, status }
+           status: 'pending' | 'approved' | 'discarded'
 
-     A find (state.foundContacts) { id, runId, offtakerId, first, last,
-                                    title, role, phone, email, source,
-                                    confidence, status }
-       status: 'pending' | 'approved' | 'discarded'
-
-   Nothing the agent finds enters the real contact book on its own —
-   a person approves each row, and approval is what writes an
-   aee_contacts record. Scraped people are a claim about a real human,
-   so a rep sees the source before it becomes a number they will dial.
+   The agent claims a queued run, appends finds, marks the run done.
+   Nothing it finds enters the contact book on its own — a person
+   accepts each row, and accepting is what writes the aee_contacts
+   record. A scraped person is a claim about a real human, so the
+   reviewer sees the source before it becomes a number they dial.
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
-/* Roles the run can ask for. Same vocabulary as a real contact, so an
-   approved find needs no translation. */
+/* Roles worth finding, in the order the desk works them. */
 const FINDER_ROLES = ['decision', 'technical', 'influencer', 'gatekeeper'];
-
-const FIND_STATUS_LABEL = { pending: 'Needs review', approved: 'Approved', discarded: 'Discarded' };
+const FIND_STATUS_LABEL = { pending: 'Needs review', approved: 'Accepted', discarded: 'Discarded' };
 const RUN_STATUS_LABEL = { queued: 'Queued', running: 'Running', done: 'Done', failed: 'Failed' };
 
 function loadFinderState() {
@@ -43,109 +38,127 @@ function saveFinderState() {
   lsSet('found_contacts', state.foundContacts);
 }
 
-/* The offtakers a run would cover, given the scope pickers. */
+/* The industry chips are the sector groups — the coarse cut of "what
+   kind of business", which is how energy intensity actually varies.
+   Heavy industry and smelting run a flat 24/7 load; a retail chain does
+   not. Ordered heaviest first so the ones worth calling lead. */
+const FINDER_INDUSTRIES = [
+  'heavy-industry', 'primary', 'manufacturing', 'digital',
+  'logistics', 'commercial', 'utilities-public', 'emerging',
+];
+
+function industryColor(key) {
+  return (typeof GROUP_COLOR !== 'undefined' && GROUP_COLOR[key]) || '#7a90a8';
+}
+function industryLabel(key) {
+  return key === 'all' ? 'All industries' : (SECTOR_GROUPS[key] || key);
+}
+
+/* Offtakers a run would cover. The industry chip is the primary cut; the
+   two selects narrow it further. */
 function finderScopeOfftakers() {
   return state.offtakers.filter(o => {
-    if (state.cfSector && o.sector !== state.cfSector) return false;
-    if (state.cfStatus && o.status !== state.cfStatus) return false;
+    if (state.cfIndustry !== 'all' && sectorGroup(o.sector) !== state.cfIndustry) return false;
     if (state.cfProvince && o.province !== state.cfProvince) return false;
     if (state.cfOnlyEmpty && contactsFor(o.id).length) return false;
     return true;
   });
 }
 
-function finderScopeLabel(scope) {
-  const bits = [];
-  if (scope.sector) bits.push(sectorName(scope.sector));
-  if (scope.status) bits.push(STATUS_LABEL[scope.status] || scope.status);
-  if (scope.province) bits.push(scope.province);
-  if (scope.onlyEmpty) bits.push('no contacts yet');
-  return bits.length ? bits.join(' · ') : 'Every offtaker';
+function finderIndustryOf(find) {
+  const o = getOfftaker(find.offtakerId);
+  return o.id ? sectorGroup(o.sector) : null;
 }
 
 function renderContactFinder() {
   if (!state.contactRuns) loadFinderState();
 
+  const live = state.foundContacts.filter(f => f.status !== 'discarded');
+  const counts = { all: live.length };
+  FINDER_INDUSTRIES.forEach(k => { counts[k] = 0; });
+  live.forEach(f => { const k = finderIndustryOf(f); if (counts[k] != null) counts[k]++; });
+
+  const filtered = state.cfIndustry === 'all'
+    ? live : live.filter(f => finderIndustryOf(f) === state.cfIndustry);
+  const pending = filtered.filter(f => f.status === 'pending');
   const scoped = finderScopeOfftakers();
-  const withNone = scoped.filter(o => !contactsFor(o.id).length).length;
-  const pending = state.foundContacts.filter(f => f.status === 'pending');
+
+  const findLabel = state.cfIndustry === 'all'
+    ? 'Find contacts now'
+    : 'Find ' + industryLabel(state.cfIndustry) + ' contacts now';
 
   setPage('Contact finder',
-    'Find people at the offtakers you choose · ' + state.contacts.length + ' contacts on file',
+    'Contacts found by the agent, awaiting review — accept to add to the CRM, discard to drop',
+    '<button class="btn btn-outline btn-sm" data-admin-only onclick="queueContactRun()"' +
+      (scoped.length && state.cfRoles.length ? '' : ' disabled') + '>' +
+      icon('search', 14) + ' ' + esc(findLabel) + '</button>' +
+    (pending.length
+      ? '<button class="btn btn-primary btn-sm" data-admin-only onclick="acceptAllFound()">' +
+        'Accept all (' + pending.length + ')</button>'
+      : '') +
     '<button class="btn btn-outline btn-sm" onclick="nav(\'prospect-companies\')">' +
       icon('building', 14) + ' Prospect companies</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportFoundContacts()">' +
-      icon('download', 14) + ' Export finds</button>');
+      icon('download', 14) + ' Export</button>');
 
-  const stats =
-    '<div class="stats-grid">' +
-      statTile('building', 'green', 'Offtakers in scope', scoped.length, finderScopeLabel({
-        sector: state.cfSector, status: state.cfStatus, province: state.cfProvince, onlyEmpty: state.cfOnlyEmpty })) +
-      statTile('target', 'amber', 'No contacts yet', withNone, 'nobody to call at these accounts') +
-      statTile('search', 'blue', 'Runs queued', state.contactRuns.filter(r => r.status === 'queued').length,
-        'waiting for an agent to claim them') +
-      statTile('contacts', 'purple', 'Finds to review', pending.length, 'not in the contact book until approved') +
-    '</div>';
-
-  setContent(stats + finderNoticeHtml() + finderScopeHtml(scoped) +
-    finderRunsHtml() + finderFindsHtml());
+  setContent(
+    finderTargetBar(counts) +
+    finderRoleBar(scoped) +
+    finderNoticeHtml() +
+    finderRunStrip() +
+    (live.length ? finderTableHtml(filtered) : finderEmptyHtml()));
 }
 
-/* Says plainly that nothing is searching yet, so a queued run that never
-   moves reads as "not built" rather than "broken". */
-function finderNoticeHtml() {
-  return '<div class="news-sample-banner">' + icon('alert', 14) +
-    '<span><strong>No agent connected yet.</strong> Runs you queue here are recorded and sit at ' +
-    '<em>Queued</em> — nothing is searching. This page is the surface the agent will plug into: it ' +
-    'claims a queued run, appends what it finds, and a person approves each row before it becomes ' +
-    'a contact.</span></div>';
+/* ═══════════════════════════════════════════════════════════════
+   THE CHIP ROW — filters the list and sets the next run's target,
+   which is one control because they are one decision.
+   ═══════════════════════════════════════════════════════════════ */
+function finderTargetBar(counts) {
+  const chip = (key) => {
+    const active = state.cfIndustry === key;
+    const colour = key === 'all' ? '#f1f5f9' : industryColor(key);
+    const n = key === 'all' ? counts.all : (counts[key] || 0);
+    return '<button class="cf-chip" onclick="setFinderIndustry(\'' + key + '\')" style="' +
+      'border-color:' + (active ? colour : 'var(--border2)') + ';' +
+      'background:' + (active ? colour + '22' : 'transparent') + ';' +
+      'color:' + (active ? colour : 'var(--muted)') + '">' +
+      esc(industryLabel(key)) + ' (' + n + ')</button>';
+  };
+  return '<div class="cf-bar">' +
+    '<span class="cf-bar-label">Filter / next scrape target:</span>' +
+    ['all'].concat(FINDER_INDUSTRIES).map(chip).join('') +
+  '</div>';
 }
 
-function finderScopeHtml(scoped) {
+function setFinderIndustry(key) {
+  state.cfIndustry = key;
+  renderContactFinder();
+}
+
+/* Roles use the same chip language, plus the two narrowing selects. */
+function finderRoleBar(scoped) {
   const provinces = [...new Set(state.offtakers.map(o => o.province).filter(Boolean))].sort();
-  const sel = (key, allLabel, pairs) =>
-    '<select class="flt" onchange="state.' + key + '=this.value;renderContactFinder()">' +
-      '<option value="">' + esc(allLabel) + '</option>' +
-      pairs.map(([v, l]) => '<option value="' + esc(v) + '"' + (state[key] === v ? ' selected' : '') +
-        '>' + esc(l) + '</option>').join('') +
-    '</select>';
+  const roleChips = FINDER_ROLES.map(r => {
+    const on = state.cfRoles.includes(r);
+    return '<button class="cf-chip" onclick="toggleFinderRole(\'' + r + '\')" style="' +
+      'border-color:' + (on ? 'var(--accent)' : 'var(--border2)') + ';' +
+      'background:' + (on ? 'rgba(61,220,132,.13)' : 'transparent') + ';' +
+      'color:' + (on ? 'var(--accent)' : 'var(--muted)') + '">' +
+      esc(ROLE_LABEL[r] || r) + '</button>';
+  }).join('');
 
-  const roleBoxes = FINDER_ROLES.map(r =>
-    '<label class="cf-role' + (state.cfRoles.includes(r) ? ' on' : '') + '">' +
-      '<input type="checkbox" ' + (state.cfRoles.includes(r) ? 'checked' : '') +
-      ' onchange="toggleFinderRole(\'' + r + '\')">' + esc(ROLE_LABEL[r] || r) +
-    '</label>').join('');
-
-  return '<div class="card">' +
-    '<div class="card-header"><div><div class="card-title">What should the agent work on?</div>' +
-    '<div class="card-sub">Pick the offtakers, then the roles worth finding at each one</div></div></div>' +
-
-    '<div class="form-section-title">Offtaker type</div>' +
-    '<div class="toolbar" style="margin-bottom:10px">' +
-      '<select class="flt" onchange="state.cfSector=this.value;renderContactFinder()">' +
-        '<option value="">All sectors</option>' + sectorOptions(state.cfSector) + '</select>' +
-      sel('cfStatus', 'All statuses', Object.entries(STATUS_LABEL)) +
-      sel('cfProvince', 'All provinces', provinces.map(p => [p, p])) +
-      '<label class="cf-role' + (state.cfOnlyEmpty ? ' on' : '') + '">' +
-        '<input type="checkbox" ' + (state.cfOnlyEmpty ? 'checked' : '') +
-        ' onchange="state.cfOnlyEmpty=this.checked;renderContactFinder()">Only where we have nobody</label>' +
-      '<span class="result-count">' + scoped.length + ' offtaker' + (scoped.length === 1 ? '' : 's') + '</span>' +
-    '</div>' +
-
-    '<div class="form-section-title">Roles to find</div>' +
-    '<div class="cf-roles">' + roleBoxes + '</div>' +
-
-    '<div class="cf-submit">' +
-      '<button class="btn btn-primary btn-sm" data-admin-only ' +
-        (scoped.length && state.cfRoles.length ? '' : 'disabled ') +
-        'onclick="queueContactRun()">' + icon('search', 14) + ' Queue discovery run</button>' +
-      '<span class="fg-hint" style="margin:0">' +
-        (!scoped.length ? 'No offtakers match this scope.'
-          : !state.cfRoles.length ? 'Pick at least one role.'
-          : 'Will ask for ' + state.cfRoles.length + ' role' + (state.cfRoles.length === 1 ? '' : 's') +
-            ' across ' + scoped.length + ' offtaker' + (scoped.length === 1 ? '' : 's') + '.') +
-      '</span>' +
-    '</div>' +
+  return '<div class="cf-bar">' +
+    '<span class="cf-bar-label">Roles to find:</span>' + roleChips +
+    '<select class="flt cf-flt" onchange="state.cfProvince=this.value;renderContactFinder()">' +
+      '<option value="">All provinces</option>' +
+      provinces.map(p => '<option value="' + esc(p) + '"' +
+        (state.cfProvince === p ? ' selected' : '') + '>' + esc(p) + '</option>').join('') +
+    '</select>' +
+    '<label class="cf-chip cf-check' + (state.cfOnlyEmpty ? ' on' : '') + '">' +
+      '<input type="checkbox" ' + (state.cfOnlyEmpty ? 'checked' : '') +
+      ' onchange="state.cfOnlyEmpty=this.checked;renderContactFinder()">Only where we have nobody</label>' +
+    '<span class="cf-scope">' + scoped.length + ' offtaker' + (scoped.length === 1 ? '' : 's') +
+      ' in scope' + (state.cfRoles.length ? '' : ' · pick a role') + '</span>' +
   '</div>';
 }
 
@@ -155,24 +168,49 @@ function toggleFinderRole(r) {
   renderContactFinder();
 }
 
+function finderNoticeHtml() {
+  return '<div class="news-sample-banner">' + icon('alert', 14) +
+    '<span><strong>No agent connected yet.</strong> "Find contacts now" records a run against the ' +
+    'selected industry and leaves it <em>Queued</em> — nothing is searching. This page is the surface ' +
+    'the agent plugs into: it claims a queued run, appends what it finds, and a person accepts each ' +
+    'row before it becomes a contact.</span></div>';
+}
+
+/* One line per run rather than a table — a run is a request, and the
+   interesting part is what came back, which is the table below. */
+function finderRunStrip() {
+  if (!state.contactRuns.length) return '';
+  return '<div class="cf-runs">' +
+    state.contactRuns.slice(0, 5).map(r =>
+      '<div class="cf-run">' +
+        '<span class="badge ' + (r.status === 'done' ? 'b-contracted' : r.status === 'failed' ? 'b-high' : 'b-medium') + '">' +
+          esc(RUN_STATUS_LABEL[r.status] || r.status) + '</span>' +
+        '<span class="cf-run-t">' + esc(industryLabel(r.industry || 'all')) + '</span>' +
+        '<span class="cf-run-m">' + (r.offtakerIds || []).length + ' offtakers · ' +
+          (r.roles || []).map(x => esc(ROLE_LABEL[x] || x)).join(', ') + '</span>' +
+        '<span class="cf-run-m">' + num(r.found) + ' found</span>' +
+        '<span class="cf-run-m">' + esc(r.created) + '</span>' +
+        '<button class="btn btn-xs btn-danger" data-admin-only onclick="deleteContactRun(\'' + r.id + '\')">' +
+          icon('trash', 11) + '</button>' +
+      '</div>').join('') +
+  '</div>';
+}
+
 function queueContactRun() {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to queue a run', 'warn'); return; }
   const scoped = finderScopeOfftakers();
-  if (!scoped.length || !state.cfRoles.length) return;
+  if (!scoped.length) { toast('No offtakers match this target', 'warn'); return; }
+  if (!state.cfRoles.length) { toast('Pick at least one role to find', 'warn'); return; }
 
-  const run = {
-    id: uid('run'),
-    created: todayISO(),
-    status: 'queued',
-    scope: { sector: state.cfSector, status: state.cfStatus, province: state.cfProvince, onlyEmpty: !!state.cfOnlyEmpty },
+  state.contactRuns.unshift({
+    id: uid('run'), created: todayISO(), status: 'queued',
+    industry: state.cfIndustry,
     roles: state.cfRoles.slice(),
     offtakerIds: scoped.map(o => o.id),
-    found: 0,
-    note: '',
-  };
-  state.contactRuns.unshift(run);
+    found: 0, note: '',
+  });
   saveFinderState();
-  toast('Run queued for ' + scoped.length + ' offtaker' + (scoped.length === 1 ? '' : 's'));
+  toast('Queued · ' + industryLabel(state.cfIndustry) + ' · ' + scoped.length + ' offtakers');
   renderContactFinder();
 }
 
@@ -182,90 +220,57 @@ function deleteContactRun(id) {
   renderContactFinder();
 }
 
-function finderRunsHtml() {
-  if (!state.contactRuns.length) {
-    return '<div class="card"><div class="card-header"><div class="card-title">Discovery runs</div></div>' +
-      '<div class="empty"><div class="ei">' + icon('search', 30) + '</div><h3>No runs yet</h3>' +
-      '<p>Choose a scope above and queue one. It will wait here until an agent picks it up.</p></div></div>';
-  }
-  return '<div class="card">' +
-    '<div class="card-header"><div><div class="card-title">Discovery runs</div>' +
-    '<div class="card-sub">Newest first · a run records what was asked for, not what was found</div></div></div>' +
-    '<div class="table-wrap" style="border:none;background:transparent"><table><thead><tr>' +
-      '<th>Queued</th><th>Scope</th><th>Roles</th><th class="num">Offtakers</th>' +
-      '<th class="num">Found</th><th>Status</th><th></th>' +
-    '</tr></thead><tbody>' +
-    state.contactRuns.map(r =>
-      '<tr>' +
-        '<td style="white-space:nowrap">' + esc(r.created) + '</td>' +
-        '<td>' + esc(finderScopeLabel(r.scope || {})) + '</td>' +
-        '<td>' + r.roles.map(x => '<span class="badge b-prospect">' + esc(ROLE_LABEL[x] || x) + '</span>').join(' ') + '</td>' +
-        '<td class="num">' + (r.offtakerIds || []).length + '</td>' +
-        '<td class="num">' + num(r.found) + '</td>' +
-        '<td><span class="badge ' + (r.status === 'done' ? 'b-contracted' : r.status === 'failed' ? 'b-high' : 'b-medium') + '">' +
-          esc(RUN_STATUS_LABEL[r.status] || r.status) + '</span></td>' +
-        '<td style="white-space:nowrap"><button class="btn btn-xs btn-danger" data-admin-only ' +
-          'onclick="deleteContactRun(\'' + r.id + '\')">' + icon('trash', 11) + '</button></td>' +
-      '</tr>').join('') +
-    '</tbody></table></div></div>';
+/* ═══════════════════════════════════════════════════════════════
+   THE REVIEW TABLE — everything a rep needs to judge a find
+   ═══════════════════════════════════════════════════════════════ */
+function finderEmptyHtml() {
+  return '<div class="empty"><div class="ei">' + icon('contacts', 30) + '</div>' +
+    '<h3>No pending contacts</h3>' +
+    '<p>Pick an industry above and click "Find contacts now" to queue a run. ' +
+    'People the agent finds land here for review before they reach the contact book.</p></div>';
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   FINDS — what the agent brings back, before anyone trusts it
-   ═══════════════════════════════════════════════════════════════ */
-function finderFindsHtml() {
-  const finds = state.foundContacts.filter(f => f.status !== 'discarded');
-  if (!finds.length) {
-    return '<div class="card"><div class="card-header"><div><div class="card-title">Found contacts</div>' +
-      '<div class="card-sub">Company, name, title, role, phone and email — one row per person</div></div></div>' +
-      '<div class="empty"><div class="ei">' + icon('contacts', 30) + '</div><h3>Nothing found yet</h3>' +
-      '<p>Once an agent runs, the people it finds land here for review. Approving a row is what ' +
-      'creates the contact — nothing reaches the contact book unchecked.</p></div></div>';
+function finderTableHtml(list) {
+  if (!list.length) {
+    return '<div class="empty"><p style="font-size:13px;color:var(--muted)">No <b>' +
+      esc(industryLabel(state.cfIndustry)) + '</b> contacts pending. Try another filter.</p></div>';
   }
-  return '<div class="card">' +
-    '<div class="card-header"><div><div class="card-title">Found contacts</div>' +
-    '<div class="card-sub">Approve a row to create the contact · ' +
-      finds.filter(f => f.status === 'pending').length + ' awaiting review</div></div></div>' +
-    '<div class="table-wrap" style="border:none;background:transparent"><table><thead><tr>' +
-      '<th>Company</th><th>Name</th><th>Surname</th><th>Title</th><th>Role</th>' +
-      '<th>Phone</th><th>Email</th><th>Source</th><th>Status</th><th>Actions</th>' +
+  return '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Name</th><th>Title</th><th>Role</th><th>Company</th>' +
+    '<th>Phone</th><th>Email</th><th>Source</th><th>Status</th><th>Action</th>' +
     '</tr></thead><tbody>' +
-    finds.map(f => {
+    list.map(f => {
       const o = getOfftaker(f.offtakerId);
       const href = safeHref(f.source);
       return '<tr>' +
-        '<td>' + (o.id
-          ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
-          : '<span class="badge b-low">unknown</span>') + '</td>' +
-        '<td style="font-weight:700">' + esc(f.first) + '</td>' +
-        '<td style="font-weight:700">' + esc(f.last) + '</td>' +
+        '<td><div class="name-cell"><div class="av" style="background:' + avatarColor(f.first + f.last) + '">' +
+          esc(initials(f.first, f.last).toUpperCase()) + '</div>' +
+          '<div style="font-weight:700">' + esc(f.first) + ' ' + esc(f.last) + '</div></div></td>' +
         '<td>' + esc(f.title || '—') + '</td>' +
         '<td><span class="badge ' + (f.role === 'decision' ? 'b-contracted' : 'b-prospect') + '">' +
           esc(ROLE_LABEL[f.role] || f.role || '—') + '</span></td>' +
+        '<td>' + (o.id
+          ? '<span class="badge b-grp-' + sectorGroup(o.sector) + '">' + esc(o.short || o.name) + '</span>'
+          : '<span class="badge b-low">unknown</span>') + '</td>' +
         '<td>' + (f.phone ? esc(f.phone) : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td>' + (f.email ? '<a class="ext-link" href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a>'
           : '<span style="color:var(--muted)">—</span>') + '</td>' +
-        '<td>' + (href ? '<a class="ext-link" href="' + esc(href) + '" target="_blank" rel="noopener">source</a>'
+        '<td>' + (href ? '<a class="ext-link" href="' + esc(href) + '" target="_blank" rel="noopener">Source</a>'
           : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td><span class="badge ' + (f.status === 'approved' ? 'b-contracted' : 'b-medium') + '">' +
           esc(FIND_STATUS_LABEL[f.status] || f.status) + '</span></td>' +
         '<td style="white-space:nowrap">' +
           (f.status === 'pending'
-            ? '<button class="btn btn-xs btn-primary" data-admin-only onclick="approveFoundContact(\'' + f.id + '\')">Approve</button> ' +
-              '<button class="btn btn-xs btn-outline" data-admin-only onclick="discardFoundContact(\'' + f.id + '\')">Discard</button>'
+            ? '<button class="btn btn-xs btn-primary" data-admin-only onclick="approveFoundContact(\'' + f.id + '\')">Accept</button> ' +
+              '<button class="btn btn-xs btn-danger" data-admin-only onclick="discardFoundContact(\'' + f.id + '\')">Discard</button>'
             : '<span style="color:var(--muted);font-size:11px">in the contact book</span>') +
         '</td></tr>';
-    }).join('') +
-    '</tbody></table></div></div>';
+    }).join('') + '</tbody></table></div>';
 }
 
-/* Approval is the only path from a find into aee_contacts. */
-async function approveFoundContact(id) {
-  if (state.role !== 'admin') { toast('Read-only access — ask an admin to approve', 'warn'); return; }
-  const f = state.foundContacts.find(x => x.id === id);
-  if (!f || f.status !== 'pending') return;
-
-  const contact = {
+/* Accepting is the only path from a find into aee_contacts. */
+function foundToContact(f) {
+  return {
     id: uid('con'), offtakerId: f.offtakerId,
     first: f.first, last: f.last, title: f.title || '', dept: '',
     email: f.email || '', phone: f.phone || '', linkedin: '',
@@ -273,24 +278,49 @@ async function approveFoundContact(id) {
     status: 'active',
     notes: 'Found by the contact finder' + (f.source ? ' — ' + f.source : '') + '.',
   };
+}
+
+async function approveFoundContact(id) {
+  if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
+  const f = state.foundContacts.find(x => x.id === id);
+  if (!f || f.status !== 'pending') return;
+
+  const contact = foundToContact(f);
   state.contacts.push(contact);
   f.status = 'approved';
   saveFinderState();
   save();
 
-  /* Paint before syncing. A failed server write used to reject out of this
-     function and skip the re-render, leaving the approved row on screen and
-     the page half-drawn — the local state was already correct, so the user
-     was shown a lie about a write that had in fact happened locally. */
+  /* Paint before syncing. Awaiting the write first meant a failed one
+     rejected out of here and skipped the re-render, leaving the screen
+     contradicting local state that had already changed. */
   renderContactFinder();
-  toast('Added ' + f.first + ' ' + f.last + ' to contacts');
+  toast('Accepted ' + f.first + ' ' + f.last);
 
-  try {
-    await pushContact(contact);
-  } catch (e) {
+  try { await pushContact(contact); }
+  catch (e) {
     console.warn('Contact saved locally but not synced:', e);
     toast('Saved locally — the server write failed and will need a re-sync', 'warn');
   }
+}
+
+async function acceptAllFound() {
+  if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
+  const live = state.foundContacts.filter(f => f.status === 'pending' &&
+    (state.cfIndustry === 'all' || finderIndustryOf(f) === state.cfIndustry));
+  if (!live.length) return;
+
+  const made = live.map(f => { const c = foundToContact(f); state.contacts.push(c); f.status = 'approved'; return c; });
+  saveFinderState();
+  save();
+  renderContactFinder();
+  toast('Accepted ' + made.length + ' contact' + (made.length === 1 ? '' : 's'));
+
+  let failed = 0;
+  for (const c of made) {
+    try { await pushContact(c); } catch (e) { failed++; }
+  }
+  if (failed) toast(failed + ' of ' + made.length + ' saved locally only — they will need a re-sync', 'warn');
 }
 
 function discardFoundContact(id) {
@@ -303,10 +333,11 @@ function discardFoundContact(id) {
 }
 
 function exportFoundContacts() {
-  const head = ['company', 'first_name', 'surname', 'title', 'role', 'phone', 'email', 'source', 'status'];
+  const head = ['first_name', 'surname', 'title', 'role', 'company', 'industry', 'phone', 'email', 'source', 'status'];
   const rows = [head].concat(state.foundContacts.map(f => {
     const o = getOfftaker(f.offtakerId);
-    return [o.name || '', f.first, f.last, f.title || '', ROLE_LABEL[f.role] || f.role || '',
+    return [f.first, f.last, f.title || '', ROLE_LABEL[f.role] || f.role || '',
+      o.name || '', industryLabel(finderIndustryOf(f) || 'all'),
       f.phone || '', f.email || '', f.source || '', FIND_STATUS_LABEL[f.status] || f.status];
   }));
   downloadCSV('aee-found-contacts-' + todayISO() + '.csv', rows);
