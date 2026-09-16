@@ -38,7 +38,7 @@ let state = {
   activityView: storedView('activityView', 'timeline'),
   pipeView: storedView('pipeView', 'board'),
 
-  offSearch: '', offSector: '', offStatus: '', offProvince: '',
+  offSearch: '', offSector: '', offStatus: '', offProvince: '', offStage: '',
   offSort: { field: 'fit', dir: 'desc' },
   offPage: 1,
 
