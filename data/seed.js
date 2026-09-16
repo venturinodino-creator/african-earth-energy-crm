@@ -64,6 +64,37 @@ const PIPELINE_STAGES = [
 ];
 
 
+/* The Salesforce sales process, run on the ACCOUNT rather than on a single
+   opportunity. PIPELINE_STAGES above is the PPA-specific deal board and is
+   unchanged — this is the coarser, familiar question a sales manager asks
+   about a company: where is this one in the process?
+
+   `status` is the same idea in this app's own words, so the two are kept in
+   step: moving an account along the path writes the matching status, which
+   is what the badges, filters and dashboards already read. Closed is split
+   on the way in — won becomes contracted, lost becomes lost. */
+const SF_STAGES = [
+  { id:'prospecting',    label:'Prospecting',    prob:10,  status:'prospect',
+    hint:'Identified and being researched. No conversation yet.' },
+  { id:'needs-analysis', label:'Needs Analysis', prob:25,  status:'engaged',
+    hint:'Talking to them. Establishing load, tariff, supply route and who decides.' },
+  { id:'proposal',       label:'Proposal',       prob:50,  status:'qualified',
+    hint:'Indicative tariff and volume with the customer.' },
+  { id:'negotiation',    label:'Negotiation',    prob:75,  status:'negotiating',
+    hint:'Terms on the table and the PPA being drafted.' },
+  { id:'closed',         label:'Closed',         prob:100, status:'contracted',
+    hint:'Signed, or closed lost. Either way it is off the working board.' },
+];
+
+/* Records created before the path existed carry no stage, so read it back
+   out of the status they already have. That means the board is populated
+   on the first load rather than every account sitting in Prospecting. */
+const STATUS_TO_SF_STAGE = {
+  prospect:'prospecting', engaged:'needs-analysis', qualified:'proposal',
+  negotiating:'negotiation', contracted:'closed', lost:'closed',
+};
+
+
 const STATUS_LABEL = {
   prospect:'Prospect', engaged:'Engaged', qualified:'Qualified',
   negotiating:'Negotiating', contracted:'Contracted', lost:'Lost',

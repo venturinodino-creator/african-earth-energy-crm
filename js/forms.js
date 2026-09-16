@@ -74,6 +74,29 @@ function offtakerOptions(selected) {
       esc(o.short || o.name) + '</option>').join('');
 }
 
+/* Offtakers and prospects in one list. A prospect is prefixed so the two
+   id spaces cannot collide, and so a saver knows which column to write. */
+function accountOptions(selected) {
+  const offs = state.offtakers.map(o =>
+    '<option value="' + esc(o.id) + '"' + (o.id === selected ? ' selected' : '') + '>' +
+    esc(o.short || o.name) + '</option>').join('');
+  const pros = state.prospects.filter(p => p.status !== 'promoted').map(p =>
+    '<option value="p:' + esc(p.id) + '"' + ('p:' + p.id === selected ? ' selected' : '') + '>' +
+    esc(p.name) + '</option>').join('');
+  return '<option value="">— pick an account —</option>' +
+    (offs ? '<optgroup label="Offtakers">' + offs + '</optgroup>' : '') +
+    (pros ? '<optgroup label="Prospects (leads)">' + pros + '</optgroup>' : '');
+}
+function accountKey(offtakerId, prospectId) {
+  return prospectId ? 'p:' + prospectId : (offtakerId || '');
+}
+function parseAccountKey(v) {
+  const s = String(v || '');
+  return s.startsWith('p:')
+    ? { offtakerId: '', prospectId: s.slice(2) }
+    : { offtakerId: s, prospectId: '' };
+}
+
 function openAddContact(offtakerId) {
   state.editContactId = null;
   document.getElementById('mc-title').textContent = 'Add contact';
@@ -130,14 +153,20 @@ function projectOptions(selected) {
       esc(p.town) + ' — ' + fmtNum(p.mw) + ' MW</option>').join('');
 }
 
-function openAddDeal(offtakerId) {
+function openAddDeal(offtakerId, prospectId) {
   state.editDealId = null;
   document.getElementById('md-title').textContent = 'New opportunity';
-  document.getElementById('md-offtaker').innerHTML = offtakerOptions(offtakerId || '');
+  document.getElementById('md-offtaker').innerHTML = accountOptions(accountKey(offtakerId, prospectId));
   const o = offtakerId ? getOfftaker(offtakerId) : {};
+  const p = prospectId ? getProspect(prospectId) : null;
+  /* A prospect has no verified load and was filed against a site by hand,
+     so that site is the sensible default rather than the nearest one to a
+     coordinate nobody has confirmed. */
   const np = o.id ? nearestProject(o) : null;
-  document.getElementById('md-project').innerHTML = projectOptions(np ? np.project.id : '');
-  setVal('md-mw', o.peakMw ? Math.round(num(o.peakMw) * 0.35) : 20);
+  const siteId = np ? np.project.id : (p && p.nearSite) || '';
+  document.getElementById('md-project').innerHTML = projectOptions(siteId);
+  const peak = o.id ? num(o.peakMw) : (p ? num(p.peakMwEst) : 0);
+  setVal('md-mw', peak ? Math.round(peak * 0.35) : 20);
   setVal('md-tariff', DEFAULT_PPA_TARIFF.toFixed(2));
   setVal('md-tenor', 20);
   setVal('md-stage', 'identified');
@@ -154,7 +183,7 @@ function openEditDeal(id) {
   if (!d) return;
   state.editDealId = id;
   document.getElementById('md-title').textContent = 'Edit opportunity';
-  document.getElementById('md-offtaker').innerHTML = offtakerOptions(d.offtakerId);
+  document.getElementById('md-offtaker').innerHTML = accountOptions(accountKey(d.offtakerId, d.prospectId));
   document.getElementById('md-project').innerHTML = projectOptions(d.projectId);
   setVal('md-mw', d.mw); setVal('md-tariff', d.tariff); setVal('md-tenor', d.tenor);
   setVal('md-stage', d.stage); setVal('md-probability', d.probability);
@@ -187,14 +216,17 @@ function updateDealPreview() {
 }
 
 function saveDeal() {
-  const offtakerId = val('md-offtaker');
-  if (!offtakerId) { toast('Pick an offtaker for this opportunity', 'warn'); return; }
-  const o = getOfftaker(offtakerId);
+  const acc = parseAccountKey(val('md-offtaker'));
+  if (!acc.offtakerId && !acc.prospectId) { toast('Pick an account for this opportunity', 'warn'); return; }
+  const account = acc.prospectId
+    ? (getProspect(acc.prospectId) || {}).name
+    : (getOfftaker(acc.offtakerId).short || getOfftaker(acc.offtakerId).name);
   const rec = {
-    offtakerId, projectId: val('md-project'), mw: num(val('md-mw')),
+    offtakerId: acc.offtakerId, prospectId: acc.prospectId,
+    projectId: val('md-project'), mw: num(val('md-mw')),
     tariff: num(val('md-tariff')), tenor: num(val('md-tenor')), stage: val('md-stage'),
     probability: num(val('md-probability')), closeDate: val('md-close'), notes: val('md-notes'),
-    name: (o.short || o.name) + ' — ' + fmtNum(num(val('md-mw'))) + ' MW PPA',
+    name: (account || 'Opportunity') + ' — ' + fmtNum(num(val('md-mw'))) + ' MW PPA',
   };
   let saved;
   if (state.editDealId) {
@@ -225,8 +257,10 @@ function deleteDeal() {
 }
 
 /* ─── ACTIVITY LOG ────────────────────────────────────────────── */
-function openLogInteraction(offtakerId) {
-  document.getElementById('mi-offtaker').innerHTML = offtakerOptions(offtakerId || state.detailId || '');
+function openLogInteraction(offtakerId, prospectId) {
+  const here = state.view === 'prospect' ? 'p:' + state.detailId : state.detailId;
+  document.getElementById('mi-offtaker').innerHTML =
+    accountOptions(accountKey(offtakerId, prospectId) || here || '');
   setVal('mi-date', todayISO());
   setVal('mi-type', 'call');
   setVal('mi-summary', '');
@@ -235,20 +269,24 @@ function openLogInteraction(offtakerId) {
 }
 
 function saveInteraction() {
-  const offtakerId = val('mi-offtaker');
+  const acc = parseAccountKey(val('mi-offtaker'));
   const summary = val('mi-summary');
-  if (!offtakerId) { toast('Pick an offtaker', 'warn'); return; }
+  if (!acc.offtakerId && !acc.prospectId) { toast('Pick an account', 'warn'); return; }
   if (!summary) { toast('Write a one-line summary — future you will need it', 'warn'); return; }
   const entry = {
-    id: uid('int'), offtakerId, date: val('mi-date') || todayISO(),
-    type: val('mi-type'), summary,
+    id: uid('int'), offtakerId: acc.offtakerId, prospectId: acc.prospectId,
+    date: val('mi-date') || todayISO(), type: val('mi-type'), summary,
   };
   state.interactions.push(entry);
   pushInteraction(entry);
-  /* Logging the first real contact nudges a cold prospect forward, so the
-     status on the record stops lying about where the account stands. */
-  const o = state.offtakers.find(x => x.id === offtakerId);
-  if (o && o.status === 'prospect') { o.status = 'engaged'; pushOfftaker(o); }
+  /* Logging the first real contact nudges a cold account forward, so the
+     record stops lying about where it stands. */
+  const o = state.offtakers.find(x => x.id === acc.offtakerId);
+  if (o && o.status === 'prospect') {
+    o.status = 'engaged'; o.sfStage = 'needs-analysis'; pushOfftaker(o);
+  }
+  const lead = acc.prospectId ? getProspect(acc.prospectId) : null;
+  if (lead && lead.status === 'new') { lead.status = 'researching'; pushProspect(lead); }
   save();
   closeModal('modal-interaction');
   toast('Activity logged');
@@ -285,6 +323,16 @@ function confirmDelete(kind, id) {
     state.contacts = state.contacts.filter(c => c.offtakerId !== id);
     state.deals = state.deals.filter(d => d.offtakerId !== id);
     state.interactions = state.interactions.filter(i => i.offtakerId !== id);
+    /* A lead that was promoted into this offtaker would otherwise keep a
+       link to a record that is gone, and read as already handled. */
+    state.prospects.filter(p => p.promotedTo === id).forEach(p => {
+      p.promotedTo = ''; p.status = 'researching'; pushProspect(p);
+    });
+    /* A lead that was promoted into this offtaker would otherwise keep a
+       link to a record that is gone, and read as already handled. */
+    state.prospects.filter(p => p.promotedTo === id).forEach(p => {
+      p.promotedTo = ''; p.status = 'researching'; pushProspect(p);
+    });
     if (state.detailId === id) { save(); nav('offtakers'); toast('Offtaker deleted'); return; }
   } else {
     removeRow('aee_contacts', id);

@@ -88,6 +88,7 @@ function rowToOfftaker(r) {
     tariff: Number(r.tariff) || 0, nmd: Number(r.nmd) || 0,
     supply: r.supply || 'eskom', wheeling: r.wheeling || 'unknown',
     status: r.status || 'prospect', priority: r.priority || 'medium',
+    sfStage: r.sf_stage || '',
     description: r.description || '', estimated: r.estimated !== false,
   };
 }
@@ -97,6 +98,7 @@ function offtakerToRow(o) {
     city: o.city, website: o.website, lat: o.lat ?? null, lng: o.lng ?? null,
     annual_gwh: num(o.annualGwh), peak_mw: num(o.peakMw), tariff: num(o.tariff), nmd: num(o.nmd),
     supply: o.supply, wheeling: o.wheeling, status: o.status, priority: o.priority,
+    sf_stage: o.sfStage || null,
     description: o.description, estimated: o.estimated !== false,
   };
 }
@@ -117,7 +119,8 @@ function contactToRow(c) {
 }
 function rowToDeal(r) {
   return {
-    id: r.id, offtakerId: r.offtaker_id || '', projectId: r.project_id || '', name: r.name || '',
+    id: r.id, offtakerId: r.offtaker_id || '', prospectId: r.prospect_id || '',
+    projectId: r.project_id || '', name: r.name || '',
     mw: Number(r.mw) || 0, tariff: Number(r.tariff) || 0, tenor: Number(r.tenor) || 20,
     stage: r.stage || 'identified', probability: Number(r.probability) || 0,
     closeDate: r.close_date || '', notes: r.notes || '', createdAt: r.created_at || '',
@@ -125,7 +128,8 @@ function rowToDeal(r) {
 }
 function dealToRow(d) {
   return {
-    id: d.id, offtaker_id: d.offtakerId || null, project_id: d.projectId || null, name: d.name,
+    id: d.id, offtaker_id: d.offtakerId || null, prospect_id: d.prospectId || null,
+    project_id: d.projectId || null, name: d.name,
     mw: num(d.mw), tariff: num(d.tariff), tenor: Math.round(num(d.tenor, 20)),
     stage: d.stage, probability: Math.round(num(d.probability)),
     close_date: d.closeDate || null, notes: d.notes, created_at: d.createdAt || null,
@@ -135,6 +139,7 @@ function rowToProspect(r) {
   return {
     id: r.id, name: r.name || '', sectorId: r.sector_id || '', note: r.note || '',
     status: r.status || 'new', promotedTo: r.promoted_to || '', notes: r.notes || '',
+    sfStage: r.sf_stage || '',
     blurb: r.blurb || '',
     town: r.town || '', province: r.province || '',
     lat: r.lat, lng: r.lng, nearSite: r.near_site || '',
@@ -148,6 +153,7 @@ function prospectToRow(p) {
   return {
     id: p.id, name: p.name, sector_id: p.sectorId || null, note: p.note,
     status: p.status, promoted_to: p.promotedTo || null, notes: p.notes,
+    sf_stage: p.sfStage || null,
     blurb: p.blurb || null,
     town: p.town || null, province: p.province || null,
     lat: p.lat ?? null, lng: p.lng ?? null, near_site: p.nearSite || null,
@@ -159,10 +165,16 @@ function prospectToRow(p) {
   };
 }
 function rowToInteraction(r) {
-  return { id: r.id, offtakerId: r.offtaker_id || '', date: r.date || '', type: r.type || 'note', summary: r.summary || '' };
+  return {
+    id: r.id, offtakerId: r.offtaker_id || '', prospectId: r.prospect_id || '',
+    date: r.date || '', type: r.type || 'note', summary: r.summary || '',
+  };
 }
 function interactionToRow(i) {
-  return { id: i.id, offtaker_id: i.offtakerId || null, date: i.date, type: i.type, summary: i.summary };
+  return {
+    id: i.id, offtaker_id: i.offtakerId || null, prospect_id: i.prospectId || null,
+    date: i.date, type: i.type, summary: i.summary,
+  };
 }
 
 /* ─── WRITES ──────────────────────────────────────────────────────

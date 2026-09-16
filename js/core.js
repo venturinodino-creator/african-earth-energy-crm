@@ -25,6 +25,7 @@ let state = {
   editOfftakerId: null,
   editContactId: null,
   editDealId: null,
+  editProspectId: null,
   deleteTarget: null,
 
   /* Each list keeps its own grid/table preference, remembered per browser. */
@@ -47,7 +48,7 @@ let state = {
   sectorId: null,
   sectorSearch: '', sectorTier: '', sectorGroup: '',
 
-  prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '',
+  prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '', prospectStage: '',
   prospectPage: 1,
 
   newsTopic: 'all', newsProvince: '', newsSearch: '',
@@ -353,6 +354,87 @@ function weightedValue(d) {
   return dealLifetimeValue(d) * (num(d.probability) / 100);
 }
 
+/* ─── SALESFORCE SALES PATH ───────────────────────────────────────
+   One stage per ACCOUNT — an offtaker, or a prospect that is being worked
+   before it has been promoted. Deals keep their own, finer PPA stages on
+   the pipeline board; this is the process question a manager asks about
+   the company itself. */
+function sfStageOf(id) { return SF_STAGES.find(s => s.id === id) || null; }
+function sfStageIndex(id) { return SF_STAGES.findIndex(s => s.id === id); }
+
+/* The stage on the record, or the one implied by the status it already
+   carries, so nothing has to be back-filled before the board is useful. */
+function sfStageFor(rec) {
+  if (!rec) return 'prospecting';
+  if (rec.sfStage && sfStageOf(rec.sfStage)) return rec.sfStage;
+  return STATUS_TO_SF_STAGE[rec.status] || 'prospecting';
+}
+function sfStageLabel(rec) { return (sfStageOf(sfStageFor(rec)) || {}).label || '—'; }
+
+/* Closed splits in two and only the status records which way it went. */
+function sfIsClosedLost(rec) { return sfStageFor(rec) === 'closed' && rec.status === 'lost'; }
+function sfStageBadge(rec) {
+  const stage = sfStageFor(rec);
+  const cls = stage === 'closed' ? (sfIsClosedLost(rec) ? 'b-lost' : 'b-contracted')
+    : stage === 'negotiation' ? 'b-negotiating'
+    : stage === 'proposal' ? 'b-qualified'
+    : stage === 'needs-analysis' ? 'b-engaged' : 'b-prospect';
+  const label = stage === 'closed'
+    ? (sfIsClosedLost(rec) ? 'Closed lost' : 'Closed won')
+    : (sfStageOf(stage) || {}).label;
+  return '<span class="badge ' + cls + '">' + esc(label || stage) + '</span>';
+}
+
+/* The path itself. Salesforce draws it as chevrons across the top of a
+   record and it is the one control a rep uses every day, so it sits on the
+   page rather than behind an edit form: one click moves the account. */
+function sfPathHtml(kind, rec) {
+  const current = sfStageFor(rec);
+  const at = sfStageIndex(current);
+  const lost = sfIsClosedLost(rec);
+  return '<div class="sfpath">' + SF_STAGES.map((st, i) => {
+    const label = st.id === 'closed' && i === at ? (lost ? 'Closed lost' : 'Closed won') : st.label;
+    const cls = i < at ? ' done' : i === at ? (lost ? ' current lost' : ' current') : '';
+    return '<button class="sfp-step' + cls + '" title="' + esc(st.hint) + '" ' +
+      'onclick="setSfStage(' + jsStr(kind) + ',' + jsStr(rec.id) + ',' + jsStr(st.id) + ')">' +
+      esc(label) + '</button>';
+  }).join('') + '</div>';
+}
+
+/* The card the path sits in, with the stage's own one-line definition
+   underneath so nobody has to guess what "Needs Analysis" means here. */
+function sfPathCardHtml(kind, rec) {
+  const st = sfStageOf(sfStageFor(rec)) || {};
+  return '<div class="card">' +
+    '<div class="card-header"><div><div class="card-title">Sales stage</div>' +
+    '<div class="card-sub">' + esc(st.hint || '') + '</div></div>' + sfStageBadge(rec) + '</div>' +
+    sfPathHtml(kind, rec) +
+  '</div>';
+}
+
+/* ─── OPPORTUNITY OWNERSHIP ───────────────────────────────────────
+   A deal hangs off an offtaker, or off a prospect while the load is still
+   unknown. Everything that renders a deal asks here rather than reaching
+   for offtakerId directly, so a prospect's opportunity is never shown as
+   belonging to an unknown company. */
+function dealsForProspect(id) { return state.deals.filter(d => d.prospectId === id); }
+function interactionsForProspect(id) {
+  return state.interactions.filter(i => i.prospectId === id)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
+function dealAccount(d) {
+  if (d && d.offtakerId) {
+    const o = getOfftaker(d.offtakerId);
+    if (o.id) return { id: o.id, name: o.short || o.name, view: 'detail', kind: 'offtaker' };
+  }
+  if (d && d.prospectId) {
+    const p = getProspect(d.prospectId);
+    if (p) return { id: p.id, name: p.name, view: 'prospect', kind: 'prospect' };
+  }
+  return { id: '', name: 'Unknown account', view: '', kind: 'none' };
+}
+
 /* ─── ROUTING ─────────────────────────────────────────────────── */
 const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map', 'prospect']);
 
@@ -589,11 +671,12 @@ function exportContacts() {
 }
 
 function exportPipeline() {
-  const head = ['opportunity', 'offtaker', 'project', 'mw', 'stage', 'tariff_r_kwh', 'tenor_years',
+  const head = ['opportunity', 'account', 'account_type', 'project', 'mw', 'stage', 'tariff_r_kwh', 'tenor_years',
     'probability_pct', 'annual_value_r', 'lifetime_value_r', 'weighted_value_r', 'close_date', 'notes'];
   const rows = [head].concat(state.deals.map(d => {
     const stage = PIPELINE_STAGES.find(s => s.id === d.stage);
-    return [d.name, getOfftaker(d.offtakerId).name || '', getProject(d.projectId).name || '', d.mw,
+    const acc = dealAccount(d);
+    return [d.name, acc.name, acc.kind, getProject(d.projectId).name || '', d.mw,
       stage ? stage.label : d.stage, d.tariff, d.tenor, d.probability,
       Math.round(dealAnnualValue(d)), Math.round(dealLifetimeValue(d)), Math.round(weightedValue(d)),
       d.closeDate, d.notes];

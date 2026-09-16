@@ -243,6 +243,40 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .pipeline-card:hover{border-color:var(--border2)}
 .pipeline-card.dragging{opacity:.4}
 .kcol.drop-target{border-color:var(--accent);background:rgba(61,220,132,.04)}
+
+/* The sales path. Salesforce draws the sales process as a strip across the
+   top of a record and it is the control a rep touches most, so each step is
+   a button rather than a label: one click moves the account. Completed
+   steps stay visible so the history of the deal is readable at a glance. */
+.sfpath{display:flex;flex-wrap:wrap;gap:4px}
+.sfp-step{flex:1 1 0;min-width:112px;border:1px solid var(--border);background:var(--bg2);
+  color:var(--muted2);font-family:inherit;font-size:10px;font-weight:800;letter-spacing:.5px;
+  text-transform:uppercase;padding:10px 8px;border-radius:7px;cursor:pointer;transition:.15s;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sfp-step:hover{border-color:var(--border2);color:var(--text2);transform:translateY(-1px)}
+.sfp-step.done{background:rgba(61,220,132,.09);border-color:rgba(61,220,132,.26);color:#86efac}
+.sfp-step.current{background:var(--accent);border-color:var(--accent);color:#06240f;
+  box-shadow:0 3px 12px rgba(61,220,132,.22)}
+.sfp-step.current.lost{background:var(--danger);border-color:var(--danger);color:#2b0a0a;
+  box-shadow:0 3px 12px rgba(239,68,68,.22)}
+@media(max-width:720px){.sfp-step{min-width:calc(50% - 4px)}}
+
+/* The sales path. Salesforce draws the sales process as a strip across the
+   top of a record and it is the control a rep touches most, so each step is
+   a button rather than a label: one click moves the account. Completed
+   steps stay visible so the history of the deal is readable at a glance. */
+.sfpath{display:flex;flex-wrap:wrap;gap:4px}
+.sfp-step{flex:1 1 0;min-width:112px;border:1px solid var(--border);background:var(--bg2);
+  color:var(--muted2);font-family:inherit;font-size:10px;font-weight:800;letter-spacing:.5px;
+  text-transform:uppercase;padding:10px 8px;border-radius:7px;cursor:pointer;transition:.15s;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sfp-step:hover{border-color:var(--border2);color:var(--text2);transform:translateY(-1px)}
+.sfp-step.done{background:rgba(61,220,132,.09);border-color:rgba(61,220,132,.26);color:#86efac}
+.sfp-step.current{background:var(--accent);border-color:var(--accent);color:#06240f;
+  box-shadow:0 3px 12px rgba(61,220,132,.22)}
+.sfp-step.current.lost{background:var(--danger);border-color:var(--danger);color:#2b0a0a;
+  box-shadow:0 3px 12px rgba(239,68,68,.22)}
+@media(max-width:720px){.sfp-step{min-width:calc(50% - 4px)}}
 .pc-name{font-size:12px;font-weight:700;color:var(--text2);line-height:1.35;margin-bottom:3px}
 .pc-sub{font-size:10.5px;color:var(--muted);margin-bottom:8px}
 .pc-row{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:var(--muted2);margin-top:5px}

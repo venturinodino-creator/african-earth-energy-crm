@@ -246,7 +246,8 @@ function renderDetail() {
 
   const dealsHtml =
     '<div class="card">' +
-      '<div class="card-header"><div class="card-title">Opportunities (' + deals.length + ')</div>' +
+      '<div class="card-header"><div><div class="card-title">Opportunities (' + deals.length + ')</div>' +
+      '<div class="card-sub">Account is at ' + esc(sfStageLabel(o)) + '</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="openAddDeal(\'' + o.id + '\')">Add</button></div>' +
       (deals.length ? deals.map(d => {
         const st = PIPELINE_STAGES.find(s => s.id === d.stage) || {};
@@ -296,7 +297,7 @@ function renderDetail() {
     ? '<div class="cols-2" style="margin-top:14px">' + qCard + oCard + '</div>'
     : '';
 
-  setContent(hero + pitch +
+  setContent(hero + sfPathCardHtml('offtaker', o) + pitch +
     '<div style="margin-top:14px">' + contactMixHtml(o, people) + '</div>' +
     '<div class="cols-2" style="margin-top:14px">' +
       '<div style="display:flex;flex-direction:column;gap:14px">' + contactsHtml + logHtml + '</div>' +

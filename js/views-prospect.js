@@ -33,6 +33,12 @@ function renderProspect() {
     '<button class="btn btn-outline btn-sm" onclick="nav(\'prospects\')">All prospects</button>' +
     (site ? '<button class="btn btn-outline btn-sm" onclick="nav(\'regions\')">' +
       icon('map', 14) + ' Catchment</button>' : '') +
+    '<button class="btn btn-outline btn-sm" data-admin-only onclick="openEditProspect(\'' + esc(p.id) + '\')">' +
+      icon('edit', 14) + ' Edit</button>' +
+    '<button class="btn btn-outline btn-sm" onclick="openLogInteraction(\'\',\'' + esc(p.id) + '\')">' +
+      icon('note', 14) + ' Log activity</button>' +
+    '<button class="btn btn-outline btn-sm" data-admin-only onclick="openAddDeal(\'\',\'' + esc(p.id) + '\')">' +
+      icon('bolt', 14) + ' New opportunity</button>' +
     (promotedTo && promotedTo.id
       ? '<button class="btn btn-primary btn-sm" onclick="nav(\'detail\',{id:\'' + esc(promotedTo.id) + '\'})">Open offtaker</button>'
       : '<button class="btn btn-primary btn-sm" data-admin-only onclick="promoteProspect(\'' + esc(p.id) + '\')">' +
@@ -116,8 +122,46 @@ function renderProspect() {
       '</dl>' +
     '</div>' : '';
 
-  setContent(hero +
+  const opps = dealsForProspect(p.id);
+  const oppsHtml =
+    '<div class="card">' +
+      '<div class="card-header"><div><div class="card-title">Opportunities (' + opps.length + ')</div>' +
+      '<div class="card-sub">They move across with the lead when it is promoted</div></div>' +
+      '<button class="btn btn-ghost btn-xs" data-admin-only onclick="openAddDeal(\'\',\'' + esc(p.id) + '\')">Add</button></div>' +
+      (opps.length ? opps.map(d => {
+        const st = PIPELINE_STAGES.find(x => x.id === d.stage) || {};
+        return '<div class="person-row" style="cursor:pointer" onclick="openEditDeal(\'' + esc(d.id) + '\')">' +
+          '<div style="min-width:0;flex:1">' +
+            '<div class="person-name">' + fmtNum(d.mw) + ' MW · ' + esc(getProject(d.projectId).town || 'unassigned') + '</div>' +
+            '<div class="person-title">' + esc(st.label || d.stage) + ' · ' + num(d.tenor) + ' yr at R' +
+              num(d.tariff).toFixed(2) + '/kWh · ' + num(d.probability) + '% likely</div>' +
+          '</div>' +
+          '<div class="person-actions"><span style="font-weight:800;color:var(--accent);font-size:12.5px">' +
+            fmtR(dealAnnualValue(d)) + '/yr</span></div>' +
+        '</div>';
+      }).join('')
+        : '<div class="empty" style="padding:26px 10px"><h3>No opportunity yet</h3>' +
+          '<p>Open one as soon as there is a number worth talking about — even a rough one.</p></div>') +
+    '</div>';
+
+  const logs = interactionsForProspect(p.id);
+  const logHtml =
+    '<div class="card">' +
+      '<div class="card-header"><div class="card-title">Activity (' + logs.length + ')</div>' +
+      '<button class="btn btn-ghost btn-xs" onclick="openLogInteraction(\'\',\'' + esc(p.id) + '\')">Log</button></div>' +
+      (logs.length ? logs.map(i =>
+        '<div class="int-row"><div class="int-dot"></div><div class="int-body">' +
+        '<div class="int-meta">' + esc(i.type) + ' · ' + esc(i.date) + ' · ' + relTime(i.date) + '</div>' +
+        '<div class="int-text">' + esc(i.summary) + '</div></div>' +
+        '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + esc(i.id) + '\')">' +
+          icon('trash', 11) + '</button></div>').join('')
+        : '<div class="empty" style="padding:26px 10px"><h3>Nothing logged</h3>' +
+          '<p>Log the first call. Half of these records are worked twice because nobody did.</p></div>') +
+    '</div>';
+
+  setContent(hero + sfPathCardHtml('prospect', p) +
     '<div class="grid-2">' + overview + approach + '</div>' +
+    '<div class="grid-2">' + oppsHtml + logHtml + '</div>' +
     '<div class="grid-2">' + placing + sectorCard + '</div>' +
     questionsCardHtml(p.sectorId) +
     objectionsCardHtml(p.sectorId));

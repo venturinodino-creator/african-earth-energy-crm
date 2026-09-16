@@ -14,7 +14,7 @@ Company site: <https://www.aeeg.co.za/en>
 | Screen | What it is for |
 | --- | --- |
 | **Dashboard** | The morning view — today's call list, funnel by stage, sector mix, capacity allocation, recent activity |
-| **Pipeline** | Drag-and-drop board of PPA opportunities across seven stages, with weighted contract value |
+| **Pipeline** | Two boards over the same records: **Deals**, PPA opportunities across seven stages with weighted contract value, and **Accounts**, every company across the five-stage sales process. Drag to move either |
 | **Offtakers** | The target list. Grid or table, filterable by sector, status and province, sortable by fit score |
 | **Offtaker detail** | Everything needed before a call: load profile, supply authority, wheeling, nearest site, people, indicative saving, pre-filled templates |
 | **Contacts** | People at each offtaker, with role in the decision. CSV import and export |
@@ -24,7 +24,7 @@ Company site: <https://www.aeeg.co.za/en>
 | **Analytics** | Load by province and sector, fit distribution, where the pipeline value actually sits |
 | **Savings calculator** | Model a wheeled PPA against the buyer's current tariff over the contract life |
 | **Sectors** | 30 sectors with tier, PPA fit, load shape, deal structures, sales cycle and who to call. Each opens to its own page with qualifying questions and objections |
-| **Prospects** | The prospecting list, filterable by sector, tier and status, with one-click promotion to an offtaker |
+| **Prospects** | The lead list. Capture a lead, work it — sales stage, opportunities, logged calls — and promote it to an offtaker in one click. Filterable by sector, tier, status and sales stage |
 | **Regions** | Each generation site against the industrial load in its catchment, ordered by unsold capacity then by distance, with published contacts inline |
 | **Playbook** | Ranked shortlists, market context, cold emails, discovery script, objection handling, qualification checklist |
 
@@ -44,6 +44,31 @@ most likely to sign. It weighs five things:
 
 The maths is in [`js/core.js`](js/core.js) — `fitScore()`. Change the weights there
 if the team's experience says something different.
+
+## The sales path
+
+Every account — an offtaker, or a lead being worked — sits at one of five
+stages, the standard sales process rather than anything PPA-specific:
+
+| Stage | What it means here |
+| --- | --- |
+| **Prospecting** | Identified and being researched. No conversation yet |
+| **Needs Analysis** | Talking to them. Establishing load, tariff, supply route and who decides |
+| **Proposal** | Indicative tariff and volume with the customer |
+| **Negotiation** | Terms on the table and the PPA being drafted |
+| **Closed** | Signed, or closed lost. Either way it is off the working board |
+
+The path sits on the record itself: one click moves the account, which writes
+the matching `status`, so every badge, filter and dashboard that already reads
+status stays truthful. Closing asks which way it went — won contracts the
+account, lost marks it lost — and every move is written to the activity log,
+because a stage change with no trace of why is how a pipeline stops being
+believed. Records created before the path existed read their stage back out of
+the status they already carry, so nothing had to be back-filled.
+
+This is separate from, and coarser than, the seven PPA stages an individual
+opportunity moves through on the deal board. An account can be at Negotiation
+while one of its opportunities is still in Due Diligence.
 
 ## Access and security
 
@@ -175,6 +200,12 @@ scoring a record with no load data would put 264 zeros at the top of the call
 list. **Promote** moves it across once the load is known, and that is when it
 starts being ranked.
 
+A lead is still worked before that happens: it has a sales stage, opportunities
+and a call log of its own, and all three follow it across on promotion — along
+with its town, province, website and the stage it had reached. Only the load
+band stays behind, because the offtaker record's figures are the established
+ones a quote is built on, and finding them is the job the promotion creates.
+
 ## Load data: the band and its basis
 
 A prospect's consumption is stored as a **band with its basis attached**, never as a
@@ -264,9 +295,11 @@ js/core.js              state, routing, helpers, fit score, auth gate, CSV
 js/views-dashboard.js   dashboard + pipeline board
 js/views-offtakers.js   offtaker list, detail page, contacts
 js/views-sectors.js     sectors, one-sector page, prospects list
+js/views-prospect.js    one lead on one page
 js/views-regions.js     per-site catchment and the regional target list
 js/views-tools.js       projects, map, analytics, calculator, playbook, activity
 js/forms.js             create / edit / delete
+js/forms-leads.js       lead capture and the sales path
 ```
 
 ## Deploying
