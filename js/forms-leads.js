@@ -13,18 +13,11 @@
    A lead is captured here and lives in the prospect list. It carries no
    verified load, so it is never fit-scored — promoting it is what moves it
    across to an offtaker and starts it being ranked. */
-function sfStageOptions(selected) {
-  return SF_STAGES.map(st =>
-    '<option value="' + st.id + '"' + (st.id === selected ? ' selected' : '') + '>' +
-    esc(st.label) + '</option>').join('');
-}
-
 const PROSPECT_FIELDS = ['mp-name', 'mp-note', 'mp-town', 'mp-website', 'mp-phone', 'mp-email',
   'mp-address', 'mp-source', 'mp-gwhlow', 'mp-gwhhigh', 'mp-peak', 'mp-method', 'mp-blurb', 'mp-notes'];
 
 function fillProspectSelects(p) {
   document.getElementById('mp-sector').innerHTML = sectorOptions((p && p.sectorId) || '');
-  document.getElementById('mp-stage').innerHTML = sfStageOptions(p ? sfStageFor(p) : 'prospecting');
   document.getElementById('mp-site').innerHTML = projectOptions((p && p.nearSite) || '');
 }
 
@@ -72,7 +65,7 @@ function saveProspect() {
   if (!name) { toast('A lead needs a company name', 'warn'); return; }
   const rec = {
     name, sectorId: val('mp-sector'), note: val('mp-note'),
-    sfStage: val('mp-stage'), town: val('mp-town'), province: val('mp-province'),
+    town: val('mp-town'), province: val('mp-province'),
     website: val('mp-website'), phone: val('mp-phone'), email: val('mp-email'),
     address: val('mp-address'), contactSource: val('mp-source'), nearSite: val('mp-site'),
     gwhLow: optNum('mp-gwhlow'), gwhHigh: optNum('mp-gwhhigh'), peakMwEst: optNum('mp-peak'),

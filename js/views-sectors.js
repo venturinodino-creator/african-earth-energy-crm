@@ -270,7 +270,6 @@ function renderProspects() {
     if (state.prospectSector && p.sectorId !== state.prospectSector) return false;
     if (state.prospectTier && String(sectorTier(p.sectorId)) !== String(state.prospectTier)) return false;
     if (state.prospectStatus && p.status !== state.prospectStatus) return false;
-    if (state.prospectStage && sfStageFor(p) !== state.prospectStage) return false;
     return true;
   });
   list = list.sort((a, b) =>
@@ -314,12 +313,7 @@ function renderProspects() {
         Object.entries(PROSPECT_STATUS).map(([k, v]) =>
           '<option value="' + k + '"' + (state.prospectStatus === k ? ' selected' : '') + '>' + esc(v) + '</option>').join('') +
       '</select>' +
-      '<select class="flt" onchange="state.prospectStage=this.value;state.prospectPage=1;renderProspects()">' +
-        '<option value="">Any sales stage</option>' +
-        SF_STAGES.map(st => '<option value="' + st.id + '"' +
-          (state.prospectStage === st.id ? ' selected' : '') + '>' + esc(st.label) + '</option>').join('') +
-      '</select>' +
-      '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
+            '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
 
   if (!list.length) {
@@ -354,7 +348,6 @@ function prospectCardHtml(p) {
       '<div class="ec-icon">' + sectorIcon(p.sectorId, 18) + '</div>' +
       '<span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : p.status === 'new' ? 'b-prospect' : 'b-medium') + '">' +
         esc(PROSPECT_STATUS[p.status] || p.status) + '</span>' +
-      sfStageBadge(p) +
     '</div>' +
     '<h3>' + esc(p.name) + '</h3>' +
     (p.note ? '<div class="short">' + esc(p.note) + '</div>' : '') +
@@ -387,7 +380,7 @@ function prospectCardHtml(p) {
 
 function prospectTableHtml(page) {
   return '<div class="table-wrap"><table><thead><tr>' +
-      '<th>Company</th><th>Sector</th><th>Tier</th><th>PPA fit</th><th>Sales stage</th><th>Status</th><th>Actions</th>' +
+      '<th>Company</th><th>Sector</th><th>Tier</th><th>PPA fit</th><th>Status</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
     page.map(p => {
       const s = sectorOf(p.sectorId);
@@ -404,7 +397,6 @@ function prospectTableHtml(page) {
           esc(sectorName(p.sectorId)) + '</span></td>' +
         '<td><span class="badge b-tier-' + sectorTier(p.sectorId) + '">' + sectorTier(p.sectorId) + '</span></td>' +
         '<td>' + ppaDots(s ? s.ppaFit : 0) + '</td>' +
-        '<td>' + sfStageBadge(p) + '</td>' +
         '<td><span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : p.status === 'new' ? 'b-prospect' : 'b-medium') + '">' +
           esc(PROSPECT_STATUS[p.status] || p.status) + '</span></td>' +
         '<td style="white-space:nowrap">' +
@@ -438,10 +430,9 @@ async function promoteProspect(id) {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to convert this', 'warn'); return; }
 
   const s = sectorOf(p.sectorId);
-  /* Where the lead had got to in the sales process comes with it — a lead
-     already at Proposal is not a fresh prospect, and having to re-set the
-     stage by hand is how a board quietly stops matching reality. */
-  const stage = sfStageFor(p);
+  /* Prospects carry no sales stage, so the new offtaker starts at the
+     beginning of the path. Promotion is the moment the process begins. */
+  const stage = SF_STAGES[0].id;
   const offtaker = {
     id: 'off-' + p.id.replace(/^p-/, '').slice(0, 48),
     name: p.name, short: p.name.split(/[—(,/]/)[0].trim().slice(0, 40),
@@ -483,12 +474,12 @@ async function promoteProspect(id) {
 }
 
 function exportProspects() {
-  const head = ['company', 'sector', 'tier', 'group', 'ppa_fit', 'sales_stage', 'status', 'note', 'promoted_to'];
+  const head = ['company', 'sector', 'tier', 'group', 'ppa_fit', 'status', 'note', 'promoted_to'];
   const rows = [head].concat(state.prospects.map(p => {
     const s = sectorOf(p.sectorId);
     return [p.name, sectorName(p.sectorId), sectorTier(p.sectorId),
       SECTOR_GROUPS[sectorGroup(p.sectorId)] || '', s ? s.ppaFit : '',
-      sfStageLabel(p), PROSPECT_STATUS[p.status] || p.status, p.note, p.promotedTo || ''];
+      PROSPECT_STATUS[p.status] || p.status, p.note, p.promotedTo || ''];
   }));
   downloadCSV('aee-prospects-' + todayISO() + '.csv', rows);
   toast('Exported ' + state.prospects.length + ' prospects');

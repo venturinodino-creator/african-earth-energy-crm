@@ -145,7 +145,7 @@ function rowToProspect(r) {
   return {
     id: r.id, name: r.name || '', sectorId: r.sector_id || '', note: r.note || '',
     status: r.status || 'new', promotedTo: r.promoted_to || '', notes: r.notes || '',
-    sfStage: r.sf_stage || '', updatedAt: r.updated_at || '',
+    updatedAt: r.updated_at || '',
     blurb: r.blurb || '',
     town: r.town || '', province: r.province || '',
     lat: r.lat, lng: r.lng, nearSite: r.near_site || '',
@@ -159,7 +159,6 @@ function prospectToRow(p) {
   return {
     id: p.id, name: p.name, sector_id: p.sectorId || null, note: p.note,
     status: p.status, promoted_to: p.promotedTo || null, notes: p.notes,
-    sf_stage: p.sfStage || null,
     blurb: p.blurb || null,
     town: p.town || null, province: p.province || null,
     lat: p.lat ?? null, lng: p.lng ?? null, near_site: p.nearSite || null,

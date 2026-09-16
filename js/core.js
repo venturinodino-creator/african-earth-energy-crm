@@ -49,7 +49,7 @@ let state = {
   sectorId: null,
   sectorSearch: '', sectorTier: '', sectorGroup: '',
 
-  prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '', prospectStage: '',
+  prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '',
   prospectPage: 1,
 
   muniSearch: '', muniProvince: '', muniCat: '', muniWorked: '',

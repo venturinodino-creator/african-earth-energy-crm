@@ -164,7 +164,11 @@ function renderProspect() {
      is mostly half-known. Read down the wide column, look things up in the
      narrow one. The sector's questions and objections are not repeated
      here — they are the sector page's, one click away. */
-  setContent(hero + sfPathCardHtml('prospect', p) +
+  /* No sales path here. A prospect is an unqualified lead — a name, a
+     sector and no verified load — so there is no process to be at a
+     stage of. The path belongs to an offtaker, and promoting this
+     record is what starts it. */
+  setContent(hero +
     '<div class="cols-2">' +
       '<div style="display:flex;flex-direction:column;gap:14px">' + overview + oppsHtml + logHtml + '</div>' +
       '<div style="display:flex;flex-direction:column;gap:14px">' + approach + placing + sectorCard + '</div>' +
