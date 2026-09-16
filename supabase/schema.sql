@@ -163,6 +163,46 @@ create table if not exists public.mining_leads (
   stakeholder_email    text unique
 );
 
+-- ─── CONTACT FINDER ────────────────────────────────────────────────
+-- A discovery run is a request: which offtakers the desk pointed the
+-- agent at, and which roles it wanted found. The agent claims a queued
+-- run, appends to aee_found_contacts, then marks the run done.
+create table if not exists public.aee_contact_runs (
+  id           text primary key,
+  created      date,
+  status       text,            -- queued | running | done | failed
+  industry     text,            -- sector group key, or 'all'
+  roles        text[],          -- decision | technical | influencer | gatekeeper
+  offtaker_ids text[],
+  found        integer not null default 0,
+  note         text,
+  claimed_at   timestamptz,
+  finished_at  timestamptz,
+  updated_at   timestamptz not null default now()
+);
+
+-- A person the agent believes it found. Deliberately NOT aee_contacts:
+-- a scraped person is a claim about a real human until someone checks
+-- it, and accepting a row here is what writes the contact. Keeping the
+-- two apart is what stops an agent's mistake becoming a number a rep
+-- dials.
+create table if not exists public.aee_found_contacts (
+  id          text primary key,
+  run_id      text,
+  offtaker_id text,
+  first       text,
+  last        text,
+  title       text,
+  role        text,             -- decision | influencer | technical | gatekeeper
+  phone       text,
+  email       text,
+  source      text,             -- the page the agent read it from
+  confidence  numeric,
+  status      text,             -- pending | approved | discarded
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
 create index if not exists aee_contacts_offtaker_idx     on public.aee_contacts(offtaker_id);
 create index if not exists aee_deals_offtaker_idx        on public.aee_deals(offtaker_id);
 create index if not exists aee_deals_stage_idx           on public.aee_deals(stage);
@@ -175,6 +215,12 @@ create index if not exists aee_prospects_load_basis_idx  on public.aee_prospects
 create index if not exists aee_deals_prospect_idx        on public.aee_deals(prospect_id);
 create index if not exists aee_interactions_prospect_idx on public.aee_interactions(prospect_id);
 create index if not exists aee_offtakers_sf_stage_idx    on public.aee_offtakers(sf_stage);
+-- The agent's hot path is "give me the oldest queued run"; a reviewer's
+-- is "everything still pending".
+create index if not exists aee_contact_runs_status_idx    on public.aee_contact_runs(status);
+create index if not exists aee_found_contacts_run_idx     on public.aee_found_contacts(run_id);
+create index if not exists aee_found_contacts_status_idx  on public.aee_found_contacts(status);
+create index if not exists aee_found_contacts_offtaker_idx on public.aee_found_contacts(offtaker_id);
 
 -- ─── UPGRADES ──────────────────────────────────────────────────────
 -- `create table if not exists` leaves an existing table alone, so columns
@@ -246,7 +292,8 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['aee_offtakers','aee_contacts','aee_deals','aee_prospects']
+  foreach t in array array['aee_offtakers','aee_contacts','aee_deals','aee_prospects',
+                           'aee_contact_runs','aee_found_contacts']
   loop
     execute format('drop trigger if exists %I on public.%I', t || '_touch', t);
     execute format(
@@ -277,6 +324,8 @@ alter table public.aee_deals        enable row level security;
 alter table public.aee_interactions enable row level security;
 alter table public.aee_prospects    enable row level security;
 alter table public.mining_leads     enable row level security;
+alter table public.aee_contact_runs   enable row level security;
+alter table public.aee_found_contacts enable row level security;
 
 drop policy if exists profiles_read_own on public.profiles;
 create policy profiles_read_own on public.profiles
@@ -293,7 +342,8 @@ do $$
 declare t text;
 begin
   foreach t in array array['aee_offtakers','aee_contacts','aee_deals',
-                           'aee_interactions','aee_prospects','mining_leads']
+                           'aee_interactions','aee_prospects','mining_leads',
+                           'aee_contact_runs','aee_found_contacts']
   loop
     execute format('drop policy if exists %I on public.%I', t || '_read',   t);
     execute format('drop policy if exists %I on public.%I', t || '_insert', t);
