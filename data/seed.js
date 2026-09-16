@@ -73,16 +73,20 @@ const PIPELINE_STAGES = [
    step: moving an account along the path writes the matching status, which
    is what the badges, filters and dashboards already read. Closed is split
    on the way in — won becomes contracted, lost becomes lost. */
+/* stallDays: how long an account may sit at a stage before it is worth a
+   nudge. Not an SLA and nothing enforces it — a PPA runs a 9 to 18 month
+   cycle, so these are the points at which silence starts to mean something
+   rather than deadlines. Closed does not stall; it is finished. */
 const SF_STAGES = [
-  { id:'prospecting',    label:'Prospecting',    prob:10,  status:'prospect',
+  { id:'prospecting',    label:'Prospecting',    prob:10,  status:'prospect',    stallDays:30,
     hint:'Identified and being researched. No conversation yet.' },
-  { id:'needs-analysis', label:'Needs Analysis', prob:25,  status:'engaged',
+  { id:'needs-analysis', label:'Needs Analysis', prob:25,  status:'engaged',     stallDays:45,
     hint:'Talking to them. Establishing load, tariff, supply route and who decides.' },
-  { id:'proposal',       label:'Proposal',       prob:50,  status:'qualified',
+  { id:'proposal',       label:'Proposal',       prob:50,  status:'qualified',   stallDays:30,
     hint:'Indicative tariff and volume with the customer.' },
-  { id:'negotiation',    label:'Negotiation',    prob:75,  status:'negotiating',
+  { id:'negotiation',    label:'Negotiation',    prob:75,  status:'negotiating', stallDays:60,
     hint:'Terms on the table and the PPA being drafted.' },
-  { id:'closed',         label:'Closed',         prob:100, status:'contracted',
+  { id:'closed',         label:'Closed',         prob:100, status:'contracted',  stallDays:null,
     hint:'Signed, or closed lost. Either way it is off the working board.' },
 ];
 

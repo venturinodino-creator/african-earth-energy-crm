@@ -11,6 +11,9 @@ function offSortVal(o, field) {
     case 'peak': return num(o.peakMw);
     case 'tariff': return num(o.tariff);
     case 'contacts': return contactsFor(o.id).length;
+    /* Unknown sorts as the longest wait rather than as zero: a record with
+       no evidence at all is not a fresh one. */
+    case 'dwell': { const d = stageDwell(o); return d ? d.days : 99999; }
     case 'sector': return sectorName(o.sector);
     case 'status': return ['prospect', 'engaged', 'qualified', 'negotiating', 'contracted', 'lost'].indexOf(o.status);
     case 'distance': { const np = nearestProject(o); return np ? np.km : 99999; }
@@ -28,6 +31,7 @@ function filteredOfftakers() {
        stage written on it and reads its position out of its status, and it
        should still be found by the stage it is plainly at. */
     if (state.offStage && sfStageFor(o) !== state.offStage) return false;
+    if (state.offStalled === 'stalled' && !isStalled(o)) return false;
     if (state.offProvince && o.province !== state.offProvince) return false;
     return true;
   });
@@ -52,6 +56,7 @@ function renderOfftakers() {
       '<select class="flt" onchange="state.offSector=this.value;state.offPage=1;renderOfftakers()">' +
         '<option value="">All sectors</option>' + sectorOptions(state.offSector) + '</select>' +
       selectFlt('offStage', 'Any sales stage', SF_STAGES.map(st => [st.id, st.label])) +
+      selectFlt('offStalled', 'Stalled or not', [['stalled', 'Stalled only']]) +
       selectFlt('offStatus', 'All statuses', Object.entries(STATUS_LABEL)) +
       selectFlt('offProvince', 'All provinces', provinces.map(p => [p, p])) +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
@@ -101,7 +106,8 @@ function offtakerCardHtml(o) {
     '<div class="fit-bar"><span data-w="' + f + '" style="background:' + fitColor(f) + '"></span></div>' +
     '<div class="ec-footer">' +
       '<span>' + (np ? esc(np.project.town) + ' · ' + distanceLabel(np) : 'no nearby site') + '</span>' +
-      '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
+      '<div style="display:flex;align-items:center;gap:6px">' + dwellChipHtml(o) +
+      '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></div>' +
     '</div>' +
     '<div class="ec-footer" style="border-top:none;padding-top:0;margin-top:6px">' +
       '<span>' + icon('contacts', 13) + ' ' + cc + ' contact' + (cc === 1 ? '' : 's') + '</span>' +
@@ -119,7 +125,8 @@ function offtakerTableHtml(list) {
   return '<div class="table-wrap"><table><thead><tr>' +
     th('name', 'Offtaker') + th('sector', 'Sector') + th('province', 'Province') +
     th('load', 'GWh/yr') + th('peak', 'Peak MW') + th('tariff', 'R/kWh') +
-    th('distance', 'Nearest site') + th('fit', 'Fit') + th('status', 'Status') + th('contacts', 'Contacts') +
+    th('distance', 'Nearest site') + th('fit', 'Fit') + th('status', 'Status') +
+    th('dwell', 'In stage') + th('contacts', 'Contacts') +
     '<th>Actions</th></tr></thead><tbody>' +
     list.map(o => {
       const f = fitScore(o), np = nearestProject(o);
@@ -135,6 +142,7 @@ function offtakerTableHtml(list) {
         '<td>' + (np ? esc(np.project.town) + ' <span style="color:var(--muted)">' + distanceLabel(np) + '</span>' : '—') + '</td>' +
         '<td class="num" style="color:' + fitColor(f) + ';font-weight:800">' + f + '</td>' +
         '<td><span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></td>' +
+        '<td>' + dwellChipHtml(o) + '</td>' +
         '<td class="num">' + contactsFor(o.id).length + '</td>' +
         '<td onclick="event.stopPropagation()" style="white-space:nowrap">' +
           (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Site</a> ' : '') +
