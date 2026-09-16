@@ -136,7 +136,7 @@ function renderRegions() {
 function regionRowHtml(x) {
   const go = x.kind === 'offtaker'
     ? 'nav(\'detail\',{id:\'' + x.id + '\'})'
-    : 'openProspectFromRegion(' + jsStr(x.name) + ')';
+    : 'nav(\'prospect\',{id:\'' + esc(x.id) + '\'})';
   return '<div class="person-row" style="cursor:pointer" onclick="' + go + '">' +
     '<div style="min-width:0;flex:1">' +
       '<div class="person-name">' + esc(x.name) +
@@ -211,13 +211,6 @@ function contactLineHtml(x) {
 }
 
 /* Jump to the prospect list filtered to one company. */
-function openProspectFromRegion(name) {
-  state.prospectSearch = name;
-  state.prospectSector = ''; state.prospectTier = ''; state.prospectStatus = '';
-  state.prospectPage = 1;
-  nav('prospects');
-}
-
 function exportRegions() {
   const head = ['site', 'site_province', 'site_mw', 'unsold_mw', 'company', 'kind',
     'sector', 'town', 'distance_km', 'known_gwh', 'status',

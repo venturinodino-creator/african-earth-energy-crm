@@ -341,7 +341,7 @@ function renderProspects() {
 function prospectCardHtml(p) {
   const s = sectorOf(p.sectorId);
   const promotedTo = p.promotedTo ? getOfftaker(p.promotedTo) : null;
-  return '<div class="ec" style="cursor:default">' +
+  return '<div class="ec clickable" onclick="nav(\'prospect\',{id:\'' + esc(p.id) + '\'})">' +
     '<div class="ec-head">' +
       '<div class="ec-icon">' + sectorIcon(p.sectorId, 18) + '</div>' +
       '<span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : p.status === 'new' ? 'b-prospect' : 'b-medium') + '">' +
@@ -353,24 +353,21 @@ function prospectCardHtml(p) {
        views-regions.js and is shared so a prospect reads the same way
        here as it does in a site catchment. */
     contactLineHtml(p) +
-    /* Why this number and not another, and what to know before dialling.
-       Kept visible rather than buried: most of these records carry a
-       caveat — a number from a directory rather than the company, a
-       parent that holds the decision, a town that is wrong. */
-    (p.contactSource ? '<div style="font-size:10px;color:var(--muted);margin-top:2px">' +
-      'Source: ' + esc(p.contactSource) + '</div>' : '') +
-    (p.notes ? '<div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.45">' +
-      esc(p.notes) + '</div>' : '') +
+    /* The overview, source and approach notes all live on the profile
+       now — the card stays a scanning summary and says whether there is
+       anything written to open. */
+    '<div style="font-size:10.5px;color:var(--muted);margin-top:6px">' +
+      (p.blurb ? icon('note', 11) + ' Overview written' : 'No overview yet') + '</div>' +
     '<div class="meta" style="margin-top:6px">' + icon('grid', 13) +
-      '<span class="ext-link" style="cursor:pointer" onclick="nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
+      '<span class="ext-link" style="cursor:pointer" onclick="event.stopPropagation();nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
       esc(sectorName(p.sectorId)) + '</span></div>' +
     '<div class="fit-row"><span>Tier ' + sectorTier(p.sectorId) + '</span>' + ppaDots(s ? s.ppaFit : 0) + '</div>' +
     '<div class="ec-footer">' +
       '<span>' + esc(SECTOR_GROUPS[sectorGroup(p.sectorId)] || '—') + '</span>' +
       '<div style="display:flex;gap:4px">' +
         (promotedTo && promotedTo.id
-          ? '<button class="btn btn-xs btn-outline" onclick="nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
-          : '<button class="btn btn-xs btn-primary" data-admin-only onclick="promoteProspect(\'' + p.id + '\')">' +
+          ? '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
+          : '<button class="btn btn-xs btn-primary" data-admin-only onclick="event.stopPropagation();promoteProspect(\'' + p.id + '\')">' +
             icon('plus', 11) + ' Promote</button>') +
       '</div>' +
     '</div>' +
@@ -384,15 +381,15 @@ function prospectTableHtml(page) {
     page.map(p => {
       const s = sectorOf(p.sectorId);
       const promotedTo = p.promotedTo ? getOfftaker(p.promotedTo) : null;
-      return '<tr>' +
+      return '<tr class="clickable" onclick="nav(\'prospect\',{id:\'' + esc(p.id) + '\'})">' +
         '<td><div style="font-weight:700">' + esc(p.name) + '</div>' +
           (p.note ? '<div style="font-size:10.5px;color:var(--muted)">' + esc(p.note) + '</div>' : '') +
           /* Table is the default view, so the number has to be here and
              not only on the card — this is the list a rep works down. */
           (p.phone ? '<div style="font-size:10.5px;margin-top:2px">' +
-            '<a href="tel:' + esc(p.phone.replace(/\s/g, '')) + '" class="ext-link">' +
+            '<a href="tel:' + esc(p.phone.replace(/\s/g, '')) + '" class="ext-link" onclick="event.stopPropagation()">' +
             esc(p.phone) + '</a></div>' : '') + '</td>' +
-        '<td><span class="ext-link" style="cursor:pointer" onclick="nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
+        '<td><span class="ext-link" style="cursor:pointer" onclick="event.stopPropagation();nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
           esc(sectorName(p.sectorId)) + '</span></td>' +
         '<td><span class="badge b-tier-' + sectorTier(p.sectorId) + '">' + sectorTier(p.sectorId) + '</span></td>' +
         '<td>' + ppaDots(s ? s.ppaFit : 0) + '</td>' +
@@ -400,15 +397,15 @@ function prospectTableHtml(page) {
           esc(PROSPECT_STATUS[p.status] || p.status) + '</span></td>' +
         '<td style="white-space:nowrap">' +
           (promotedTo && promotedTo.id
-            ? '<button class="btn btn-xs btn-outline" onclick="nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
-            : '<button class="btn btn-xs btn-primary" data-admin-only onclick="promoteProspect(\'' + p.id + '\')">' +
+            ? '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
+            : '<button class="btn btn-xs btn-primary" data-admin-only onclick="event.stopPropagation();promoteProspect(\'' + p.id + '\')">' +
               icon('plus', 11) + ' Promote</button>') +
         '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
 
 function prospectRowHtml(p) {
-  return '<div class="person-row">' +
+  return '<div class="person-row clickable" onclick="nav(\'prospect\',{id:\'' + esc(p.id) + '\'})">' +
     '<div style="min-width:0;flex:1">' +
       '<div class="person-name">' + esc(p.name) + '</div>' +
       (p.note ? '<div class="person-title">' + esc(p.note) + '</div>' : '') +

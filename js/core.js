@@ -151,6 +151,9 @@ function sectorOptions(selected) {
 }
 
 function getOfftaker(id) { return state.offtakers.find(o => o.id === id) || {}; }
+/* Returns undefined rather than {} — the router uses it as an existence
+   check before routing to a prospect profile. */
+function getProspect(id) { return state.prospects.find(p => p.id === id); }
 function getProject(id) { return state.projects.find(p => p.id === id) || {}; }
 function contactsFor(id) { return state.contacts.filter(c => c.offtakerId === id); }
 function dealsFor(id) { return state.deals.filter(d => d.offtakerId === id); }
@@ -351,7 +354,7 @@ function weightedValue(d) {
 }
 
 /* ─── ROUTING ─────────────────────────────────────────────────── */
-const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map']);
+const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map', 'prospect']);
 
 function navUrlFor(view, id) {
   const p = new URLSearchParams(location.search);
@@ -392,6 +395,7 @@ addEventListener('popstate', e => {
   }
   if ((view === 'detail' || view === 'org-map') && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
   if (view === 'sector' && !(id && sectorOf(id))) { view = 'sectors'; id = null; }
+  if (view === 'prospect' && !(id && getProspect(id))) { view = 'prospects'; id = null; }
   if (id) { if (view === 'sector') state.sectorId = id; else state.detailId = id; }
   nav(view, id ? { id } : {}, true);
 });
@@ -414,6 +418,7 @@ function render() {
     sectors: renderSectors,
     sector: renderSector,
     prospects: renderProspects,
+    prospect: renderProspect,
     regions: renderRegions,
     contacts: renderContacts,
     projects: renderProjects,
@@ -517,7 +522,8 @@ function globalSearch(q) {
   });
   state.prospects.forEach(p => {
     if (p.name.toLowerCase().includes(term))
-      rows.push({ t: p.name, s: 'Prospect · ' + sectorName(p.sectorId), go: "nav('prospects')" });
+      rows.push({ t: p.name, s: 'Prospect · ' + sectorName(p.sectorId),
+        go: "nav('prospect',{id:" + jsStr(p.id) + "})" });
   });
   ALL_SECTORS.forEach(s => {
     if (s.name.toLowerCase().includes(term))
