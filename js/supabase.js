@@ -177,6 +177,57 @@ function interactionToRow(i) {
   };
 }
 
+/* ─── CONTACT FINDER ──────────────────────────────────────────────
+   A run is the request the desk queued; a find is a person the agent
+   believes it turned up. Postgres text[] arrives as a JS array, so
+   roles and offtaker_ids need no parsing either way. */
+function rowToRun(r) {
+  return {
+    id: r.id, created: r.created || '', status: r.status || 'queued',
+    industry: r.industry || 'all',
+    roles: r.roles || [], offtakerIds: r.offtaker_ids || [],
+    found: r.found || 0, note: r.note || '',
+    claimedAt: r.claimed_at || '', finishedAt: r.finished_at || '',
+  };
+}
+function runToRow(r) {
+  return {
+    id: r.id, created: r.created || null, status: r.status || 'queued',
+    industry: r.industry || 'all',
+    roles: r.roles || [], offtaker_ids: r.offtakerIds || [],
+    found: num(r.found), note: r.note || null,
+  };
+}
+function rowToFind(r) {
+  return {
+    id: r.id, runId: r.run_id || '', offtakerId: r.offtaker_id || '',
+    first: r.first || '', last: r.last || '', title: r.title || '',
+    role: r.role || 'influencer', phone: r.phone || '', email: r.email || '',
+    source: r.source || '', confidence: r.confidence,
+    status: r.status || 'pending',
+  };
+}
+function findToRow(f) {
+  return {
+    id: f.id, run_id: f.runId || null, offtaker_id: f.offtakerId || null,
+    first: f.first || '', last: f.last || '', title: f.title || null,
+    role: f.role || null, phone: f.phone || null, email: f.email || null,
+    source: f.source || null,
+    confidence: f.confidence == null ? null : num(f.confidence),
+    status: f.status || 'pending',
+  };
+}
+
+/* The agent writes out of band, so the finder pulls both tables fresh
+   rather than trusting whatever was cached. */
+async function fetchFinderData() {
+  const [runs, finds] = await Promise.all([
+    supaFetch('aee_contact_runs?select=*&order=created.desc'),
+    supaFetch('aee_found_contacts?select=*&order=created_at.desc'),
+  ]);
+  return { runs: (runs || []).map(rowToRun), finds: (finds || []).map(rowToFind) };
+}
+
 /* ─── WRITES ──────────────────────────────────────────────────────
    Every write is fire-and-report: the local state has already been
    updated by the caller, so a failure surfaces as a toast rather than
@@ -190,6 +241,8 @@ async function pushContact(c) { await guardWrite(() => upsert('aee_contacts', co
 async function pushDeal(d) { await guardWrite(() => upsert('aee_deals', dealToRow(d))); }
 async function pushInteraction(i) { await guardWrite(() => upsert('aee_interactions', interactionToRow(i))); }
 async function pushProspect(p) { await guardWrite(() => upsert('aee_prospects', prospectToRow(p))); }
+async function pushContactRun(r) { await guardWrite(() => upsert('aee_contact_runs', runToRow(r))); }
+async function pushFoundContact(f) { await guardWrite(() => upsert('aee_found_contacts', findToRow(f))); }
 async function removeRow(table, id) {
   await guardWrite(() => supaFetch(table + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE' }));
 }
