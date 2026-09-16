@@ -451,8 +451,11 @@ function interactionsForProspect(id) {
 
 function dealAccount(d) {
   if (d && d.offtakerId) {
-    const o = getOfftaker(d.offtakerId);
-    if (o.id) return { id: o.id, name: o.short || o.name, view: 'detail', kind: 'offtaker' };
+    /* getAccount, not getOfftaker: the id column carries municipalities
+       too, and a deal filed against one has to resolve to its own page
+       rather than reading as an unknown account. */
+    const o = getAccount(d.offtakerId);
+    if (o.id) return { id: o.id, name: o.short || o.name, view: accountView(o.id), kind: 'offtaker' };
   }
   if (d && d.prospectId) {
     const p = getProspect(d.prospectId);

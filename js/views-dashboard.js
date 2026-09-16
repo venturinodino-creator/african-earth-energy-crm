@@ -302,7 +302,7 @@ function accountCardHtml(o) {
   const fit = fitScore(o);
   return '<div class="pipeline-card" draggable="true" data-id="' + esc(o.id) + '" ' +
     'ondragstart="sfDragStart(event)" ondragend="pipeDragEnd(event)" ' +
-    'onclick="nav(\'detail\',{id:' + jsStr(o.id) + '})">' +
+    'onclick="nav(' + jsStr(accountView(o.id)) + ',{id:' + jsStr(o.id) + '})">' +
     '<div class="pc-name">' + esc(o.short || o.name) + '</div>' +
     '<div class="pc-sub">' + esc(sectorName(o.sector)) + (o.city ? ' · ' + esc(o.city) : '') + '</div>' +
     '<div class="pc-row"><span>' + fmtNum(o.annualGwh) + ' GWh/yr</span>' +
