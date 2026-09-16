@@ -12,7 +12,7 @@ function setVal(id, v) { document.getElementById(id).value = v == null ? '' : v;
 function openAddOfftaker() {
   state.editOfftakerId = null;
   document.getElementById('mo-title').textContent = 'Add offtaker';
-  ['mo-name', 'mo-short', 'mo-city', 'mo-website', 'mo-desc', 'mo-nmd'].forEach(id => setVal(id, ''));
+  ['mo-name', 'mo-short', 'mo-city', 'mo-website', 'mo-desc', 'mo-nmd', 'mo-revisit'].forEach(id => setVal(id, ''));
   document.getElementById('mo-sector').innerHTML = sectorOptions('');
   setVal('mo-sector', 'automotive-manufacturing');
   setVal('mo-province', 'Gauteng');
@@ -37,6 +37,7 @@ function openEditOfftaker(id) {
   setVal('mo-gwh', o.annualGwh); setVal('mo-peak', o.peakMw); setVal('mo-tariff', o.tariff);
   setVal('mo-supply', o.supply); setVal('mo-wheeling', o.wheeling); setVal('mo-nmd', o.nmd);
   setVal('mo-status', o.status); setVal('mo-priority', o.priority); setVal('mo-desc', o.description);
+  setVal('mo-revisit', o.revisitDate || '');
   openModal('modal-offtaker');
 }
 
@@ -49,6 +50,7 @@ function saveOfftaker() {
     annualGwh: num(val('mo-gwh')), peakMw: num(val('mo-peak')), tariff: num(val('mo-tariff')),
     supply: val('mo-supply'), wheeling: val('mo-wheeling'), nmd: num(val('mo-nmd')),
     status: val('mo-status'), priority: val('mo-priority'), description: val('mo-desc'),
+    revisitDate: val('mo-revisit'),
   };
   let saved;
   if (state.editOfftakerId) {

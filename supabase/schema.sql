@@ -50,6 +50,11 @@ create table if not exists public.aee_offtakers (
                 ('prospecting','needs-analysis','proposal','negotiation','closed')),
   priority    text,
   description text,
+  -- When to look at this account again. Set it when an account is parked
+  -- for a reason with an end date — a competing supply agreement running
+  -- down, a plant expansion, a tariff review — so the reason surfaces on
+  -- its own instead of sitting in the notes waiting to be re-read.
+  revisit_date date,
   estimated   boolean not null default true,
   updated_at  timestamptz not null default now()
 );

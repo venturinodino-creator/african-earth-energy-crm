@@ -184,6 +184,13 @@ function renderDetail() {
             '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
             '<span class="badge b-' + o.priority + '">' + esc(o.priority) + ' priority</span>' +
             (o.estimated ? '<span class="chip" title="Load figures are desk estimates — verify with the customer">' + icon('alert', 11) + ' estimated load</span>' : '') +
+            /* A parked account only comes back if the date that unparks it is
+               visible. Due dates read as live, future ones as a reminder. */
+            (o.revisitDate
+              ? '<span class="chip"' +
+                (o.revisitDate <= todayISO() ? ' style="color:var(--danger);border-color:var(--danger)"' : '') +
+                ' title="Revisit this account">' + icon('clock', 11) + ' revisit ' + esc(o.revisitDate) + '</span>'
+              : '') +
             (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Website</a>' : '') +
           '</div>' +
           (o.description ? '<p style="font-size:12.5px;color:var(--muted2);line-height:1.6;margin-top:10px;max-width:70ch">' + esc(o.description) + '</p>' : '') +

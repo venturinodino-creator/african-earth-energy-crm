@@ -93,7 +93,8 @@ function rowToOfftaker(r) {
        answer to "how long has this been sitting" and the only one an
        account nobody has touched can give. */
     updatedAt: r.updated_at || '',
-    description: r.description || '', estimated: r.estimated !== false,
+    description: r.description || '', revisitDate: r.revisit_date || '',
+    estimated: r.estimated !== false,
   };
 }
 function offtakerToRow(o) {
@@ -103,7 +104,8 @@ function offtakerToRow(o) {
     annual_gwh: num(o.annualGwh), peak_mw: num(o.peakMw), tariff: num(o.tariff), nmd: num(o.nmd),
     supply: o.supply, wheeling: o.wheeling, status: o.status, priority: o.priority,
     sf_stage: o.sfStage || null,
-    description: o.description, estimated: o.estimated !== false,
+    description: o.description, revisit_date: o.revisitDate || null,
+    estimated: o.estimated !== false,
   };
 }
 function rowToContact(r) {
