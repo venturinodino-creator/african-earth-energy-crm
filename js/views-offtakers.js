@@ -43,6 +43,7 @@ function renderOfftakers() {
   const totalGwh = list.reduce((s, o) => s + num(o.annualGwh), 0);
   setPage('Offtakers', state.offtakers.length + ' companies tracked · ' + fmtNum(totalGwh) + ' GWh/yr addressable',
     viewToggle('offView') +
+    '<button class="btn btn-outline btn-sm" data-admin-only onclick="openConvertProspect()">' + icon('target', 14) + ' Convert prospect</button>' +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
@@ -483,4 +484,74 @@ function contactTableHtml(page) {
           '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
         '</td></tr>';
     }).join('') + '</tbody></table></div>';
+}
+
+/* ─── CONVERT A PROSPECT ──────────────────────────────────────────
+   The offtakers page is where an account actually gets worked, so it is
+   where a prospect gets pulled across from. The conversion itself stays
+   in promoteProspect — this is only the picker in front of it, so what
+   carries over is never described in two places.
+
+   Prospects already converted are filtered out rather than shown greyed
+   out: a name you cannot pick is noise in a list of 291. */
+const CONVERT_LIST_MAX = 40;
+
+function openConvertProspect() {
+  if (state.role !== 'admin') { toast('Read-only access — ask an admin to convert', 'warn'); return; }
+  const el = document.getElementById('conv-search');
+  if (el) el.value = '';
+  renderConvertList();
+  openModal('modal-convert');
+  if (el) setTimeout(() => el.focus(), 30);
+}
+
+function convertCandidates() {
+  const el = document.getElementById('conv-search');
+  const term = ((el && el.value) || '').trim().toLowerCase();
+  return state.prospects.filter(p => {
+    if (p.status === 'promoted' || p.promotedTo) return false;
+    if (!term) return true;
+    return (p.name + ' ' + sectorName(p.sectorId) + ' ' +
+      (p.province || '') + ' ' + (p.town || '')).toLowerCase().includes(term);
+  }).sort((a, b) => sectorTier(a.sectorId) - sectorTier(b.sectorId) || a.name.localeCompare(b.name));
+}
+
+function renderConvertList() {
+  const host = document.getElementById('conv-list');
+  if (!host) return;
+
+  const all = convertCandidates();
+  if (!all.length) {
+    host.innerHTML = '<div class="fg-hint">' +
+      (state.prospects.length
+        ? 'No prospect matches that search — or every match has already been converted.'
+        : 'No prospects on file yet.') + '</div>';
+    return;
+  }
+
+  const shown = all.slice(0, CONVERT_LIST_MAX);
+  host.innerHTML = shown.map(p =>
+    '<div class="person-row">' +
+      '<div class="av" style="background:' + avatarColor(p.name) + '">' +
+        esc((p.name[0] || '?').toUpperCase()) + '</div>' +
+      '<div style="min-width:0;flex:1">' +
+        '<div class="person-name">' + esc(p.name) + '</div>' +
+        '<div class="person-title">' + esc(sectorName(p.sectorId)) +
+          (p.town || p.province ? ' · ' + esc([p.town, p.province].filter(Boolean).join(', ')) : '') +
+        '</div>' +
+      '</div>' +
+      '<span class="badge b-tier-' + sectorTier(p.sectorId) + '">Tier ' + sectorTier(p.sectorId) + '</span>' +
+      '<button class="btn btn-xs btn-primary" onclick="convertProspectNow(' + jsStr(p.id) + ')">Convert</button>' +
+    '</div>').join('') +
+    (all.length > shown.length
+      ? '<div class="fg-hint" style="margin-top:10px">Showing ' + shown.length + ' of ' + all.length +
+        ' — narrow the search to see the rest.</div>'
+      : '');
+}
+
+/* Close first, so the modal is not left sitting over the offtaker page
+   that promoteProspect navigates to. */
+function convertProspectNow(id) {
+  closeModal('modal-convert');
+  promoteProspect(id);
 }
