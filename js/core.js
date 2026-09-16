@@ -53,6 +53,11 @@ let state = {
 
   newsTopic: 'all', newsProvince: '', newsSearch: '',
 
+  /* Contact finder: the scope a discovery run will be queued against. */
+  cfSector: '', cfStatus: '', cfProvince: '', cfOnlyEmpty: false,
+  cfRoles: ['decision'],
+  contactRuns: null, foundContacts: null,
+
   mapFilter: 'all',
   pbFilter: '',
 };
@@ -499,7 +504,8 @@ function render() {
     'org-map': renderOrgMap,
     sectors: renderSectors,
     sector: renderSector,
-    prospects: renderProspects,
+    prospects: renderContactFinder,
+    'prospect-companies': renderProspects,
     prospect: renderProspect,
     regions: renderRegions,
     contacts: renderContacts,
