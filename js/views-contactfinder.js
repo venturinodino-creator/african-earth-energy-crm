@@ -29,13 +29,43 @@ const FINDER_ROLES = ['decision', 'technical', 'influencer', 'gatekeeper'];
 const FIND_STATUS_LABEL = { pending: 'Needs review', approved: 'Accepted', discarded: 'Discarded' };
 const RUN_STATUS_LABEL = { queued: 'Queued', running: 'Running', done: 'Done', failed: 'Failed' };
 
-function loadFinderState() {
+/* Runs and finds live in Supabase — the agent writes them from outside
+   the browser, so localStorage is only ever a cache to paint from while
+   the fetch is in flight, and a fallback when the server is unreachable.
+   Same shape as load() uses for the rest of the CRM. */
+function loadFinderCache() {
   state.contactRuns = lsGet('contact_runs', []);
   state.foundContacts = lsGet('found_contacts', []);
 }
 function saveFinderState() {
   lsSet('contact_runs', state.contactRuns);
   lsSet('found_contacts', state.foundContacts);
+}
+
+let _finderLoading = false;
+
+/* Paints from cache first, then replaces it with the server's copy. The
+   agent may have appended finds since this browser last looked, so what
+   is on screen is stale by definition until this lands. */
+async function refreshFinderFromServer(announce) {
+  if (_finderLoading) return;
+  _finderLoading = true;
+  try {
+    const { runs, finds } = await fetchFinderData();
+    state.contactRuns = runs;
+    state.foundContacts = finds;
+    saveFinderState();
+    if (announce) toast('Refreshed · ' + runs.length + ' run' + (runs.length === 1 ? '' : 's') +
+      ', ' + finds.length + ' find' + (finds.length === 1 ? '' : 's'));
+  } catch (e) {
+    console.warn('Could not reach Supabase for the contact finder:', e);
+    if (announce) toast('Could not reach the server — showing the cached copy', 'warn');
+  } finally {
+    _finderLoading = false;
+    /* Only repaint if the user is still here; they may have navigated
+       away while the request was in flight. */
+    if (state.view === 'prospects') renderContactFinder();
+  }
 }
 
 /* The industry chips are the sector groups — the coarse cut of "what
@@ -71,7 +101,7 @@ function finderIndustryOf(find) {
 }
 
 function renderContactFinder() {
-  if (!state.contactRuns) loadFinderState();
+  if (!state.contactRuns) { loadFinderCache(); refreshFinderFromServer(false); }
 
   const live = state.foundContacts.filter(f => f.status !== 'discarded');
   const counts = { all: live.length };
@@ -98,6 +128,8 @@ function renderContactFinder() {
       : '') +
     '<button class="btn btn-outline btn-sm" onclick="nav(\'prospect-companies\')">' +
       icon('building', 14) + ' Prospect companies</button>' +
+    '<button class="btn btn-outline btn-sm" onclick="refreshFinderFromServer(true)">' +
+      icon('refresh', 14) + ' Refresh</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportFoundContacts()">' +
       icon('download', 14) + ' Export</button>');
 
@@ -202,22 +234,27 @@ function queueContactRun() {
   if (!scoped.length) { toast('No offtakers match this target', 'warn'); return; }
   if (!state.cfRoles.length) { toast('Pick at least one role to find', 'warn'); return; }
 
-  state.contactRuns.unshift({
+  const run = {
     id: uid('run'), created: todayISO(), status: 'queued',
     industry: state.cfIndustry,
     roles: state.cfRoles.slice(),
     offtakerIds: scoped.map(o => o.id),
     found: 0, note: '',
-  });
+  };
+  state.contactRuns.unshift(run);
   saveFinderState();
   toast('Queued · ' + industryLabel(state.cfIndustry) + ' · ' + scoped.length + ' offtakers');
   renderContactFinder();
+  /* The run only means anything once it is on the server — that is where
+     the agent looks for work. */
+  pushContactRun(run);
 }
 
 function deleteContactRun(id) {
   state.contactRuns = state.contactRuns.filter(r => r.id !== id);
   saveFinderState();
   renderContactFinder();
+  removeRow('aee_contact_runs', id);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -297,8 +334,10 @@ async function approveFoundContact(id) {
   renderContactFinder();
   toast('Accepted ' + f.first + ' ' + f.last);
 
-  try { await pushContact(contact); }
-  catch (e) {
+  try {
+    await pushContact(contact);
+    await pushFoundContact(f);
+  } catch (e) {
     console.warn('Contact saved locally but not synced:', e);
     toast('Saved locally — the server write failed and will need a re-sync', 'warn');
   }
@@ -320,6 +359,9 @@ async function acceptAllFound() {
   for (const c of made) {
     try { await pushContact(c); } catch (e) { failed++; }
   }
+  for (const f of live) {
+    try { await pushFoundContact(f); } catch (e) {}
+  }
   if (failed) toast(failed + ' of ' + made.length + ' saved locally only — they will need a re-sync', 'warn');
 }
 
@@ -330,6 +372,7 @@ function discardFoundContact(id) {
   saveFinderState();
   toast('Discarded');
   renderContactFinder();
+  pushFoundContact(f);
 }
 
 function exportFoundContacts() {
