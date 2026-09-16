@@ -44,6 +44,13 @@
     <div class="nav-item" data-view="pipeline" onclick="nav('pipeline')">
       <div class="nav-icon-box" data-icon="pipeline"></div> Pipeline
     </div>
+    <!-- Prospects sits above Offtakers because that is the direction work
+         flows: a prospect is converted into an offtaker, never the reverse. -->
+    <div class="nav-item" data-view="prospect-companies" onclick="nav('prospect-companies')">
+      <div class="nav-icon-box" data-icon="target"></div>
+      <span style="flex:1">Prospects</span>
+      <span id="nav-prospects-badge" class="nav-badge" style="display:none"></span>
+    </div>
     <div class="nav-item" data-view="offtakers" onclick="nav('offtakers')">
       <div class="nav-icon-box" data-icon="building"></div>
       <span style="flex:1">Offtakers</span>
@@ -51,11 +58,6 @@
     </div>
     <div class="nav-item" data-view="contacts" onclick="nav('contacts')">
       <div class="nav-icon-box" data-icon="contacts"></div> Contacts
-    </div>
-    <div class="nav-item" data-view="prospect-companies" onclick="nav('prospect-companies')">
-      <div class="nav-icon-box" data-icon="target"></div>
-      <span style="flex:1">Prospects</span>
-      <span id="nav-prospects-badge" class="nav-badge" style="display:none"></span>
     </div>
     <div class="nav-item" data-view="prospects" onclick="nav('prospects')">
       <div class="nav-icon-box" data-icon="contacts"></div> Contact finder
