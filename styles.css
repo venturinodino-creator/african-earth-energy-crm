@@ -752,13 +752,30 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
   .news-bar-row{grid-template-columns:96px 1fr 26px}
 }
 
+
 /* ─── CONTACT FINDER ──────────────────────────────────────────────
-   The scope builder: pick offtakers, pick roles, queue a run. */
-.cf-roles{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
-.cf-role{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:6px 12px;border-radius:14px;
-  border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;transition:all .15s;user-select:none}
-.cf-role:hover{border-color:var(--accent)}
-.cf-role.on{background:rgba(61,220,132,.12);border-color:var(--accent);color:var(--accent);font-weight:700}
-.cf-role input{cursor:pointer;accent-color:var(--accent);margin:0}
-.cf-submit{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)}
-.cf-submit .btn[disabled]{opacity:.45;cursor:not-allowed}
+   A chip row that both filters the list and sets what the next run
+   targets — one control, because it is one decision. */
+.cf-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:11px}
+.cf-bar-label{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px}
+.cf-chip{border:1.5px solid var(--border2);background:transparent;color:var(--muted);
+  border-radius:16px;padding:4px 12px;cursor:pointer;font-size:11px;font-weight:700;
+  white-space:nowrap;font-family:inherit;transition:all .15s}
+.cf-chip:hover{filter:brightness(1.25)}
+.cf-check{display:inline-flex;align-items:center;gap:6px;user-select:none}
+.cf-check.on{border-color:var(--accent);background:rgba(61,220,132,.13);color:var(--accent)}
+.cf-check input{cursor:pointer;accent-color:var(--accent);margin:0}
+.cf-flt{height:26px;padding:0 8px;font-size:11px}
+.cf-scope{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+
+.cf-runs{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.cf-run{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--card-radius);padding:7px 12px;font-size:11.5px}
+.cf-run-t{font-weight:700;color:var(--text2)}
+.cf-run-m{color:var(--muted);font-size:11px}
+.cf-run .btn{margin-left:auto}
+
+@media(max-width:700px){
+  .cf-scope{margin-left:0;width:100%}
+  .cf-run .btn{margin-left:0}
+}
