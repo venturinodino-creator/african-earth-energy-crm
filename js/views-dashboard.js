@@ -71,6 +71,19 @@ function renderDashboard() {
     '</div>';
 
   /* ── Stage funnel ───────────────────────────────────────────── */
+  /* Two funnels, because the pipeline has two shapes and reading either one
+     alone misleads. Accounts answer "how many companies are we in a process
+     with"; MW answers "how much of the portfolio is spoken for". A single
+     300 MW deal makes the MW funnel look healthy while the account funnel
+     shows the truth, and counting accounts alone hides that one of them is
+     worth ten of the others. */
+  const byAccountStage = SF_STAGES.map(st => {
+    const list = state.offtakers.filter(o => sfStageFor(o) === st.id);
+    return { ...st, count: list.length, stalled: list.filter(isStalled).length };
+  });
+  const maxAccounts = Math.max(1, ...byAccountStage.map(x => x.count));
+  const stalledCount = byAccountStage.reduce((a, x) => a + x.stalled, 0);
+
   const byStage = PIPELINE_STAGES.map(s => {
     const list = state.deals.filter(d => d.stage === s.id);
     return { ...s, count: list.length, mw: list.reduce((a, d) => a + num(d.mw), 0) };
@@ -79,15 +92,33 @@ function renderDashboard() {
   const funnelHtml =
     '<div class="card">' +
       '<div class="card-header"><div><div class="card-title">Pipeline by stage</div>' +
-      '<div class="card-sub">Contracted capacity moving through the funnel</div></div>' +
+      '<div class="card-sub">Companies through the sales process, capacity through the deal stages</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="nav(\'pipeline\')">Open board</button></div>' +
+
+      '<div class="funnel-head"><span>Accounts</span><span>stalled</span><span>total</span></div>' +
+      byAccountStage.map(st =>
+        /* Clicking a stage opens the list already narrowed to it, which is
+           the next thing anybody wants after reading the number. */
+        '<div class="bar-row with-count clickable" title="' + esc(st.hint) + '" ' +
+        'onclick="state.offStage=' + jsStr(st.id) + ';state.offStalled=\'\';state.offPage=1;nav(\'offtakers\')">' +
+        '<div class="bar-label">' + esc(st.label) + '</div>' +
+        '<div class="bar-track"><span class="bar-fill" data-w="' + ((st.count / maxAccounts) * 100) + '" ' +
+        'style="background:linear-gradient(90deg,var(--accent),var(--accent2))"></span></div>' +
+        '<div class="bar-sub' + (st.stalled ? ' warn' : '') + '">' + (st.stalled || '') + '</div>' +
+        '<div class="bar-num">' + st.count + '</div></div>').join('') +
+
+      '<div class="funnel-head" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">' +
+        '<span>Opportunities</span><span>deals</span><span>MW</span></div>' +
       byStage.map(s =>
-        '<div class="bar-row"><div class="bar-label" title="' + esc(s.hint) + '">' + esc(s.label) + '</div>' +
+        '<div class="bar-row with-count"><div class="bar-label" title="' + esc(s.hint) + '">' + esc(s.label) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + ((s.mw / maxMw) * 100) + '" ' +
         'style="background:linear-gradient(90deg,var(--accent),var(--accent2))"></span></div>' +
+        '<div class="bar-sub">' + (s.count || '') + '</div>' +
         '<div class="bar-num">' + fmtNum(s.mw) + '</div></div>').join('') +
-      '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">MW under discussion at each stage. ' +
-      fmtNum(contractedMw()) + ' MW signed to date.</div>' +
+
+      '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
+      stalledCount + ' account' + (stalledCount === 1 ? ' has' : 's have') +
+      ' sat longer than the stage allows. ' + fmtNum(contractedMw()) + ' MW signed to date.</div>' +
     '</div>';
 
   /* ── Sector mix ─────────────────────────────────────────────── */
