@@ -44,6 +44,10 @@ create table if not exists public.aee_offtakers (
   supply      text,          -- eskom | municipal | mixed
   wheeling    text,          -- yes | likely | unknown | no
   status      text,          -- prospect | engaged | qualified | negotiating | contracted | lost
+  -- Where the account sits in the Salesforce sales process. Coarser than
+  -- status and kept in step with it; see SF_STAGES in data/seed.js.
+  sf_stage    text check (sf_stage in
+                ('prospecting','needs-analysis','proposal','negotiation','closed')),
   priority    text,
   description text,
   estimated   boolean not null default true,
@@ -67,9 +71,13 @@ create table if not exists public.aee_contacts (
   updated_at  timestamptz not null default now()
 );
 
+-- An opportunity hangs off an offtaker, or — before anyone has established
+-- the load — off a prospect. Exactly one of the two is set; promoting a
+-- prospect moves its opportunities across to the new offtaker.
 create table if not exists public.aee_deals (
   id          text primary key,
   offtaker_id text,
+  prospect_id text,
   project_id  text,          -- AEE_PROJECTS id from data/seed.js
   name        text,
   mw          numeric,
@@ -83,9 +91,12 @@ create table if not exists public.aee_deals (
   updated_at  timestamptz not null default now()
 );
 
+-- Logged against whichever account it happened on: an offtaker, or a
+-- prospect still being worked.
 create table if not exists public.aee_interactions (
   id          text primary key,
   offtaker_id text,
+  prospect_id text,
   date        text,
   type        text,
   summary     text,
@@ -104,6 +115,10 @@ create table if not exists public.aee_prospects (
   note           text,
   status         text not null default 'new'
                    check (status in ('new','researching','promoted','parked','rejected')),
+  -- The same sales-process path the offtakers run on, so a lead that is
+  -- already being worked reads the same way before it is promoted.
+  sf_stage       text check (sf_stage in
+                   ('prospecting','needs-analysis','proposal','negotiation','closed')),
   promoted_to    text,       -- aee_offtakers.id once promoted
   notes          text,
   -- Location of the SITE being targeted, not the group head office.
@@ -157,6 +172,33 @@ create index if not exists aee_prospects_status_idx      on public.aee_prospects
 create index if not exists aee_prospects_near_site_idx   on public.aee_prospects(near_site);
 create index if not exists aee_prospects_province_idx    on public.aee_prospects(province);
 create index if not exists aee_prospects_load_basis_idx  on public.aee_prospects(load_basis);
+create index if not exists aee_deals_prospect_idx        on public.aee_deals(prospect_id);
+create index if not exists aee_interactions_prospect_idx on public.aee_interactions(prospect_id);
+create index if not exists aee_offtakers_sf_stage_idx    on public.aee_offtakers(sf_stage);
+
+-- ─── UPGRADES ──────────────────────────────────────────────────────
+-- `create table if not exists` leaves an existing table alone, so columns
+-- added after a project was first provisioned have to be stated again here.
+-- Idempotent: re-running the whole file on a live project is safe.
+
+alter table public.aee_offtakers add column if not exists sf_stage text;
+alter table public.aee_prospects add column if not exists sf_stage text;
+alter table public.aee_deals     add column if not exists prospect_id text;
+alter table public.aee_interactions add column if not exists prospect_id text;
+
+do $$
+begin
+  alter table public.aee_offtakers add constraint aee_offtakers_sf_stage_check
+    check (sf_stage in ('prospecting','needs-analysis','proposal','negotiation','closed'));
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter table public.aee_prospects add constraint aee_prospects_sf_stage_check
+    check (sf_stage in ('prospecting','needs-analysis','proposal','negotiation','closed'));
+exception when duplicate_object then null;
+end $$;
 
 -- ─── ROLE HELPERS ──────────────────────────────────────────────────
 -- security definer so the policies can read profiles without the

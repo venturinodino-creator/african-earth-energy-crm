@@ -270,6 +270,7 @@ function renderProspects() {
     if (state.prospectSector && p.sectorId !== state.prospectSector) return false;
     if (state.prospectTier && String(sectorTier(p.sectorId)) !== String(state.prospectTier)) return false;
     if (state.prospectStatus && p.status !== state.prospectStatus) return false;
+    if (state.prospectStage && sfStageFor(p) !== state.prospectStage) return false;
     return true;
   });
   list = list.sort((a, b) =>
@@ -281,7 +282,9 @@ function renderProspects() {
   setPage('Prospects', state.prospects.length + ' named companies · ' + open + ' not yet started',
     viewToggle('prospectView') +
     '<button class="btn btn-outline btn-sm" onclick="exportProspects()">' + icon('download', 14) + ' Export</button>' +
-    '<button class="btn btn-outline btn-sm" onclick="nav(\'sectors\')">' + icon('grid', 14) + ' Sectors</button>');
+    '<button class="btn btn-outline btn-sm" onclick="nav(\'sectors\')">' + icon('grid', 14) + ' Sectors</button>' +
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddProspect()">' +
+      icon('plus', 14) + ' Add lead</button>');
 
   const counts = {};
   state.prospects.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1; });
@@ -310,6 +313,11 @@ function renderProspects() {
         '<option value="">Any status</option>' +
         Object.entries(PROSPECT_STATUS).map(([k, v]) =>
           '<option value="' + k + '"' + (state.prospectStatus === k ? ' selected' : '') + '>' + esc(v) + '</option>').join('') +
+      '</select>' +
+      '<select class="flt" onchange="state.prospectStage=this.value;state.prospectPage=1;renderProspects()">' +
+        '<option value="">Any sales stage</option>' +
+        SF_STAGES.map(st => '<option value="' + st.id + '"' +
+          (state.prospectStage === st.id ? ' selected' : '') + '>' + esc(st.label) + '</option>').join('') +
       '</select>' +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
@@ -346,6 +354,7 @@ function prospectCardHtml(p) {
       '<div class="ec-icon">' + sectorIcon(p.sectorId, 18) + '</div>' +
       '<span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : p.status === 'new' ? 'b-prospect' : 'b-medium') + '">' +
         esc(PROSPECT_STATUS[p.status] || p.status) + '</span>' +
+      sfStageBadge(p) +
     '</div>' +
     '<h3>' + esc(p.name) + '</h3>' +
     (p.note ? '<div class="short">' + esc(p.note) + '</div>' : '') +
@@ -376,7 +385,7 @@ function prospectCardHtml(p) {
 
 function prospectTableHtml(page) {
   return '<div class="table-wrap"><table><thead><tr>' +
-      '<th>Company</th><th>Sector</th><th>Tier</th><th>PPA fit</th><th>Status</th><th>Actions</th>' +
+      '<th>Company</th><th>Sector</th><th>Tier</th><th>PPA fit</th><th>Sales stage</th><th>Status</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
     page.map(p => {
       const s = sectorOf(p.sectorId);
@@ -393,6 +402,7 @@ function prospectTableHtml(page) {
           esc(sectorName(p.sectorId)) + '</span></td>' +
         '<td><span class="badge b-tier-' + sectorTier(p.sectorId) + '">' + sectorTier(p.sectorId) + '</span></td>' +
         '<td>' + ppaDots(s ? s.ppaFit : 0) + '</td>' +
+        '<td>' + sfStageBadge(p) + '</td>' +
         '<td><span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : p.status === 'new' ? 'b-prospect' : 'b-medium') + '">' +
           esc(PROSPECT_STATUS[p.status] || p.status) + '</span></td>' +
         '<td style="white-space:nowrap">' +
@@ -424,13 +434,22 @@ async function promoteProspect(id) {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to promote this', 'warn'); return; }
 
   const s = sectorOf(p.sectorId);
+  /* Where the lead had got to in the sales process comes with it — a lead
+     already at Proposal is not a fresh prospect, and having to re-set the
+     stage by hand is how a board quietly stops matching reality. */
+  const stage = sfStageFor(p);
   const offtaker = {
     id: 'off-' + p.id.replace(/^p-/, '').slice(0, 48),
     name: p.name, short: p.name.split(/[—(,/]/)[0].trim().slice(0, 40),
-    sector: p.sectorId, province: '', city: '', website: '',
+    sector: p.sectorId, province: p.province || '', city: p.town || '', website: p.website || '',
+    /* The load band stays behind: it is an estimate with a basis, and the
+       offtaker record's figures are the established ones a quote is built
+       on. Finding them is the job the promotion creates. */
     annualGwh: 0, peakMw: 0, tariff: MARKET_MEGAFLEX_MID, nmd: 0,
     supply: 'eskom', wheeling: 'unknown',
-    status: 'prospect', priority: s && s.tier === 1 ? 'high' : s && s.tier === 2 ? 'medium' : 'low',
+    sfStage: stage,
+    status: (sfStageOf(stage) || {}).status || 'prospect',
+    priority: s && s.tier === 1 ? 'high' : s && s.tier === 2 ? 'medium' : 'low',
     description: p.note ? p.note + ' — promoted from the ' + sectorName(p.sectorId) + ' prospect list.' : '',
     estimated: true,
   };
@@ -438,20 +457,29 @@ async function promoteProspect(id) {
   p.status = 'promoted';
   p.promotedTo = offtaker.id;
 
+  /* Opportunities and logged calls belong to the company, not to the row
+     that happened to hold it, so they follow it across. */
+  const moved = dealsForProspect(p.id);
+  moved.forEach(d => { d.offtakerId = offtaker.id; d.prospectId = ''; });
+  const movedLogs = interactionsForProspect(p.id);
+  movedLogs.forEach(i => { i.offtakerId = offtaker.id; i.prospectId = ''; });
+
   await pushOfftaker(offtaker);
   await pushProspect(p);
+  await Promise.all(moved.map(d => pushDeal(d)));
+  await Promise.all(movedLogs.map(i => pushInteraction(i)));
   save();
   toast('Promoted — add the load figures to start ranking it');
   nav('detail', { id: offtaker.id });
 }
 
 function exportProspects() {
-  const head = ['company', 'sector', 'tier', 'group', 'ppa_fit', 'status', 'note', 'promoted_to'];
+  const head = ['company', 'sector', 'tier', 'group', 'ppa_fit', 'sales_stage', 'status', 'note', 'promoted_to'];
   const rows = [head].concat(state.prospects.map(p => {
     const s = sectorOf(p.sectorId);
     return [p.name, sectorName(p.sectorId), sectorTier(p.sectorId),
       SECTOR_GROUPS[sectorGroup(p.sectorId)] || '', s ? s.ppaFit : '',
-      PROSPECT_STATUS[p.status] || p.status, p.note, p.promotedTo || ''];
+      sfStageLabel(p), PROSPECT_STATUS[p.status] || p.status, p.note, p.promotedTo || ''];
   }));
   downloadCSV('aee-prospects-' + todayISO() + '.csv', rows);
   toast('Exported ' + state.prospects.length + ' prospects');

@@ -240,13 +240,92 @@
   </div>
 </div>
 
+<!-- ══ MODAL: LEAD / PROSPECT ═══════════════════════════════════
+     A lead lives in the prospect list until somebody establishes roughly
+     what it consumes; promoting it is what moves it across to an offtaker
+     and starts it being fit-scored. -->
+<div class="overlay" id="modal-prospect">
+  <div class="modal">
+    <div class="mh"><h3 id="mp-title">Add lead</h3><button class="modal-close" onclick="closeModal('modal-prospect')">&times;</button></div>
+    <div class="mc">
+      <div class="fgrid">
+        <div class="fg full"><label>Company name *</label><input id="mp-name" placeholder="e.g. Karan Beef — Heidelberg Feedlot"></div>
+        <div class="fg"><label>Sector</label><select id="mp-sector"></select></div>
+        <div class="fg"><label>Sales stage</label><select id="mp-stage"></select></div>
+        <div class="fg"><label>Working status</label>
+          <select id="mp-status">
+            <option value="new">Not started</option><option value="researching">Researching</option>
+            <option value="parked">Parked</option><option value="rejected">Not a fit</option>
+          </select>
+        </div>
+        <div class="fg"><label>Filed against site</label><select id="mp-site"></select></div>
+        <div class="fg full"><label>One-line note</label><input id="mp-note" placeholder="Largest feedlot in the country — constant refrigeration load"></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Where it is, and how to reach it</div>
+        <div class="fgrid">
+          <div class="fg"><label>Town</label><input id="mp-town" placeholder="Heidelberg"></div>
+          <div class="fg"><label>Province</label>
+            <select id="mp-province">
+              <option value="">—</option>
+              <option>Gauteng</option><option>Mpumalanga</option><option>Limpopo</option>
+              <option>North West</option><option>Free State</option><option>Northern Cape</option>
+              <option>Western Cape</option><option>Eastern Cape</option><option>KwaZulu-Natal</option>
+            </select>
+          </div>
+          <div class="fg"><label>Switchboard</label><input id="mp-phone" placeholder="+27 16 341 1000"></div>
+          <div class="fg"><label>Enquiries email</label><input id="mp-email" type="text" placeholder="info@company.co.za"></div>
+          <div class="fg full"><label>Website</label><input id="mp-website" placeholder="https://..."></div>
+          <div class="fg full"><label>Address</label><input id="mp-address" placeholder="Physical address of the site being targeted"></div>
+          <div class="fg full"><label>Where the details came from</label><input id="mp-source" placeholder="Company website, October 2026"></div>
+          <div class="fg full fg-hint">This is the published switchboard, not a named person. Add real people as contacts once you have identified them.</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Load, as a band</div>
+        <div class="fgrid">
+          <div class="fg"><label>Annual consumption — low (GWh)</label><input id="mp-gwhlow" type="number" step="1" placeholder="40"></div>
+          <div class="fg"><label>Annual consumption — high (GWh)</label><input id="mp-gwhhigh" type="number" step="1" placeholder="70"></div>
+          <div class="fg"><label>Estimated peak (MW)</label><input id="mp-peak" type="number" step="0.5" placeholder="9"></div>
+          <div class="fg"><label>Basis</label>
+            <select id="mp-basis">
+              <option value="unknown">Unknown</option>
+              <option value="disclosed">Disclosed by the company</option>
+              <option value="derived">Derived — show the working</option>
+              <option value="sector-range">Sector range only</option>
+            </select>
+          </div>
+          <div class="fg full"><label>Citation or working</label><input id="mp-method" placeholder="2025 integrated report, p.42 — 58 GWh purchased"></div>
+          <div class="fg full fg-hint">A band with its basis stays honest. A single figure reads as fact and ends up in a quote.</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Research</div>
+        <div class="fgrid">
+          <div class="fg full"><label>Company overview</label><textarea id="mp-blurb" rows="5" placeholder="What the business does, how big, who owns it, what shape the load is and what would make them sign."></textarea></div>
+          <div class="fg full"><label>How to approach it</label><textarea id="mp-notes" placeholder="Who holds the decision? Parent company? Anything to know before dialling?"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-danger" id="mp-delete" onclick="deleteProspect()" style="margin-right:auto">Delete</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-prospect')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProspect()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL: OPPORTUNITY ═══════════════════════════════════════ -->
 <div class="overlay" id="modal-deal">
   <div class="modal">
     <div class="mh"><h3 id="md-title">New opportunity</h3><button class="modal-close" onclick="closeModal('modal-deal')">&times;</button></div>
     <div class="mc">
       <div class="fgrid">
-        <div class="fg full"><label>Offtaker *</label><select id="md-offtaker" onchange="updateDealPreview()"></select></div>
+        <div class="fg full"><label>Account *</label><select id="md-offtaker" onchange="updateDealPreview()"></select>
+          <div class="fg-hint" style="margin-top:5px">Offtakers and prospects both appear here. An opportunity opened on a prospect moves across with it when it is promoted.</div></div>
         <div class="fg full"><label>Generation site</label><select id="md-project" onchange="updateDealPreview()"></select></div>
         <div class="fg"><label>Contracted capacity (MW)</label><input id="md-mw" type="number" step="1" oninput="updateDealPreview()"></div>
         <div class="fg"><label>Tariff (R/kWh)</label><input id="md-tariff" type="number" step="0.01" oninput="updateDealPreview()"></div>
@@ -286,7 +365,7 @@
     <div class="mh"><h3>Log activity</h3><button class="modal-close" onclick="closeModal('modal-interaction')">&times;</button></div>
     <div class="mc">
       <div class="fgrid">
-        <div class="fg full"><label>Offtaker *</label><select id="mi-offtaker"></select></div>
+        <div class="fg full"><label>Account *</label><select id="mi-offtaker"></select></div>
         <div class="fg"><label>Date</label><input id="mi-date" type="date"></div>
         <div class="fg"><label>Type</label>
           <select id="mi-type">
@@ -335,6 +414,7 @@
 <script src="js/views-tools.js"></script>
 <script src="js/views-news.js"></script>
 <script src="js/forms.js"></script>
+<script src="js/forms-leads.js"></script>
 <script src="animations.js"></script>
 </body>
 </html>
