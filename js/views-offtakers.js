@@ -43,7 +43,6 @@ function renderOfftakers() {
   const totalGwh = list.reduce((s, o) => s + num(o.annualGwh), 0);
   setPage('Offtakers', state.offtakers.length + ' companies tracked · ' + fmtNum(totalGwh) + ' GWh/yr addressable',
     viewToggle('offView') +
-    '<button class="btn btn-outline btn-sm" data-admin-only onclick="openConvertProspect()">' + icon('target', 14) + ' Convert prospect</button>' +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
@@ -200,18 +199,32 @@ function renderDetail() {
         '</div>' +
       '</div>' +
       '<div class="dh-metrics">' +
-        dhMetric(fmtNum(o.annualGwh), 'GWh a year', true) +
-        dhMetric(fmtNum(o.peakMw) + ' MW', 'Peak demand') +
-        dhMetric(Math.round(loadFactor(o) * 100) + '%', 'Load factor') +
-        dhMetric('R' + num(o.tariff).toFixed(2), 'Current tariff') +
-        dhMetric(f + '/100', 'Fit score', true) +
+        dhMetric(isUnworked(o) ? loadBandText(o) : fmtNum(o.annualGwh),
+                 isUnworked(o) ? 'Estimated load' : 'GWh a year', true) +
+        dhMetric(isUnworked(o) ? '—' : fmtNum(o.peakMw) + ' MW', 'Peak demand') +
+        dhMetric(isUnworked(o) ? '—' : Math.round(loadFactor(o) * 100) + '%', 'Load factor') +
+        dhMetric(num(o.tariff) ? 'R' + num(o.tariff).toFixed(2) : '—', 'Current tariff') +
+        dhMetric(isUnworked(o) ? 'not scored' : f + '/100', 'Fit score', true) +
         dhMetric(distanceLabel(np), np ? 'to ' + np.project.town + (np.approx ? ' (approx)' : '') : 'no nearby site') +
       '</div>' +
     '</div>';
 
   /* The pitch block — the numbers a rep quotes on the call. */
-  const pitch =
-    '<div class="card">' +
+  /* The pitch is arithmetic on the load. With no load established it
+     computes to R0, which reads as "this deal is worth nothing" rather
+     than "nobody has sized it yet" — so say the latter instead. */
+  const pitch = isUnworked(o)
+    ? '<div class="card">' +
+        '<div class="card-header"><div><div class="card-title">The pitch</div>' +
+        '<div class="card-sub">Needs a load figure before it can be modelled</div></div>' +
+        '<button class="btn btn-ghost btn-xs" onclick="openEditOfftaker(\'' + o.id + '\')">Add load</button></div>' +
+        '<div class="fg-hint">' + (num(o.gwhLow) || num(o.gwhHigh)
+          ? 'The band on this record is an estimate with a basis, not a figure to quote. Establish the ' +
+            'annual consumption and the savings case builds itself.'
+          : 'Nobody has established what this company consumes yet. That is the first question on the call.') +
+        '</div>' +
+      '</div>'
+    : '<div class="card">' +
       '<div class="card-header"><div><div class="card-title">The pitch</div>' +
       '<div class="card-sub">Indicative, at R' + DEFAULT_PPA_TARIFF.toFixed(2) + '/kWh over 20 years, full load covered</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="openCalcFor(\'' + o.id + '\')">Model it</button></div>' +
@@ -313,7 +326,28 @@ function renderDetail() {
      card that does. The wide column carries what is specific to this
      account and gets worked — people, opportunities, what was said. The
      narrow one carries what is looked up. */
-  setContent(hero + sfPathCardHtml(o) + pitch +
+  /* The researched overview, and how to approach the call. Both came
+     across when leads and offtakers became one record type, and they are
+     the only thing a company nobody has sized yet actually has. */
+  const overview = (o.blurb || o.notes || o.phone || o.email)
+    ? '<div class="card" style="margin-bottom:14px">' +
+        '<div class="card-header"><div><div class="card-title">Company overview</div>' +
+        '<div class="card-sub">Scale, ownership, load shape and what would make them buy</div></div></div>' +
+        (o.blurb
+          ? '<div style="font-size:12.5px;color:var(--text2);line-height:1.7;max-width:80ch;white-space:pre-line">' +
+            esc(o.blurb) + '</div>'
+          : '') +
+        (o.notes
+          ? '<div style="font-size:12.5px;color:var(--text2);line-height:1.7;max-width:80ch;margin-top:12px;' +
+            'padding-top:12px;border-top:1px solid var(--border)">' + esc(o.notes) + '</div>'
+          : '') +
+        (o.contactSource
+          ? '<div class="fg-hint" style="margin-top:12px">Contact details from: ' + esc(o.contactSource) + '</div>'
+          : '') +
+      '</div>'
+    : '';
+
+  setContent(hero + sfPathCardHtml(o) + overview + pitch +
     '<div style="margin-top:14px">' + contactMixHtml(o, people) + '</div>' +
     '<div class="cols-2" style="margin-top:14px">' +
       '<div style="display:flex;flex-direction:column;gap:14px">' + contactsHtml + dealsHtml + logHtml + '</div>' +
@@ -493,72 +527,3 @@ function contactTableHtml(page) {
     }).join('') + '</tbody></table></div>';
 }
 
-/* ─── CONVERT A PROSPECT ──────────────────────────────────────────
-   The offtakers page is where an account actually gets worked, so it is
-   where a prospect gets pulled across from. The conversion itself stays
-   in promoteProspect — this is only the picker in front of it, so what
-   carries over is never described in two places.
-
-   Prospects already converted are filtered out rather than shown greyed
-   out: a name you cannot pick is noise in a list of 291. */
-const CONVERT_LIST_MAX = 40;
-
-function openConvertProspect() {
-  if (state.role !== 'admin') { toast('Read-only access — ask an admin to convert', 'warn'); return; }
-  const el = document.getElementById('conv-search');
-  if (el) el.value = '';
-  renderConvertList();
-  openModal('modal-convert');
-  if (el) setTimeout(() => el.focus(), 30);
-}
-
-function convertCandidates() {
-  const el = document.getElementById('conv-search');
-  const term = ((el && el.value) || '').trim().toLowerCase();
-  return state.prospects.filter(p => {
-    if (p.status === 'promoted' || p.promotedTo) return false;
-    if (!term) return true;
-    return (p.name + ' ' + sectorName(p.sectorId) + ' ' +
-      (p.province || '') + ' ' + (p.town || '')).toLowerCase().includes(term);
-  }).sort((a, b) => sectorTier(a.sectorId) - sectorTier(b.sectorId) || a.name.localeCompare(b.name));
-}
-
-function renderConvertList() {
-  const host = document.getElementById('conv-list');
-  if (!host) return;
-
-  const all = convertCandidates();
-  if (!all.length) {
-    host.innerHTML = '<div class="fg-hint">' +
-      (state.prospects.length
-        ? 'No prospect matches that search — or every match has already been converted.'
-        : 'No prospects on file yet.') + '</div>';
-    return;
-  }
-
-  const shown = all.slice(0, CONVERT_LIST_MAX);
-  host.innerHTML = shown.map(p =>
-    '<div class="person-row">' +
-      '<div class="av" style="background:' + avatarColor(p.name) + '">' +
-        esc((p.name[0] || '?').toUpperCase()) + '</div>' +
-      '<div style="min-width:0;flex:1">' +
-        '<div class="person-name">' + esc(p.name) + '</div>' +
-        '<div class="person-title">' + esc(sectorName(p.sectorId)) +
-          (p.town || p.province ? ' · ' + esc([p.town, p.province].filter(Boolean).join(', ')) : '') +
-        '</div>' +
-      '</div>' +
-      '<span class="badge b-tier-' + sectorTier(p.sectorId) + '">Tier ' + sectorTier(p.sectorId) + '</span>' +
-      '<button class="btn btn-xs btn-primary" onclick="convertProspectNow(' + jsStr(p.id) + ')">Convert</button>' +
-    '</div>').join('') +
-    (all.length > shown.length
-      ? '<div class="fg-hint" style="margin-top:10px">Showing ' + shown.length + ' of ' + all.length +
-        ' — narrow the search to see the rest.</div>'
-      : '');
-}
-
-/* Close first, so the modal is not left sitting over the offtaker page
-   that promoteProspect navigates to. */
-function convertProspectNow(id) {
-  closeModal('modal-convert');
-  promoteProspect(id);
-}

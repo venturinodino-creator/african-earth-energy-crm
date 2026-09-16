@@ -95,6 +95,15 @@ function rowToOfftaker(r) {
     updatedAt: r.updated_at || '',
     description: r.description || '', revisitDate: r.revisit_date || '',
     estimated: r.estimated !== false,
+    /* Carried over when leads and offtakers became one record type. A
+       company with no established annual_gwh still has a researched
+       overview, a switchboard and an estimated load band — that is what an
+       unworked account looks like, not a different kind of thing. */
+    blurb: r.blurb || '', notes: r.notes || '',
+    phone: r.phone || '', email: r.email || '', address: r.address || '',
+    contactSource: r.contact_source || '', nearSite: r.near_site || '',
+    gwhLow: r.annual_gwh_low, gwhHigh: r.annual_gwh_high, peakMwEst: r.peak_mw_est,
+    loadBasis: r.load_basis || 'unknown', loadMethod: r.load_method || '',
   };
 }
 function offtakerToRow(o) {
@@ -106,6 +115,12 @@ function offtakerToRow(o) {
     sf_stage: o.sfStage || null,
     description: o.description, revisit_date: o.revisitDate || null,
     estimated: o.estimated !== false,
+    blurb: o.blurb || null, notes: o.notes || null,
+    phone: o.phone || null, email: o.email || null, address: o.address || null,
+    contact_source: o.contactSource || null, near_site: o.nearSite || null,
+    annual_gwh_low: o.gwhLow ?? null, annual_gwh_high: o.gwhHigh ?? null,
+    peak_mw_est: o.peakMwEst ?? null,
+    load_basis: o.loadBasis || null, load_method: o.loadMethod || null,
   };
 }
 function rowToContact(r) {
@@ -125,7 +140,7 @@ function contactToRow(c) {
 }
 function rowToDeal(r) {
   return {
-    id: r.id, offtakerId: r.offtaker_id || '', prospectId: r.prospect_id || '',
+    id: r.id, offtakerId: r.offtaker_id || '',
     projectId: r.project_id || '', name: r.name || '',
     mw: Number(r.mw) || 0, tariff: Number(r.tariff) || 0, tenor: Number(r.tenor) || 20,
     stage: r.stage || 'identified', probability: Number(r.probability) || 0,
@@ -134,50 +149,22 @@ function rowToDeal(r) {
 }
 function dealToRow(d) {
   return {
-    id: d.id, offtaker_id: d.offtakerId || null, prospect_id: d.prospectId || null,
+    id: d.id, offtaker_id: d.offtakerId || null,
     project_id: d.projectId || null, name: d.name,
     mw: num(d.mw), tariff: num(d.tariff), tenor: Math.round(num(d.tenor, 20)),
     stage: d.stage, probability: Math.round(num(d.probability)),
     close_date: d.closeDate || null, notes: d.notes, created_at: d.createdAt || null,
   };
 }
-function rowToProspect(r) {
-  return {
-    id: r.id, name: r.name || '', sectorId: r.sector_id || '', note: r.note || '',
-    status: r.status || 'new', promotedTo: r.promoted_to || '', notes: r.notes || '',
-    updatedAt: r.updated_at || '',
-    blurb: r.blurb || '',
-    town: r.town || '', province: r.province || '',
-    lat: r.lat, lng: r.lng, nearSite: r.near_site || '',
-    website: r.website || '', phone: r.phone || '', email: r.email || '',
-    address: r.address || '', contactSource: r.contact_source || '',
-    gwhLow: r.annual_gwh_low, gwhHigh: r.annual_gwh_high, peakMwEst: r.peak_mw_est,
-    loadBasis: r.load_basis || 'unknown', loadMethod: r.load_method || '',
-  };
-}
-function prospectToRow(p) {
-  return {
-    id: p.id, name: p.name, sector_id: p.sectorId || null, note: p.note,
-    status: p.status, promoted_to: p.promotedTo || null, notes: p.notes,
-    blurb: p.blurb || null,
-    town: p.town || null, province: p.province || null,
-    lat: p.lat ?? null, lng: p.lng ?? null, near_site: p.nearSite || null,
-    website: p.website || null, phone: p.phone || null, email: p.email || null,
-    address: p.address || null, contact_source: p.contactSource || null,
-    annual_gwh_low: p.gwhLow ?? null, annual_gwh_high: p.gwhHigh ?? null,
-    peak_mw_est: p.peakMwEst ?? null,
-    load_basis: p.loadBasis || 'unknown', load_method: p.loadMethod || null,
-  };
-}
 function rowToInteraction(r) {
   return {
-    id: r.id, offtakerId: r.offtaker_id || '', prospectId: r.prospect_id || '',
+    id: r.id, offtakerId: r.offtaker_id || '',
     date: r.date || '', type: r.type || 'note', summary: r.summary || '',
   };
 }
 function interactionToRow(i) {
   return {
-    id: i.id, offtaker_id: i.offtakerId || null, prospect_id: i.prospectId || null,
+    id: i.id, offtaker_id: i.offtakerId || null,
     date: i.date, type: i.type, summary: i.summary,
   };
 }
@@ -245,7 +232,6 @@ async function pushOfftaker(o) { await guardWrite(() => upsert('aee_offtakers', 
 async function pushContact(c) { await guardWrite(() => upsert('aee_contacts', contactToRow(c))); }
 async function pushDeal(d) { await guardWrite(() => upsert('aee_deals', dealToRow(d))); }
 async function pushInteraction(i) { await guardWrite(() => upsert('aee_interactions', interactionToRow(i))); }
-async function pushProspect(p) { await guardWrite(() => upsert('aee_prospects', prospectToRow(p))); }
 async function pushContactRun(r) { await guardWrite(() => upsert('aee_contact_runs', runToRow(r))); }
 async function pushFoundContact(f) { await guardWrite(() => upsert('aee_found_contacts', findToRow(f))); }
 async function removeRow(table, id) {

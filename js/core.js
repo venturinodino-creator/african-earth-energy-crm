@@ -14,7 +14,6 @@ let state = {
   contacts: [],
   deals: [],
   interactions: [],
-  prospects: [],
   projects: [],
 
   role: null,   // 'admin' | 'viewer' | 'pending' | null (signed out)
@@ -162,9 +161,20 @@ function sectorOptions(selected) {
 }
 
 function getOfftaker(id) { return state.offtakers.find(o => o.id === id) || {}; }
-/* Returns undefined rather than {} — the router uses it as an existence
-   check before routing to a prospect profile. */
-function getProspect(id) { return state.prospects.find(p => p.id === id); }
+/* Leads and offtakers are one record type. A company nobody has
+   established a load for is not a different kind of thing — it is an
+   account at the start of the process, so "unworked" is a question about
+   the figures, not about which table the row sits in. */
+function isUnworked(o) { return !num(o && o.annualGwh); }
+/* What to show in place of a firm annual figure when nobody has
+   established one. A band with its basis attached stays honest; a bare
+   number reads as fact and ends up in a quote. */
+function loadBandText(o) {
+  const lo = num(o.gwhLow), hi = num(o.gwhHigh);
+  if (!lo && !hi) return 'not established';
+  if (lo && hi) return fmtNum(lo) + '–' + fmtNum(hi);
+  return fmtNum(lo || hi);
+}
 /* Contacts, interactions and the org map all hang off one id column, and
    that id is now either an offtaker or a municipality. Anything generic
    resolves through getAccount; getOfftaker stays offtaker-only, so an
@@ -323,18 +333,16 @@ function lsSet(key, value) {
 async function load() {
   state.projects = JSON.parse(JSON.stringify(AEE_PROJECTS));
   try {
-    const [offtakers, contacts, deals, interactions, prospects] = await Promise.all([
+    const [offtakers, contacts, deals, interactions] = await Promise.all([
       supaFetch('aee_offtakers?select=*&order=name'),
       supaFetch('aee_contacts?select=*&order=last'),
       supaFetch('aee_deals?select=*&order=mw.desc'),
       supaFetch('aee_interactions?select=*&order=date.desc'),
-      supaFetch('aee_prospects?select=*&order=name'),
     ]);
     state.offtakers = (offtakers || []).map(rowToOfftaker);
     state.contacts = (contacts || []).map(rowToContact);
     state.deals = (deals || []).map(rowToDeal);
     state.interactions = (interactions || []).map(rowToInteraction);
-    state.prospects = (prospects || []).map(rowToProspect);
     cacheLocally();
   } catch (e) {
     console.warn('Could not reach Supabase, falling back to the local cache:', e);
@@ -344,10 +352,9 @@ async function load() {
       state.contacts = cache.contacts || [];
       state.deals = cache.deals || [];
       state.interactions = cache.interactions || [];
-      state.prospects = cache.prospects || [];
       toast('Working from a cached copy — changes will not be saved', 'warn');
     } else {
-      state.offtakers = []; state.contacts = []; state.deals = []; state.interactions = []; state.prospects = [];
+      state.offtakers = []; state.contacts = []; state.deals = []; state.interactions = [];
       toast('Could not load the CRM data', 'danger');
     }
   }
@@ -358,7 +365,7 @@ async function load() {
 function cacheLocally() {
   lsSet('cache', {
     offtakers: state.offtakers, contacts: state.contacts,
-    deals: state.deals, interactions: state.interactions, prospects: state.prospects,
+    deals: state.deals, interactions: state.interactions,
     at: new Date().toISOString(),
   });
 }
@@ -427,7 +434,7 @@ function sfStageBadge(rec) {
 function logsForAccount(rec) {
   if (!rec || !rec.id) return [];
   return state.interactions
-    .filter(i => i.offtakerId === rec.id || i.prospectId === rec.id)
+    .filter(i => i.offtakerId === rec.id)
     .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 }
 
@@ -527,9 +534,11 @@ function sfPathCardHtml(rec) {
    unknown. Everything that renders a deal asks here rather than reaching
    for offtakerId directly, so a prospect's opportunity is never shown as
    belonging to an unknown company. */
-function dealsForProspect(id) { return state.deals.filter(d => d.prospectId === id); }
+/* Kept for the few callers that still ask "what is filed against this
+   company" without knowing it is now always an offtaker. */
+function dealsForProspect(id) { return dealsFor(id); }
 function interactionsForProspect(id) {
-  return state.interactions.filter(i => i.prospectId === id)
+  return state.interactions.filter(i => i.offtakerId === id)
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
@@ -541,15 +550,11 @@ function dealAccount(d) {
     const o = getAccount(d.offtakerId);
     if (o.id) return { id: o.id, name: o.short || o.name, view: accountView(o.id), kind: 'offtaker' };
   }
-  if (d && d.prospectId) {
-    const p = getProspect(d.prospectId);
-    if (p) return { id: p.id, name: p.name, view: 'prospect', kind: 'prospect' };
-  }
   return { id: '', name: 'Unknown account', view: '', kind: 'none' };
 }
 
 /* ─── ROUTING ─────────────────────────────────────────────────── */
-const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map', 'prospect']);
+const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map']);
 
 function navUrlFor(view, id) {
   const p = new URLSearchParams(location.search);
@@ -590,7 +595,6 @@ addEventListener('popstate', e => {
   }
   if ((view === 'detail' || view === 'org-map') && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
   if (view === 'sector' && !(id && sectorOf(id))) { view = 'sectors'; id = null; }
-  if (view === 'prospect' && !(id && getProspect(id))) { view = 'prospects'; id = null; }
   if (id) { if (view === 'sector') state.sectorId = id; else state.detailId = id; }
   nav(view, id ? { id } : {}, true);
 });
@@ -615,8 +619,6 @@ function render() {
     sectors: renderSectors,
     sector: renderSector,
     prospects: renderContactFinder,
-    'prospect-companies': renderProspects,
-    prospect: renderProspect,
     regions: renderRegions,
     contacts: renderContacts,
     projects: renderProjects,
@@ -654,9 +656,6 @@ function updateNavBadges() {
   const hot = state.offtakers.filter(o => fitScore(o) >= 70 && o.status === 'prospect').length;
   const el = document.getElementById('nav-offtakers-badge');
   if (el) { el.textContent = hot; el.style.display = hot ? '' : 'none'; }
-  const pEl = document.getElementById('nav-prospects-badge');
-  const tier1New = state.prospects.filter(p => p.status === 'new' && sectorTier(p.sectorId) === 1).length;
-  if (pEl) { pEl.textContent = tier1New; pEl.style.display = tier1New ? '' : 'none'; }
   const dueEl = document.getElementById('nav-activity-badge');
   const due = state.deals.filter(d => d.closeDate && d.closeDate <= todayISO() && d.stage !== 'signed').length;
   if (dueEl) { dueEl.textContent = due; dueEl.style.display = due ? '' : 'none'; }
@@ -717,11 +716,6 @@ function globalSearch(q) {
   state.projects.forEach(p => {
     if (p.name.toLowerCase().includes(term))
       rows.push({ t: p.name, s: p.mw + ' MW · ' + p.province, go: "nav('projects')" });
-  });
-  state.prospects.forEach(p => {
-    if (p.name.toLowerCase().includes(term))
-      rows.push({ t: p.name, s: 'Prospect · ' + sectorName(p.sectorId),
-        go: "nav('prospect',{id:" + jsStr(p.id) + "})" });
   });
   ALL_SECTORS.forEach(s => {
     if (s.name.toLowerCase().includes(term))

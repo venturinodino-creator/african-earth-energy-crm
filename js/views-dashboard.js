@@ -283,7 +283,7 @@ function accountStageStats() {
   const open = state.offtakers.filter(o => sfStageFor(o) !== 'closed');
   const won = state.offtakers.filter(o => sfStageFor(o) === 'closed' && !sfIsClosedLost(o));
   const lost = state.offtakers.filter(o => sfIsClosedLost(o));
-  const leads = state.prospects.filter(p => p.status !== 'promoted').length;
+  const leads = state.offtakers.filter(isUnworked).length;
   return '<div class="stats-grid">' +
     statTile('building', 'amber', 'Accounts in process', open.length,
       fmtNum(open.reduce((a, o) => a + num(o.annualGwh), 0)) + ' GWh a year between them') +
@@ -291,7 +291,7 @@ function accountStageStats() {
     statTile('alert', 'blue', 'Closed lost', lost.length, 'out of the process') +
     statTile('clock', 'amber', 'Stalled', state.offtakers.filter(isStalled).length,
       'sitting longer than the stage allows') +
-    statTile('target', 'purple', 'Leads waiting', leads, 'not yet promoted', "nav('prospects')") +
+    statTile('target', 'purple', 'No load yet', leads, 'nobody has sized them', "nav('offtakers')") +
   '</div>';
 }
 
@@ -399,7 +399,7 @@ function pipeDrop(e) {
   d.probability = defaults[stage] ?? d.probability;
   const acc = dealAccount(d);
   const entry = {
-    id: uid('int'), offtakerId: d.offtakerId, prospectId: d.prospectId,
+    id: uid('int'), offtakerId: d.offtakerId,
     date: todayISO(), type: 'stage change',
     summary: (acc.name || 'Deal') + ' moved from ' + (from ? from.label : d.stage) + ' to ' +
       (PIPELINE_STAGES.find(s => s.id === stage) || {}).label,

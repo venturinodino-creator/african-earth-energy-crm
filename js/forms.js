@@ -76,28 +76,20 @@ function offtakerOptions(selected) {
       esc(o.short || o.name) + '</option>').join('');
 }
 
-/* Offtakers and prospects in one list. A prospect is prefixed so the two
-   id spaces cannot collide, and so a saver knows which column to write. */
+/* One account list. Companies with an established load are listed first,
+   because those are the ones an opportunity usually hangs off, but both
+   are the same kind of record now. */
 function accountOptions(selected) {
-  const offs = state.offtakers.map(o =>
-    '<option value="' + esc(o.id) + '"' + (o.id === selected ? ' selected' : '') + '>' +
-    esc(o.short || o.name) + '</option>').join('');
-  const pros = state.prospects.filter(p => p.status !== 'promoted').map(p =>
-    '<option value="p:' + esc(p.id) + '"' + ('p:' + p.id === selected ? ' selected' : '') + '>' +
-    esc(p.name) + '</option>').join('');
+  const opt = o => '<option value="' + esc(o.id) + '"' + (o.id === selected ? ' selected' : '') + '>' +
+    esc(o.short || o.name) + '</option>';
+  const worked = state.offtakers.filter(o => !isUnworked(o)).map(opt).join('');
+  const fresh = state.offtakers.filter(isUnworked).map(opt).join('');
   return '<option value="">— pick an account —</option>' +
-    (offs ? '<optgroup label="Offtakers">' + offs + '</optgroup>' : '') +
-    (pros ? '<optgroup label="Prospects (leads)">' + pros + '</optgroup>' : '');
+    (worked ? '<optgroup label="With an established load">' + worked + '</optgroup>' : '') +
+    (fresh ? '<optgroup label="No load established yet">' + fresh + '</optgroup>' : '');
 }
-function accountKey(offtakerId, prospectId) {
-  return prospectId ? 'p:' + prospectId : (offtakerId || '');
-}
-function parseAccountKey(v) {
-  const s = String(v || '');
-  return s.startsWith('p:')
-    ? { offtakerId: '', prospectId: s.slice(2) }
-    : { offtakerId: s, prospectId: '' };
-}
+function accountKey(offtakerId) { return offtakerId || ''; }
+function parseAccountKey(v) { return { offtakerId: String(v || '') }; }
 
 function openAddContact(offtakerId) {
   state.editContactId = null;
@@ -155,12 +147,11 @@ function projectOptions(selected) {
       esc(p.town) + ' — ' + fmtNum(p.mw) + ' MW</option>').join('');
 }
 
-function openAddDeal(offtakerId, prospectId) {
+function openAddDeal(offtakerId) {
   state.editDealId = null;
   document.getElementById('md-title').textContent = 'New opportunity';
-  document.getElementById('md-offtaker').innerHTML = accountOptions(accountKey(offtakerId, prospectId));
+  document.getElementById('md-offtaker').innerHTML = accountOptions(accountKey(offtakerId));
   const o = offtakerId ? getOfftaker(offtakerId) : {};
-  const p = prospectId ? getProspect(prospectId) : null;
   /* A prospect has no verified load and was filed against a site by hand,
      so that site is the sensible default rather than the nearest one to a
      coordinate nobody has confirmed. */
@@ -185,7 +176,7 @@ function openEditDeal(id) {
   if (!d) return;
   state.editDealId = id;
   document.getElementById('md-title').textContent = 'Edit opportunity';
-  document.getElementById('md-offtaker').innerHTML = accountOptions(accountKey(d.offtakerId, d.prospectId));
+  document.getElementById('md-offtaker').innerHTML = accountOptions(accountKey(d.offtakerId));
   document.getElementById('md-project').innerHTML = projectOptions(d.projectId);
   setVal('md-mw', d.mw); setVal('md-tariff', d.tariff); setVal('md-tenor', d.tenor);
   setVal('md-stage', d.stage); setVal('md-probability', d.probability);
@@ -219,12 +210,10 @@ function updateDealPreview() {
 
 function saveDeal() {
   const acc = parseAccountKey(val('md-offtaker'));
-  if (!acc.offtakerId && !acc.prospectId) { toast('Pick an account for this opportunity', 'warn'); return; }
-  const account = acc.prospectId
-    ? (getProspect(acc.prospectId) || {}).name
-    : (getOfftaker(acc.offtakerId).short || getOfftaker(acc.offtakerId).name);
+  if (!acc.offtakerId) { toast('Pick an account for this opportunity', 'warn'); return; }
+  const account = getOfftaker(acc.offtakerId).short || getOfftaker(acc.offtakerId).name;
   const rec = {
-    offtakerId: acc.offtakerId, prospectId: acc.prospectId,
+    offtakerId: acc.offtakerId,
     projectId: val('md-project'), mw: num(val('md-mw')),
     tariff: num(val('md-tariff')), tenor: num(val('md-tenor')), stage: val('md-stage'),
     probability: num(val('md-probability')), closeDate: val('md-close'), notes: val('md-notes'),
@@ -259,10 +248,10 @@ function deleteDeal() {
 }
 
 /* ─── ACTIVITY LOG ────────────────────────────────────────────── */
-function openLogInteraction(offtakerId, prospectId) {
-  const here = state.view === 'prospect' ? 'p:' + state.detailId : state.detailId;
+function openLogInteraction(offtakerId) {
+  const here = state.detailId;
   document.getElementById('mi-offtaker').innerHTML =
-    accountOptions(accountKey(offtakerId, prospectId) || here || '');
+    accountOptions(accountKey(offtakerId) || here || '');
   setVal('mi-date', todayISO());
   setVal('mi-type', 'call');
   setVal('mi-summary', '');
@@ -273,10 +262,10 @@ function openLogInteraction(offtakerId, prospectId) {
 function saveInteraction() {
   const acc = parseAccountKey(val('mi-offtaker'));
   const summary = val('mi-summary');
-  if (!acc.offtakerId && !acc.prospectId) { toast('Pick an account', 'warn'); return; }
+  if (!acc.offtakerId) { toast('Pick an account', 'warn'); return; }
   if (!summary) { toast('Write a one-line summary — future you will need it', 'warn'); return; }
   const entry = {
-    id: uid('int'), offtakerId: acc.offtakerId, prospectId: acc.prospectId,
+    id: uid('int'), offtakerId: acc.offtakerId,
     date: val('mi-date') || todayISO(), type: val('mi-type'), summary,
   };
   state.interactions.push(entry);
@@ -287,8 +276,6 @@ function saveInteraction() {
   if (o && o.status === 'prospect') {
     o.status = 'engaged'; o.sfStage = 'needs-analysis'; pushOfftaker(o);
   }
-  const lead = acc.prospectId ? getProspect(acc.prospectId) : null;
-  if (lead && lead.status === 'new') { lead.status = 'researching'; pushProspect(lead); }
   save();
   closeModal('modal-interaction');
   toast('Activity logged');
@@ -308,8 +295,6 @@ function deleteInteraction(id) {
 function confirmDelete(kind, id) {
   const name = kind === 'offtaker'
     ? (getOfftaker(id).name || 'this offtaker')
-    : kind === 'prospect'
-    ? ((getProspect(id) || {}).name || 'this prospect')
     : (() => { const c = state.contacts.find(x => x.id === id); return c ? c.first + ' ' + c.last : 'this contact'; })();
 
   /* Say what else goes with it. A prospect that was already converted
@@ -318,12 +303,6 @@ function confirmDelete(kind, id) {
   let extra = '';
   if (kind === 'offtaker') {
     extra = '\n\nIts contacts, opportunities and activity log will be deleted too.';
-  } else if (kind === 'prospect') {
-    const p = getProspect(id) || {};
-    const kids = dealsForProspect(id).length + interactionsForProspect(id).length;
-    if (kids) extra = '\n\nIts ' + kids +
-      (kids === 1 ? ' opportunity or log entry' : ' opportunities and log entries') + ' will be deleted too.';
-    if (p.promotedTo) extra += '\n\nThe offtaker it was converted into is NOT deleted.';
   }
   if (!confirm('Delete ' + name + '?' + extra)) return;
 
@@ -338,31 +317,9 @@ function confirmDelete(kind, id) {
     state.contacts = state.contacts.filter(c => c.offtakerId !== id);
     state.deals = state.deals.filter(d => d.offtakerId !== id);
     state.interactions = state.interactions.filter(i => i.offtakerId !== id);
-    /* A lead that was promoted into this offtaker would otherwise keep a
-       link to a record that is gone, and read as already handled. */
-    state.prospects.filter(p => p.promotedTo === id).forEach(p => {
-      p.promotedTo = ''; p.status = 'researching'; pushProspect(p);
-    });
-    /* A lead that was promoted into this offtaker would otherwise keep a
-       link to a record that is gone, and read as already handled. */
-    state.prospects.filter(p => p.promotedTo === id).forEach(p => {
-      p.promotedTo = ''; p.status = 'researching'; pushProspect(p);
-    });
-    if (state.detailId === id) { save(); nav('offtakers'); toast('Offtaker deleted'); return; }
-  } else if (kind === 'prospect') {
-    /* No cascade in the database, so the children go first or they are
-       orphaned — the same reason the offtaker branch does it. */
-    dealsForProspect(id).forEach(d => removeRow('aee_deals', d.id));
-    interactionsForProspect(id).forEach(i => removeRow('aee_interactions', i.id));
-    removeRow('aee_prospects', id);
-    state.prospects = state.prospects.filter(p => p.id !== id);
-    state.deals = state.deals.filter(d => d.prospectId !== id);
-    state.interactions = state.interactions.filter(i => i.prospectId !== id);
     /* Standing on the profile of the row just deleted would render an
        empty page, so step back to the list. */
-    if (state.view === 'prospect' && state.detailId === id) {
-      save(); nav('prospect-companies'); toast('Prospect deleted'); return;
-    }
+    if (state.detailId === id) { save(); nav('offtakers'); toast('Company deleted'); return; }
   } else {
     removeRow('aee_contacts', id);
     state.contacts = state.contacts.filter(c => c.id !== id);

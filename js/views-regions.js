@@ -31,7 +31,7 @@ function loadNearSite(project, maxKm) {
     }
   });
 
-  state.prospects.forEach(p => {
+  state.offtakers.forEach(p => {
     if (!num(p.lat) || !num(p.lng)) return;
     if (p.status === 'promoted') return;   // already tracked as an offtaker
     const km = haversineKm(p.lat, p.lng, project.lat, project.lng);
@@ -64,7 +64,7 @@ function renderRegions() {
     .sort((a, b) => b.unsold - a.unsold);
 
   const totalUnsold = sites.reduce((s, x) => s + x.unsold, 0);
-  const located = state.prospects.filter(x => num(x.lat)).length;
+  const located = state.offtakers.filter(x => num(x.lat)).length;
 
   setPage('Regions', fmtNum(totalUnsold) + ' MW unsold across ' + sites.length + ' sites · ' + located + ' located prospects',
     '<button class="btn btn-outline btn-sm" onclick="exportRegions()">' + icon('download', 14) + ' Export</button>' +
@@ -146,7 +146,7 @@ function regionRowHtml(x) {
              rep works a target someone has deliberately set aside. */
           : x.status && x.status !== 'new'
             ? ' <span class="badge ' + (x.status === 'parked' || x.status === 'rejected' ? 'b-low' : 'b-medium') +
-              '" style="font-size:9px">' + esc(PROSPECT_STATUS[x.status] || x.status) + '</span>'
+              '" style="font-size:9px">' + esc(STATUS_LABEL[x.status] || x.status) + '</span>'
             : '') +
       '</div>' +
       '<div class="person-title">' + esc(sectorName(x.sectorId)) +
