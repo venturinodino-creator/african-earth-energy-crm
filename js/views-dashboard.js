@@ -160,7 +160,6 @@ function renderPipeline() {
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
   const totalWeighted = liveDeals().reduce((s, d) => s + weightedValue(d), 0);
-  const lost = lostDeals();
   const summary =
     '<div class="stats-grid">' +
       statTile('pipeline', 'amber', 'Open opportunities', open.length, fmtNum(pipelineMw()) + ' MW') +
@@ -170,23 +169,7 @@ function renderPipeline() {
       statTile('clock', 'purple', 'Average tenor',
         open.length ? Math.round(open.reduce((s, d) => s + num(d.tenor), 0) / open.length) + ' yrs' : '—',
         'across live opportunities') +
-    '</div>' +
-    /* Closed-lost deals have no column on the board, so say they exist
-       rather than letting them disappear without trace. */
-    (lost.length
-      ? '<div class="card" style="margin-bottom:14px;border-left:3px solid var(--danger)">' +
-          '<div class="card-header"><div><div class="card-title">Closed lost (' + lost.length + ')</div>' +
-          '<div class="card-sub">Off the board and out of the totals. The capacity is back with the site.</div></div></div>' +
-          lost.map(d =>
-            '<div class="person-row" style="cursor:pointer" onclick="openEditDeal(\'' + d.id + '\')">' +
-              '<div style="min-width:0;flex:1">' +
-                '<div class="person-name">' + esc(getOfftaker(d.offtakerId).short || d.name) +
-                  ' · ' + fmtNum(d.mw) + ' MW</div>' +
-                (d.notes ? '<div class="person-title">' + esc(d.notes) + '</div>' : '') +
-              '</div>' +
-            '</div>').join('') +
-        '</div>'
-      : '');
+    '</div>';
 
   if (state.pipeView === 'accounts') {
     setContent(accountStageStats() + accountBoardHtml() +
