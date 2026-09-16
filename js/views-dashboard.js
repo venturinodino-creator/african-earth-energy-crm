@@ -348,7 +348,7 @@ function sfDrop(e) {
   e.currentTarget.classList.remove('drop-target');
   const stage = e.currentTarget.dataset.sfstage;
   if (!_dragAccountId || !stage) return;
-  setSfStage('offtaker', _dragAccountId, stage);
+  setSfStage(_dragAccountId, stage);
 }
 
 function statTile(ic, cls, label, value, sub, go) {

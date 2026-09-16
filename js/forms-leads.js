@@ -13,18 +13,11 @@
    A lead is captured here and lives in the prospect list. It carries no
    verified load, so it is never fit-scored — promoting it is what moves it
    across to an offtaker and starts it being ranked. */
-function sfStageOptions(selected) {
-  return SF_STAGES.map(st =>
-    '<option value="' + st.id + '"' + (st.id === selected ? ' selected' : '') + '>' +
-    esc(st.label) + '</option>').join('');
-}
-
 const PROSPECT_FIELDS = ['mp-name', 'mp-note', 'mp-town', 'mp-website', 'mp-phone', 'mp-email',
   'mp-address', 'mp-source', 'mp-gwhlow', 'mp-gwhhigh', 'mp-peak', 'mp-method', 'mp-blurb', 'mp-notes'];
 
 function fillProspectSelects(p) {
   document.getElementById('mp-sector').innerHTML = sectorOptions((p && p.sectorId) || '');
-  document.getElementById('mp-stage').innerHTML = sfStageOptions(p ? sfStageFor(p) : 'prospecting');
   document.getElementById('mp-site').innerHTML = projectOptions((p && p.nearSite) || '');
 }
 
@@ -72,7 +65,7 @@ function saveProspect() {
   if (!name) { toast('A lead needs a company name', 'warn'); return; }
   const rec = {
     name, sectorId: val('mp-sector'), note: val('mp-note'),
-    sfStage: val('mp-stage'), town: val('mp-town'), province: val('mp-province'),
+    town: val('mp-town'), province: val('mp-province'),
     website: val('mp-website'), phone: val('mp-phone'), email: val('mp-email'),
     address: val('mp-address'), contactSource: val('mp-source'), nearSite: val('mp-site'),
     gwhLow: optNum('mp-gwhlow'), gwhHigh: optNum('mp-gwhhigh'), peakMwEst: optNum('mp-peak'),
@@ -131,16 +124,18 @@ function deleteProspect(id) {
 }
 
 /* ─── SALES PATH ────────────────────────────────
-   Moving an account along the Salesforce path. The stage is written on the
+   Moving an offtaker along the Salesforce path. The stage is written on the
    record, the status is kept in step so every existing badge and filter
    stays truthful, and the move is logged — a stage change with no trace of
-   why is how a pipeline stops being believed. */
-function setSfStage(kind, id, stage) {
+   why is how a pipeline stops being believed.
+
+   Offtakers only. A prospect has no verified load and no sales process to
+   be partway through; promoting it is what starts one. */
+function setSfStage(id, stage) {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to move this', 'warn'); return; }
   const st = sfStageOf(stage);
   if (!st) return;
-  const isLead = kind === 'prospect';
-  const rec = isLead ? getProspect(id) : state.offtakers.find(o => o.id === id);
+  const rec = state.offtakers.find(o => o.id === id);
   if (!rec) return;
 
   const from = sfStageLabel(rec) + (sfStageFor(rec) === 'closed' ? (sfIsClosedLost(rec) ? ' lost' : ' won') : '');
@@ -155,33 +150,20 @@ function setSfStage(kind, id, stage) {
   }
 
   rec.sfStage = stage;
-  if (isLead) {
-    /* A lead has its own working vocabulary and a promoted one is being
-       worked as an offtaker, so its status is left alone. Winning a lead
-       is really the promotion, which is a separate, deliberate step. */
-    if (rec.status !== 'promoted') {
-      if (stage === 'closed') rec.status = won ? 'researching' : 'rejected';
-      else if (rec.status === 'new') rec.status = 'researching';
-    }
-    pushProspect(rec);
-  } else {
-    rec.status = stage === 'closed' ? (won ? 'contracted' : 'lost') : st.status;
-    pushOfftaker(rec);
-  }
+  rec.status = stage === 'closed' ? (won ? 'contracted' : 'lost') : st.status;
+  pushOfftaker(rec);
 
   const to = st.label + (stage === 'closed' ? (won ? ' won' : ' lost') : '');
   const entry = {
     id: uid('int'),
-    offtakerId: isLead ? '' : rec.id,
-    prospectId: isLead ? rec.id : '',
+    offtakerId: rec.id,
+    prospectId: '',
     date: todayISO(), type: 'stage change',
     summary: 'Sales stage moved from ' + from + ' to ' + to + '.',
   };
   state.interactions.push(entry);
   pushInteraction(entry);
   save();
-  toast(isLead && stage === 'closed' && won && !rec.promotedTo
-    ? 'Closed won — promote it to an offtaker to track the contract'
-    : 'Moved to ' + to);
+  toast('Moved to ' + to);
   render();
 }

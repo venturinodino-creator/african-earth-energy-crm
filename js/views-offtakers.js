@@ -313,7 +313,7 @@ function renderDetail() {
      card that does. The wide column carries what is specific to this
      account and gets worked — people, opportunities, what was said. The
      narrow one carries what is looked up. */
-  setContent(hero + sfPathCardHtml('offtaker', o) + pitch +
+  setContent(hero + sfPathCardHtml(o) + pitch +
     '<div style="margin-top:14px">' + contactMixHtml(o, people) + '</div>' +
     '<div class="cols-2" style="margin-top:14px">' +
       '<div style="display:flex;flex-direction:column;gap:14px">' + contactsHtml + dealsHtml + logHtml + '</div>' +

@@ -49,7 +49,7 @@ let state = {
   sectorId: null,
   sectorSearch: '', sectorTier: '', sectorGroup: '',
 
-  prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '', prospectStage: '',
+  prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '',
   prospectPage: 1,
 
   muniSearch: '', muniProvince: '', muniCat: '', muniWorked: '',
@@ -497,7 +497,7 @@ function dwellSentenceHtml(rec) {
 /* The path itself. Salesforce draws it as chevrons across the top of a
    record and it is the one control a rep uses every day, so it sits on the
    page rather than behind an edit form: one click moves the account. */
-function sfPathHtml(kind, rec) {
+function sfPathHtml(rec) {
   const current = sfStageFor(rec);
   const at = sfStageIndex(current);
   const lost = sfIsClosedLost(rec);
@@ -505,20 +505,20 @@ function sfPathHtml(kind, rec) {
     const label = st.id === 'closed' && i === at ? (lost ? 'Closed lost' : 'Closed won') : st.label;
     const cls = i < at ? ' done' : i === at ? (lost ? ' current lost' : ' current') : '';
     return '<button class="sfp-step' + cls + '" title="' + esc(st.hint) + '" ' +
-      'onclick="setSfStage(' + jsStr(kind) + ',' + jsStr(rec.id) + ',' + jsStr(st.id) + ')">' +
+      'onclick="setSfStage(' + jsStr(rec.id) + ',' + jsStr(st.id) + ')">' +
       esc(label) + '</button>';
   }).join('') + '</div>';
 }
 
 /* The card the path sits in, with the stage's own one-line definition
    underneath so nobody has to guess what "Needs Analysis" means here. */
-function sfPathCardHtml(kind, rec) {
+function sfPathCardHtml(rec) {
   const st = sfStageOf(sfStageFor(rec)) || {};
   return '<div class="card" style="margin-bottom:14px">' +
     '<div class="card-header"><div><div class="card-title">Sales stage</div>' +
     '<div class="card-sub">' + esc(st.hint || '') + '</div></div>' +
     '<div style="display:flex;align-items:center;gap:8px">' + dwellSentenceHtml(rec) + sfStageBadge(rec) + '</div></div>' +
-    sfPathHtml(kind, rec) +
+    sfPathHtml(rec) +
   '</div>';
 }
 
