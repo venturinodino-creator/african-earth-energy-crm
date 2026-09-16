@@ -275,6 +275,8 @@ function accountStageStats() {
       fmtNum(open.reduce((a, o) => a + num(o.annualGwh), 0)) + ' GWh a year between them') +
     statTile('check', 'green', 'Closed won', won.length, 'contracted') +
     statTile('alert', 'blue', 'Closed lost', lost.length, 'out of the process') +
+    statTile('clock', 'amber', 'Stalled', state.offtakers.filter(isStalled).length,
+      'sitting longer than the stage allows') +
     statTile('target', 'purple', 'Leads waiting', leads, 'not yet promoted', "nav('prospects')") +
   '</div>';
 }
@@ -284,11 +286,13 @@ function accountBoardHtml() {
     const list = state.offtakers.filter(o => sfStageFor(o) === st.id)
       .sort((a, b) => fitScore(b) - fitScore(a));
     const gwh = list.reduce((a, o) => a + num(o.annualGwh), 0);
+    const stuck = list.filter(isStalled).length;
     return '<div class="kcol" data-sfstage="' + st.id + '" ondragover="pipeDragOver(event)" ' +
       'ondragleave="pipeDragLeave(event)" ondrop="sfDrop(event)">' +
       '<div class="kcol-head"><div class="kcol-title" title="' + esc(st.hint) + '">' + esc(st.label) + '</div>' +
       '<div class="kcol-count">' + list.length + '</div></div>' +
-      '<div class="kcol-value">' + fmtNum(gwh) + ' GWh a year</div>' +
+      '<div class="kcol-value">' + fmtNum(gwh) + ' GWh a year' +
+        (stuck ? ' <span style="color:var(--warn)">· ' + stuck + ' stalled</span>' : '') + '</div>' +
       list.map(accountCardHtml).join('') +
       (list.length ? '' : '<div class="fg-hint" style="padding:12px 4px;text-align:center">Drop here</div>') +
     '</div>';
@@ -309,7 +313,11 @@ function accountCardHtml(o) {
       '<span class="pc-val">' + (deals.length ? fmtNum(mw) + ' MW open' : 'no opportunity') + '</span></div>' +
     '<div class="fit-bar" style="margin-top:8px"><span style="background:' + fitColor(fit) + ';width:' + fit + '%"></span></div>' +
     '<div class="pc-row"><span style="font-size:9.5px;letter-spacing:.4px;text-transform:uppercase">fit ' + fit + '/100</span>' +
-      '<span style="font-size:10px">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></div>' +
+      /* A closed account cannot stall and its dwell says nothing useful;
+         which way it closed does. */
+      (sfStageFor(o) === 'closed'
+        ? '<span style="font-size:10px">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>'
+        : dwellChipHtml(o)) + '</div>' +
   '</div>';
 }
 

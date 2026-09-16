@@ -89,6 +89,10 @@ function rowToOfftaker(r) {
     supply: r.supply || 'eskom', wheeling: r.wheeling || 'unknown',
     status: r.status || 'prospect', priority: r.priority || 'medium',
     sfStage: r.sf_stage || '',
+    /* Maintained by a trigger, never written from here. It is the weakest
+       answer to "how long has this been sitting" and the only one an
+       account nobody has touched can give. */
+    updatedAt: r.updated_at || '',
     description: r.description || '', estimated: r.estimated !== false,
   };
 }
@@ -139,7 +143,7 @@ function rowToProspect(r) {
   return {
     id: r.id, name: r.name || '', sectorId: r.sector_id || '', note: r.note || '',
     status: r.status || 'new', promotedTo: r.promoted_to || '', notes: r.notes || '',
-    sfStage: r.sf_stage || '',
+    sfStage: r.sf_stage || '', updatedAt: r.updated_at || '',
     blurb: r.blurb || '',
     town: r.town || '', province: r.province || '',
     lat: r.lat, lng: r.lng, nearSite: r.near_site || '',

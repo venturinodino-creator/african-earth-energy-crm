@@ -38,7 +38,7 @@ let state = {
   activityView: storedView('activityView', 'timeline'),
   pipeView: storedView('pipeView', 'board'),
 
-  offSearch: '', offSector: '', offStatus: '', offProvince: '', offStage: '',
+  offSearch: '', offSector: '', offStatus: '', offProvince: '', offStage: '', offStalled: '',
   offSort: { field: 'fit', dir: 'desc' },
   offPage: 1,
 
@@ -411,6 +411,89 @@ function sfStageBadge(rec) {
   return '<span class="badge ' + cls + '">' + esc(label || stage) + '</span>';
 }
 
+/* ─── DAYS IN STAGE ────────────────────────────────────
+   Nothing records when an account entered its stage, so this reads the
+   best evidence there is and says which one it used. In order:
+
+     stage     the last logged stage change — the real answer
+     activity  no move logged, so the last thing anybody did here
+     record    nothing logged at all, so when the row itself last changed
+
+   The weaker two are not padding. An account with no stage change and no
+   call in four months is exactly what "stalled" is meant to surface, and
+   refusing to show a number for it would hide the worst cases. What is
+   not done is pretending they are the same measurement: the basis travels
+   with the number everywhere it is shown. */
+function logsForAccount(rec) {
+  if (!rec || !rec.id) return [];
+  return state.interactions
+    .filter(i => i.offtakerId === rec.id || i.prospectId === rec.id)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+}
+
+function daysSince(when) {
+  const day = String(when || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const then = Date.parse(day + 'T00:00:00Z');
+  if (!Number.isFinite(then)) return null;
+  const today = Date.parse(todayISO() + 'T00:00:00Z');
+  return Math.max(0, Math.round((today - then) / 86400000));
+}
+
+function stageDwell(rec) {
+  const logs = logsForAccount(rec);
+  const moved = logs.find(i => i.type === 'stage change');
+  if (moved && daysSince(moved.date) !== null) {
+    return { days: daysSince(moved.date), basis: 'stage', since: String(moved.date).slice(0, 10) };
+  }
+  if (logs.length && daysSince(logs[0].date) !== null) {
+    return { days: daysSince(logs[0].date), basis: 'activity', since: String(logs[0].date).slice(0, 10) };
+  }
+  const days = rec ? daysSince(rec.updatedAt) : null;
+  return days === null ? null : { days, basis: 'record', since: String(rec.updatedAt).slice(0, 10) };
+}
+
+const DWELL_BASIS_NOTE = {
+  stage: 'since the stage last changed',
+  activity: 'no stage change logged — since the last activity here',
+  record: 'nothing logged at all — since the record itself last changed',
+};
+
+function stallLimit(rec) { return (sfStageOf(sfStageFor(rec)) || {}).stallDays || null; }
+
+function isStalled(rec) {
+  const d = stageDwell(rec);
+  const limit = stallLimit(rec);
+  return !!(d && limit && d.days > limit);
+}
+
+/* The number as a chip, for a card or a table cell. Amber once it is past
+   the stage's own patience, with the basis and the date in the tooltip so
+   nobody has to trust a bare figure. */
+function dwellChipHtml(rec) {
+  const d = stageDwell(rec);
+  if (!d) return '<span style="color:var(--muted)">—</span>';
+  const stalled = isStalled(rec);
+  const limit = stallLimit(rec);
+  const title = d.days + ' days — ' + DWELL_BASIS_NOTE[d.basis] + ' (' + d.since + ')' +
+    (limit ? '. ' + (stalled ? 'Past' : 'Within') + ' the ' + limit + ' days this stage is given.' : '');
+  return '<span class="chip' + (stalled ? ' chip-stalled' : '') + '" title="' + esc(title) + '">' +
+    (stalled ? icon('alert', 11) + ' ' : '') + d.days + 'd</span>';
+}
+
+/* The same thing as a sentence, for the top of a record. */
+function dwellSentenceHtml(rec) {
+  const d = stageDwell(rec);
+  if (!d) return '';
+  const stage = (sfStageOf(sfStageFor(rec)) || {}).label || '';
+  const head = d.basis === 'stage'
+    ? d.days + ' day' + (d.days === 1 ? '' : 's') + ' at ' + stage
+    : d.days + ' day' + (d.days === 1 ? '' : 's') + ' untouched';
+  return '<span class="dwell-note' + (isStalled(rec) ? ' stalled' : '') + '" title="' +
+    esc(DWELL_BASIS_NOTE[d.basis] + ' (' + d.since + ')') + '">' + esc(head) +
+    (isStalled(rec) ? ' — worth a nudge' : '') + '</span>';
+}
+
 /* The path itself. Salesforce draws it as chevrons across the top of a
    record and it is the one control a rep uses every day, so it sits on the
    page rather than behind an edit form: one click moves the account. */
@@ -433,7 +516,8 @@ function sfPathCardHtml(kind, rec) {
   const st = sfStageOf(sfStageFor(rec)) || {};
   return '<div class="card" style="margin-bottom:14px">' +
     '<div class="card-header"><div><div class="card-title">Sales stage</div>' +
-    '<div class="card-sub">' + esc(st.hint || '') + '</div></div>' + sfStageBadge(rec) + '</div>' +
+    '<div class="card-sub">' + esc(st.hint || '') + '</div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px">' + dwellSentenceHtml(rec) + sfStageBadge(rec) + '</div></div>' +
     sfPathHtml(kind, rec) +
   '</div>';
 }
