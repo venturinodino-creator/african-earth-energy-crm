@@ -13,6 +13,13 @@
 /*
 # Never hide a directory, so a new one is still picked up normally.
 !/*/
+# ...with one exception. A name that is literally shell-variable syntax is
+# always an unexpanded argument, never a real directory — `git worktree add
+# "$WT" <branch>` run where WT was never set creates a whole worktree called
+# `$WT` inside the repo, which `git add -A` will then happily commit. This
+# has to sit after `!/*/` to override the re-inclusion above.
+/$*
+/${*
 !/.gitignore
 !/*.html
 !/*.css
