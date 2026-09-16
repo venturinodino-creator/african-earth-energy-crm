@@ -159,10 +159,14 @@ function renderProspect() {
           '<p>Log the first call. Half of these records are worked twice because nobody did.</p></div>') +
     '</div>';
 
+  /* Same two columns as an offtaker reads in, for the same reason: rows of
+     pairs left a hole whenever one of a pair had nothing in it, and a lead
+     is mostly half-known. Read down the wide column, look things up in the
+     narrow one. The sector's questions and objections are not repeated
+     here — they are the sector page's, one click away. */
   setContent(hero + sfPathCardHtml('prospect', p) +
-    '<div class="grid-2">' + overview + approach + '</div>' +
-    '<div class="grid-2">' + oppsHtml + logHtml + '</div>' +
-    '<div class="grid-2">' + placing + sectorCard + '</div>' +
-    questionsCardHtml(p.sectorId) +
-    objectionsCardHtml(p.sectorId));
+    '<div class="cols-2">' +
+      '<div style="display:flex;flex-direction:column;gap:14px">' + overview + oppsHtml + logHtml + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:14px">' + approach + placing + sectorCard + '</div>' +
+    '</div>');
 }

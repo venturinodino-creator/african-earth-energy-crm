@@ -287,22 +287,17 @@ function renderDetail() {
         '</div>').join('') +
     '</div>';
 
-  /* The sector workbook's own questions and objections, filtered to this
-     account's sector. Reference material a rep reads once and then keeps
-     open, rather than something they act on first — so it sits at the
-     bottom of the page, full width, below everything account-specific. */
-  const qCard = questionsCardHtml(o.sector, 'For ' + sectorName(o.sector));
-  const oCard = objectionsCardHtml(o.sector);
-  const reference = (qCard || oCard)
-    ? '<div class="cols-2" style="margin-top:14px">' + qCard + oCard + '</div>'
-    : '';
-
+  /* Two columns, each a stack rather than a row of pairs: a card that has
+     nothing to say shortens its column instead of leaving a hole beside a
+     card that does. The wide column carries what is specific to this
+     account and gets worked — people, opportunities, what was said. The
+     narrow one carries what is looked up. */
   setContent(hero + sfPathCardHtml('offtaker', o) + pitch +
     '<div style="margin-top:14px">' + contactMixHtml(o, people) + '</div>' +
     '<div class="cols-2" style="margin-top:14px">' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + contactsHtml + logHtml + '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + supply + sectorCard + dealsHtml + outreach + '</div>' +
-    '</div>' + reference);
+      '<div style="display:flex;flex-direction:column;gap:14px">' + contactsHtml + dealsHtml + logHtml + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:14px">' + supply + sectorCard + outreach + '</div>' +
+    '</div>');
 }
 
 function dhMetric(value, label, hl) {

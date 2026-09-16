@@ -405,7 +405,7 @@ function sfPathHtml(kind, rec) {
    underneath so nobody has to guess what "Needs Analysis" means here. */
 function sfPathCardHtml(kind, rec) {
   const st = sfStageOf(sfStageFor(rec)) || {};
-  return '<div class="card">' +
+  return '<div class="card" style="margin-bottom:14px">' +
     '<div class="card-header"><div><div class="card-title">Sales stage</div>' +
     '<div class="card-sub">' + esc(st.hint || '') + '</div></div>' + sfStageBadge(rec) + '</div>' +
     sfPathHtml(kind, rec) +
