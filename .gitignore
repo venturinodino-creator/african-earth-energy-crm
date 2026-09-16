@@ -1,3 +1,30 @@
+# ── Shell-quoting debris ──────────────────────────────────────────────
+# An unbalanced quote in a shell command makes the shell read fragments of
+# JavaScript as redirection targets, dropping empty files in the repo root
+# with names like `d.id)`, `upsert('aee_prospects'`, `{` or plain `NOT`.
+#
+# Enumerating the punctuation those fragments carry never caught the
+# bare-word ones, so the root is allow-listed instead: it holds a small,
+# stable set of files, and anything else turning up there is debris.
+#
+# This block has to stay FIRST. The last matching rule wins, and `!/*/`
+# re-includes every root directory — placed after the sections below it
+# would undo `node_modules/`, `memory/` and the rest.
+/*
+# Never hide a directory, so a new one is still picked up normally.
+!/*/
+!/.gitignore
+!/*.html
+!/*.css
+!/*.js
+!/*.md
+!/*.json
+!/*.txt
+!/*.svg
+!/*.ico
+!/*.png
+!/*.webmanifest
+
 # OS
 .DS_Store
 Thumbs.db
@@ -25,19 +52,3 @@ npm-debug.log*
 .claude-flow/
 .swarm/
 memory/
-
-# Shell-quoting debris — an unbalanced quote in a shell command makes the
-# shell read fragments of JavaScript as redirection targets, creating empty
-# root files named things like `[r.title` or `upsert('aee_prospects'`.
-# These match the punctuation such a fragment carries and a real file never
-# does. Bare-word debris (`name`, `v`, `d.id`) cannot be matched safely and
-# still has to be caught by eye — `git clean -n` lists it.
-/*'*
-/*"*
-/*(*
-/*)*
-/*\[*
-/*\]*
-/*+*
-/-[0-9]*
-/-[0-9]*
