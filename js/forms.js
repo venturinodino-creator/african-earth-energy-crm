@@ -308,10 +308,23 @@ function deleteInteraction(id) {
 function confirmDelete(kind, id) {
   const name = kind === 'offtaker'
     ? (getOfftaker(id).name || 'this offtaker')
+    : kind === 'prospect'
+    ? ((getProspect(id) || {}).name || 'this prospect')
     : (() => { const c = state.contacts.find(x => x.id === id); return c ? c.first + ' ' + c.last : 'this contact'; })();
-  const extra = kind === 'offtaker'
-    ? '\n\nIts contacts, opportunities and activity log will be deleted too.'
-    : '';
+
+  /* Say what else goes with it. A prospect that was already converted
+     keeps its offtaker — deleting the lead row must not read as deleting
+     the account somebody is now working. */
+  let extra = '';
+  if (kind === 'offtaker') {
+    extra = '\n\nIts contacts, opportunities and activity log will be deleted too.';
+  } else if (kind === 'prospect') {
+    const p = getProspect(id) || {};
+    const kids = dealsForProspect(id).length + interactionsForProspect(id).length;
+    if (kids) extra = '\n\nIts ' + kids +
+      (kids === 1 ? ' opportunity or log entry' : ' opportunities and log entries') + ' will be deleted too.';
+    if (p.promotedTo) extra += '\n\nThe offtaker it was converted into is NOT deleted.';
+  }
   if (!confirm('Delete ' + name + '?' + extra)) return;
 
   if (kind === 'offtaker') {
@@ -336,6 +349,20 @@ function confirmDelete(kind, id) {
       p.promotedTo = ''; p.status = 'researching'; pushProspect(p);
     });
     if (state.detailId === id) { save(); nav('offtakers'); toast('Offtaker deleted'); return; }
+  } else if (kind === 'prospect') {
+    /* No cascade in the database, so the children go first or they are
+       orphaned — the same reason the offtaker branch does it. */
+    dealsForProspect(id).forEach(d => removeRow('aee_deals', d.id));
+    interactionsForProspect(id).forEach(i => removeRow('aee_interactions', i.id));
+    removeRow('aee_prospects', id);
+    state.prospects = state.prospects.filter(p => p.id !== id);
+    state.deals = state.deals.filter(d => d.prospectId !== id);
+    state.interactions = state.interactions.filter(i => i.prospectId !== id);
+    /* Standing on the profile of the row just deleted would render an
+       empty page, so step back to the list. */
+    if (state.view === 'prospect' && state.detailId === id) {
+      save(); nav('prospect-companies'); toast('Prospect deleted'); return;
+    }
   } else {
     removeRow('aee_contacts', id);
     state.contacts = state.contacts.filter(c => c.id !== id);

@@ -378,6 +378,8 @@ function prospectCardHtml(p) {
           ? '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
           : '<button class="btn btn-xs btn-primary" data-admin-only onclick="event.stopPropagation();promoteProspect(\'' + p.id + '\')">' +
             icon('plus', 11) + ' Convert</button>') +
+        '<button class="btn btn-xs btn-danger" data-admin-only title="Delete this prospect" ' +
+          'onclick="event.stopPropagation();confirmDelete(\'prospect\',\'' + p.id + '\')">' + icon('trash', 11) + '</button>' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -410,6 +412,8 @@ function prospectTableHtml(page) {
             ? '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
             : '<button class="btn btn-xs btn-primary" data-admin-only onclick="event.stopPropagation();promoteProspect(\'' + p.id + '\')">' +
               icon('plus', 11) + ' Convert</button>') +
+          ' <button class="btn btn-xs btn-danger" data-admin-only title="Delete this prospect" ' +
+            'onclick="event.stopPropagation();confirmDelete(\'prospect\',\'' + p.id + '\')">' + icon('trash', 11) + '</button>' +
         '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
