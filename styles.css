@@ -626,3 +626,72 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .orgmap-legend{display:flex;gap:12px;flex-wrap:wrap}
 .orgmap-leg{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted2)}
 .orgmap-leg i{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+
+/* ─── NEWS ────────────────────────────────────────────────────────
+   Chip row, feed and briefing. The chips carry the topic taxonomy; the
+   province badge on a card replaces the company badge the reference
+   design used, because this desk sells by geography. */
+.news-filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.news-filter-btn{font-size:11px;padding:5px 12px;border-radius:14px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text);cursor:pointer;transition:all .15s;font-family:inherit}
+.news-filter-btn:hover{border-color:var(--accent);color:var(--text2)}
+.news-filter-btn.active{background:var(--accent);border-color:var(--accent);color:#06210f;font-weight:700}
+.news-summary-btn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+  padding:5px 13px;border-radius:14px;border:1px solid var(--bess);background:var(--bess);color:#1a1033;
+  cursor:pointer;transition:all .15s;font-family:inherit}
+.news-summary-btn:hover{filter:brightness(1.08)}
+.news-summary-btn.active{box-shadow:0 0 0 2px rgba(167,139,250,.35)}
+.news-summary-btn svg{flex-shrink:0}
+
+.news-sample-banner{display:flex;gap:9px;align-items:flex-start;background:rgba(245,165,36,.08);
+  border:1px solid rgba(245,165,36,.3);border-radius:var(--card-radius);padding:10px 13px;margin-bottom:12px;
+  font-size:11.5px;color:var(--muted2);line-height:1.55}
+.news-sample-banner svg{color:var(--accent2);flex-shrink:0;margin-top:1px}
+.news-sample-banner code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11px}
+
+.news-layout{display:grid;grid-template-columns:1fr 232px;gap:16px;align-items:start}
+.news-feed{display:flex;flex-direction:column;gap:12px}
+.news-card{background:var(--card);border:1px solid var(--border);border-radius:var(--card-radius);padding:15px 17px;transition:border-color .15s,transform .15s}
+.news-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.news-card-top{display:flex;align-items:center;gap:7px;margin-bottom:8px;flex-wrap:wrap}
+.news-province-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+  letter-spacing:.3px;padding:2px 8px;border-radius:10px;background:rgba(61,220,132,.12);color:var(--accent);
+  border:1px solid rgba(61,220,132,.3);white-space:nowrap}
+.news-province-badge svg{flex-shrink:0}
+.news-topic-tag{font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid var(--border2);white-space:nowrap}
+.news-sample-tag{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;
+  border-radius:10px;background:rgba(245,165,36,.14);color:var(--accent2);border:1px solid rgba(245,165,36,.35)}
+.news-date{font-size:10.5px;color:var(--muted);margin-left:auto;white-space:nowrap}
+.news-card h3{font-size:13.5px;font-weight:700;color:var(--text2);margin:0 0 6px;line-height:1.45}
+.news-card p{font-size:12px;color:var(--muted2);margin:0;line-height:1.6}
+.news-card .news-why{color:var(--wind);font-style:italic;margin-top:6px;font-size:11.5px}
+.news-card-footer{display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid var(--border)}
+.news-card-footer a{font-size:11px;color:var(--accent);text-decoration:none}
+.news-card-footer a:hover{text-decoration:underline}
+.news-nolink{font-size:11px;color:var(--muted);font-style:italic}
+.news-source{font-size:11px;color:var(--muted)}
+
+.news-sidebar{display:flex;flex-direction:column;gap:12px;position:sticky;top:12px}
+.news-side-card{background:var(--card);border:1px solid var(--border);border-radius:var(--card-radius);padding:13px 14px}
+.news-side-card h4{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:0 0 9px}
+.news-legend-row{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text);padding:4px 0;cursor:pointer;border-radius:5px;transition:color .15s}
+.news-legend-row:hover{color:var(--text2)}
+.news-legend-row.on{color:var(--accent);font-weight:700}
+.news-legend-n{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.news-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+
+.news-bar-row{display:grid;grid-template-columns:120px 1fr 28px;gap:9px;align-items:center;padding:4px 0}
+.news-bar-label{font-size:11.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.news-bar-n{font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.news-sum-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.news-sum-row:last-child{border-bottom:none}
+.news-sum-date{font-size:10.5px;color:var(--muted);white-space:nowrap;padding-top:2px;font-variant-numeric:tabular-nums}
+.news-sum-title{font-size:12px;font-weight:700;color:var(--text2);line-height:1.45}
+.news-sum-why{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+
+@media(max-width:900px){
+  .news-layout{grid-template-columns:1fr}
+  .news-sidebar{position:static;flex-direction:row;flex-wrap:wrap}
+  .news-side-card{flex:1;min-width:200px}
+  .news-bar-row{grid-template-columns:96px 1fr 26px}
+}
