@@ -178,6 +178,13 @@ function renderDetail() {
   const people = contactsFor(o.id);
 
   setPage(o.short || o.name, sectorName(o.sector) + ' · ' + esc(o.city) + ', ' + esc(o.province),
+    /* The only way into the pipeline used to be a button on the stage
+       card. With that card gone the action still has to exist, and it is
+       only worth offering while the account is outside the pipeline. */
+    (inPipeline(o) ? '' :
+      '<button class="btn btn-outline btn-sm" data-admin-only onclick="addToPipeline(' + jsStr(o.id) + ')" ' +
+      'title="Start working this account - puts it on the pipeline board at Prospecting">' +
+      icon('target', 14) + ' Move into the pipeline</button>') +
     '<button class="btn btn-outline btn-sm" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})" title="Visual org chart: who sits where">' + icon('grid', 14) + ' Org map</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openLogInteraction(\'' + o.id + '\')">' + icon('note', 14) + ' Log activity</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add contact</button>' +
@@ -220,6 +227,9 @@ function renderDetail() {
       '</div>' +
     '</div>';
 
+  /* Real paragraphs rather than one block of pre-line text: the column
+     layout needs something it can avoid breaking in the middle of, and a
+     blank line in the source is what the writer meant by a paragraph. */
   /* The researched overview, and how to approach the call. Both came
      across when leads and offtakers became one record type, and they are
      the only thing a company nobody has sized yet actually has. */
@@ -227,13 +237,10 @@ function renderDetail() {
     ? '<div class="card" style="margin-bottom:14px">' +
         '<div class="card-header"><div><div class="card-title">Company overview</div>' +
         '<div class="card-sub">Scale, ownership, load shape and what would make them buy</div></div></div>' +
-        (o.blurb
-          ? '<div style="font-size:12.5px;color:var(--text2);line-height:1.7;max-width:80ch;white-space:pre-line">' +
-            esc(o.blurb) + '</div>'
-          : '') +
+        (o.blurb ? '<div class="blurb">' + proseHtml(o.blurb) + '</div>' : '') +
         (o.notes
-          ? '<div style="font-size:12.5px;color:var(--text2);line-height:1.7;max-width:80ch;margin-top:12px;' +
-            'padding-top:12px;border-top:1px solid var(--border)">' + esc(o.notes) + '</div>'
+          ? '<div class="blurb" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">' +
+            proseHtml(o.notes) + '</div>'
           : '') +
         (o.contactSource
           ? '<div class="fg-hint" style="margin-top:12px">Contact details from: ' + esc(o.contactSource) + '</div>'
@@ -242,7 +249,6 @@ function renderDetail() {
     : '';
 
   setContent(hero +
-    (inPipeline(o) ? sfPathCardHtml(o) : sfNotStartedCardHtml(o)) +
     overview +
     /* No contacts list under it any more, so the panel's segments have
        nothing on this page to narrow — they open the people instead. */
