@@ -5,8 +5,7 @@
       "name": "aee-crm",
       "runtimeExecutable": "python",
       "runtimeArgs": [
-        "-m",
-        "http.server",
+        "scripts/serve.py",
         "8140"
       ],
       "port": 8140
