@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Dashboard + Pipeline
-   The dashboard answers one question for a sales rep opening the app in
-   the morning: who do I call today, and why.
+   Dashboard
+   One question for a sales rep opening the app in the morning: who do I
+   call today, and why. The pipeline itself lives in views-pipeline.js.
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
@@ -29,8 +29,8 @@ function renderDashboard() {
 
   /* ── Stat row ───────────────────────────────────────────────── */
   const stats = [
-    { icon: 'building', cls: 'green', label: 'Offtakers tracked', value: offtakers.length,
-      sub: offtakers.filter(o => o.status === 'prospect').length + ' still untouched', go: "nav('offtakers')" },
+    { icon: 'building', cls: 'green', label: 'Companies tracked', value: offtakers.length,
+      sub: offtakers.filter(o => !inPipeline(o)).length + ' not being worked yet', go: "nav('offtakers')" },
     { icon: 'pipeline', cls: 'amber', label: 'Open pipeline', value: fmtNum(pipelineMw()) + ' MW',
       sub: openDeals.length + ' live opportunities', go: "nav('pipeline')" },
     { icon: 'trending', cls: 'blue', label: 'Weighted value', value: fmtR(weighted),
@@ -77,8 +77,9 @@ function renderDashboard() {
      300 MW deal makes the MW funnel look healthy while the account funnel
      shows the truth, and counting accounts alone hides that one of them is
      worth ten of the others. */
+  const working = pipelineAccounts();
   const byAccountStage = SF_STAGES.map(st => {
-    const list = state.offtakers.filter(o => sfStageFor(o) === st.id);
+    const list = working.filter(o => sfStageFor(o) === st.id);
     return { ...st, count: list.length, stalled: list.filter(isStalled).length };
   });
   const maxAccounts = Math.max(1, ...byAccountStage.map(x => x.count));
@@ -92,7 +93,7 @@ function renderDashboard() {
   const funnelHtml =
     '<div class="card">' +
       '<div class="card-header"><div><div class="card-title">Pipeline by stage</div>' +
-      '<div class="card-sub">Companies through the sales process, capacity through the deal stages</div></div>' +
+      '<div class="card-sub">' + working.length + ' account' + (working.length === 1 ? '' : 's') + ' being worked, capacity through the deal stages</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="nav(\'pipeline\')">Open board</button></div>' +
 
       '<div class="funnel-head"><span>Accounts</span><span>stalled</span><span>total</span></div>' +
@@ -118,7 +119,8 @@ function renderDashboard() {
 
       '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
       stalledCount + ' account' + (stalledCount === 1 ? ' has' : 's have') +
-      ' sat longer than the stage allows. ' + fmtNum(contractedMw()) + ' MW signed to date.</div>' +
+      ' sat longer than the stage allows. ' + fmtNum(contractedMw()) + ' MW signed to date. ' +
+      'The other ' + (state.offtakers.length - working.length) + ' companies are research, not pipeline.</div>' +
     '</div>';
 
   /* ── Sector mix ─────────────────────────────────────────────── */
@@ -180,234 +182,9 @@ function growBars() {
   }, 40);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PIPELINE — drag-and-drop kanban of PPA opportunities
-   ═══════════════════════════════════════════════════════════════ */
-function renderPipeline() {
-  const open = liveDeals();
-  setPage('Pipeline', open.length + ' live opportunities · ' + fmtNum(pipelineMw()) + ' MW under discussion',
-    viewToggle('pipeView', [['board', 'Deals'], ['accounts', 'Accounts'], ['table', 'Table']]) +
-    '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
-    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
-
-  const totalWeighted = liveDeals().reduce((s, d) => s + weightedValue(d), 0);
-  const summary =
-    '<div class="stats-grid">' +
-      statTile('pipeline', 'amber', 'Open opportunities', open.length, fmtNum(pipelineMw()) + ' MW') +
-      statTile('trending', 'blue', 'Weighted pipeline', fmtR(totalWeighted), 'across contract life') +
-      statTile('bolt', 'green', 'Signed', fmtNum(contractedMw()) + ' MW',
-        state.deals.filter(d => d.stage === 'signed').length + ' executed PPAs') +
-      statTile('clock', 'purple', 'Average tenor',
-        open.length ? Math.round(open.reduce((s, d) => s + num(d.tenor), 0) / open.length) + ' yrs' : '—',
-        'across live opportunities') +
-    '</div>';
-
-  if (state.pipeView === 'accounts') {
-    setContent(accountStageStats() + accountBoardHtml() +
-      '<div class="fg-hint" style="margin-top:12px">Drag a company between columns to move it along the sales ' +
-      'process. Moving it writes the matching status on the record and logs the change against the account.</div>');
-    return;
-  }
-
-  if (state.pipeView === 'table') {
-    setContent(summary + dealTableHtml() +
-      '<div class="fg-hint" style="margin-top:12px">The table reads the whole pipeline in stage order. ' +
-      'Switch back to the board to move a deal between stages by dragging it.</div>');
-    return;
-  }
-
-  const cols = PIPELINE_STAGES.map(s => {
-    const list = state.deals.filter(d => d.stage === s.id);
-    const mw = list.reduce((a, d) => a + num(d.mw), 0);
-    const val = list.reduce((a, d) => a + weightedValue(d), 0);
-    return '<div class="kcol" data-stage="' + s.id + '" ondragover="pipeDragOver(event)" ondragleave="pipeDragLeave(event)" ondrop="pipeDrop(event)">' +
-      '<div class="kcol-head"><div class="kcol-title" title="' + esc(s.hint) + '">' + esc(s.label) + '</div>' +
-      '<div class="kcol-count">' + list.length + '</div></div>' +
-      '<div class="kcol-value">' + fmtNum(mw) + ' MW · ' + fmtR(val) + '</div>' +
-      list.map(dealCardHtml).join('') +
-      (list.length ? '' : '<div class="fg-hint" style="padding:12px 4px;text-align:center">Drop here</div>') +
-    '</div>';
-  }).join('');
-
-  setContent(summary + '<div class="kanban">' + cols + '</div>' +
-    '<div class="fg-hint" style="margin-top:12px">Drag a card between columns to move the deal. Values assume a ' +
-    Math.round(CAPACITY_FACTOR * 100) + '% capacity factor on contracted MW and are indicative only.</div>');
-}
-
-/* Same deals as the board, ordered by stage then by size — the reading a
-   manager wants when the question is "what is actually in there". */
-function dealTableHtml() {
-  const order = PIPELINE_STAGES.map(s => s.id);
-  const list = state.deals.slice().sort((a, b) =>
-    order.indexOf(a.stage) - order.indexOf(b.stage) || num(b.mw) - num(a.mw));
-
-  if (!list.length) {
-    return '<div class="empty"><div class="ei">' + icon('pipeline', 30) + '</div>' +
-      '<h3>No opportunities yet</h3><p>Open one from an offtaker page, or add it here.</p></div>';
-  }
-
-  return '<div class="table-wrap"><table><thead><tr>' +
-    '<th>Account</th><th>Site</th><th>Stage</th><th class="num">MW</th><th class="num">R/kWh</th>' +
-    '<th class="num">Tenor</th><th class="num">Likely</th><th class="num">Weighted</th><th>Close</th><th>Actions</th>' +
-    '</tr></thead><tbody>' +
-    list.map(d => {
-      const acc = dealAccount(d);
-      const p = getProject(d.projectId);
-      const stage = PIPELINE_STAGES.find(s => s.id === d.stage);
-      return '<tr>' +
-        '<td>' + (acc.id
-          ? '<span class="ext-link" style="cursor:pointer" onclick="nav(' + jsStr(acc.view) + ',{id:' + jsStr(acc.id) + '})">' +
-            esc(acc.name) + '</span>' +
-            (acc.kind === 'prospect' ? ' <span class="chip" style="font-size:9px;padding:1px 6px">lead</span>' : '')
-          : '<span style="color:var(--muted)">Unknown account</span>') + '</td>' +
-        '<td>' + esc(p.town || p.name || '—') + '</td>' +
-        '<td><span class="badge ' + (d.stage === 'signed' ? 'b-contracted' : 'b-prospect') + '">' +
-          esc(stage ? stage.label : d.stage) + '</span></td>' +
-        '<td class="num">' + fmtNum(d.mw) + '</td>' +
-        '<td class="num">' + num(d.tariff).toFixed(2) + '</td>' +
-        '<td class="num">' + num(d.tenor) + ' yr</td>' +
-        '<td class="num">' + num(d.probability) + '%</td>' +
-        '<td class="num" style="font-weight:800">' + fmtR(weightedValue(d)) + '</td>' +
-        '<td>' + (d.closeDate ? esc(d.closeDate) : '<span style="color:var(--muted)">—</span>') + '</td>' +
-        '<td style="white-space:nowrap">' +
-          '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditDeal(\'' + d.id + '\')">' + icon('edit', 11) + '</button>' +
-        '</td></tr>';
-    }).join('') + '</tbody></table></div>';
-}
-
-/* ═══ THE SALES PROCESS, BY ACCOUNT ═══════════════════════
-   The deal board answers "what is in the pipeline"; this answers "where is
-   each company in the process". Same records, coarser question — and the
-   one a sales manager asks first. */
-function accountStageStats() {
-  const open = state.offtakers.filter(o => sfStageFor(o) !== 'closed');
-  const won = state.offtakers.filter(o => sfStageFor(o) === 'closed' && !sfIsClosedLost(o));
-  const lost = state.offtakers.filter(o => sfIsClosedLost(o));
-  const leads = state.offtakers.filter(isUnworked).length;
-  return '<div class="stats-grid">' +
-    statTile('building', 'amber', 'Accounts in process', open.length,
-      fmtNum(open.reduce((a, o) => a + num(o.annualGwh), 0)) + ' GWh a year between them') +
-    statTile('check', 'green', 'Closed won', won.length, 'contracted') +
-    statTile('alert', 'blue', 'Closed lost', lost.length, 'out of the process') +
-    statTile('clock', 'amber', 'Stalled', state.offtakers.filter(isStalled).length,
-      'sitting longer than the stage allows') +
-    statTile('target', 'purple', 'No load yet', leads, 'nobody has sized them', "nav('offtakers')") +
-  '</div>';
-}
-
-function accountBoardHtml() {
-  const cols = SF_STAGES.map(st => {
-    const list = state.offtakers.filter(o => sfStageFor(o) === st.id)
-      .sort((a, b) => fitScore(b) - fitScore(a));
-    const gwh = list.reduce((a, o) => a + num(o.annualGwh), 0);
-    const stuck = list.filter(isStalled).length;
-    return '<div class="kcol" data-sfstage="' + st.id + '" ondragover="pipeDragOver(event)" ' +
-      'ondragleave="pipeDragLeave(event)" ondrop="sfDrop(event)">' +
-      '<div class="kcol-head"><div class="kcol-title" title="' + esc(st.hint) + '">' + esc(st.label) + '</div>' +
-      '<div class="kcol-count">' + list.length + '</div></div>' +
-      '<div class="kcol-value">' + fmtNum(gwh) + ' GWh a year' +
-        (stuck ? ' <span style="color:var(--warn)">· ' + stuck + ' stalled</span>' : '') + '</div>' +
-      list.map(accountCardHtml).join('') +
-      (list.length ? '' : '<div class="fg-hint" style="padding:12px 4px;text-align:center">Drop here</div>') +
-    '</div>';
-  }).join('');
-  return '<div class="kanban">' + cols + '</div>';
-}
-
-function accountCardHtml(o) {
-  const deals = dealsFor(o.id);
-  const mw = deals.reduce((a, d) => a + num(d.mw), 0);
-  const fit = fitScore(o);
-  return '<div class="pipeline-card" draggable="true" data-id="' + esc(o.id) + '" ' +
-    'ondragstart="sfDragStart(event)" ondragend="pipeDragEnd(event)" ' +
-    'onclick="nav(' + jsStr(accountView(o.id)) + ',{id:' + jsStr(o.id) + '})">' +
-    '<div class="pc-name">' + esc(o.short || o.name) + '</div>' +
-    '<div class="pc-sub">' + esc(sectorName(o.sector)) + (o.city ? ' · ' + esc(o.city) : '') + '</div>' +
-    '<div class="pc-row"><span>' + fmtNum(o.annualGwh) + ' GWh/yr</span>' +
-      '<span class="pc-val">' + (deals.length ? fmtNum(mw) + ' MW open' : 'no opportunity') + '</span></div>' +
-    '<div class="fit-bar" style="margin-top:8px"><span style="background:' + fitColor(fit) + ';width:' + fit + '%"></span></div>' +
-    '<div class="pc-row"><span style="font-size:9.5px;letter-spacing:.4px;text-transform:uppercase">fit ' + fit + '/100</span>' +
-      /* A closed account cannot stall and its dwell says nothing useful;
-         which way it closed does. */
-      (sfStageFor(o) === 'closed'
-        ? '<span style="font-size:10px">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>'
-        : dwellChipHtml(o)) + '</div>' +
-  '</div>';
-}
-
-let _dragAccountId = null;
-function sfDragStart(e) {
-  if (state.role !== 'admin') { e.preventDefault(); return; }
-  _dragAccountId = e.currentTarget.dataset.id;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-  try { e.dataTransfer.setData('text/plain', _dragAccountId); } catch (err) {}
-}
-function sfDrop(e) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drop-target');
-  const stage = e.currentTarget.dataset.sfstage;
-  if (!_dragAccountId || !stage) return;
-  setSfStage(_dragAccountId, stage);
-}
-
 function statTile(ic, cls, label, value, sub, go) {
   return '<div class="stat-card"' + (go ? ' onclick="' + go + '"' : ' style="cursor:default"') + '>' +
     '<div class="stat-icon-box ' + cls + '">' + icon(ic, 18) + '</div>' +
     '<div class="stat-text"><div class="stat-label">' + esc(label) + '</div>' +
     '<div class="stat-value">' + value + '</div><div class="stat-sub">' + esc(sub || '') + '</div></div></div>';
-}
-
-function dealCardHtml(d) {
-  const acc = dealAccount(d);
-  const p = getProject(d.projectId);
-  return '<div class="pipeline-card" draggable="true" data-id="' + d.id + '" ondragstart="pipeDragStart(event)" ondragend="pipeDragEnd(event)" onclick="openEditDeal(\'' + d.id + '\')">' +
-    '<div class="pc-name">' + esc(acc.name) +
-      (acc.kind === 'prospect' ? ' <span class="chip" style="font-size:9px;padding:1px 6px">lead</span>' : '') + '</div>' +
-    '<div class="pc-sub">' + esc(p.town || p.name || 'No site assigned') + ' · ' + num(d.tenor) + ' yr · R' + num(d.tariff).toFixed(2) + '/kWh</div>' +
-    '<div class="pc-row"><span>' + fmtNum(d.mw) + ' MW</span><span class="pc-val">' + fmtR(dealAnnualValue(d)) + '/yr</span></div>' +
-    '<div class="fit-bar" style="margin-top:8px"><span data-w="' + num(d.probability) + '" style="background:var(--accent);width:' + num(d.probability) + '%"></span></div>' +
-    '<div class="pc-row"><span style="font-size:9.5px;letter-spacing:.4px;text-transform:uppercase">' + num(d.probability) + '% likely</span>' +
-    (d.closeDate ? '<span style="font-size:10px">' + esc(d.closeDate) + '</span>' : '') + '</div>' +
-  '</div>';
-}
-
-let _dragDealId = null;
-function pipeDragStart(e) {
-  /* Read-only users cannot move deals; the server would refuse the write
-     anyway, so stop it here rather than showing a card that snaps back. */
-  if (state.role !== 'admin') { e.preventDefault(); return; }
-  _dragDealId = e.currentTarget.dataset.id;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-  try { e.dataTransfer.setData('text/plain', _dragDealId); } catch (err) {}
-}
-function pipeDragEnd(e) { e.currentTarget.classList.remove('dragging'); }
-function pipeDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drop-target'); }
-function pipeDragLeave(e) { e.currentTarget.classList.remove('drop-target'); }
-function pipeDrop(e) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drop-target');
-  const stage = e.currentTarget.dataset.stage;
-  const d = state.deals.find(x => x.id === _dragDealId);
-  if (!d || d.stage === stage) return;
-  const from = PIPELINE_STAGES.find(s => s.id === d.stage);
-  d.stage = stage;
-  /* Keep probability roughly in step with the stage so the weighted number
-     stays honest without the rep having to remember to update it. */
-  const defaults = { identified: 10, contacted: 20, qualified: 35, proposal: 45, diligence: 60, negotiation: 75, signed: 100 };
-  d.probability = defaults[stage] ?? d.probability;
-  const acc = dealAccount(d);
-  const entry = {
-    id: uid('int'), offtakerId: d.offtakerId,
-    date: todayISO(), type: 'stage change',
-    summary: (acc.name || 'Deal') + ' moved from ' + (from ? from.label : d.stage) + ' to ' +
-      (PIPELINE_STAGES.find(s => s.id === stage) || {}).label,
-  };
-  state.interactions.push(entry);
-  pushDeal(d);
-  pushInteraction(entry);
-  save();
-  renderPipeline();
-  toast('Moved to ' + (PIPELINE_STAGES.find(s => s.id === stage) || {}).label);
 }

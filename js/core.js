@@ -404,6 +404,23 @@ function sfStageFor(rec) {
 }
 function sfStageLabel(rec) { return (sfStageOf(sfStageFor(rec)) || {}).label || '—'; }
 
+/* ─── WHO IS ACTUALLY IN THE PIPELINE ──────────────────────────
+   The company list is a research bench of several hundred names, and a
+   name on it is not a sales process. A record joins the pipeline when
+   somebody puts it there, and the stage on the record IS that act — which
+   is why an untouched company carries no stage rather than defaulting to
+   Prospecting. Without the distinction the first column of the board is
+   three hundred cards nobody has called and every conversion figure is
+   measured against a list of strangers. */
+function inPipeline(rec) {
+  if (!rec) return false;
+  if (rec.sfStage && sfStageOf(rec.sfStage)) return true;
+  /* Records that predate the stage but have plainly been worked: a status
+     past prospect only gets written by somebody moving them along. */
+  return !!rec.status && rec.status !== 'prospect' && rec.status !== 'parked';
+}
+function pipelineAccounts() { return state.offtakers.filter(inPipeline); }
+
 /* Closed splits in two and only the status records which way it went. */
 function sfIsClosedLost(rec) { return sfStageFor(rec) === 'closed' && rec.status === 'lost'; }
 function sfStageBadge(rec) {
@@ -515,6 +532,22 @@ function sfPathHtml(rec) {
       'onclick="setSfStage(' + jsStr(rec.id) + ',' + jsStr(st.id) + ')">' +
       esc(label) + '</button>';
   }).join('') + '</div>';
+}
+
+/* A company nobody has started working is not partway through anything,
+   and drawing it parked at Prospecting claims a process that does not
+   exist. Show the path greyed out with the move that would start one. */
+function sfNotStartedCardHtml(rec) {
+  return '<div class="card" style="margin-bottom:14px">' +
+    '<div class="card-header"><div><div class="card-title">Not in the pipeline</div>' +
+    '<div class="card-sub">Researched, but nobody is working it. Moving it in starts the sales ' +
+    'process and puts it on the board.</div></div>' +
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="addToPipeline(' + jsStr(rec.id) + ')">' +
+    icon('target', 14) + ' Move into the pipeline</button></div>' +
+    '<div class="sfpath">' + SF_STAGES.map(st =>
+      '<div class="sfp-step idle" title="' + esc(st.hint) + '">' + esc(st.label) + '</div>').join('') +
+    '</div>' +
+  '</div>';
 }
 
 /* The card the path sits in, with the stage's own one-line definition

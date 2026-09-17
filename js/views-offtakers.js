@@ -27,10 +27,14 @@ function filteredOfftakers() {
     if (term && !(o.name + ' ' + o.short + ' ' + o.city + ' ' + o.province + ' ' + o.description).toLowerCase().includes(term)) return false;
     if (state.offSector && o.sector !== state.offSector) return false;
     if (state.offStatus && o.status !== state.offStatus) return false;
-    /* sfStageFor, not o.sfStage: an account that predates the path has no
-       stage written on it and reads its position out of its status, and it
-       should still be found by the stage it is plainly at. */
-    if (state.offStage && sfStageFor(o) !== state.offStage) return false;
+    /* Filtering by stage has to mean "in the pipeline at this stage".
+       sfStageFor answers for any record, including the hundreds nobody has
+       picked up — so asking for Prospecting without the membership test
+       returns the whole research bench. sfStageFor rather than o.sfStage,
+       though: an account that predates the path reads its position out of
+       its status and should still be found by the stage it is plainly at. */
+    if (state.offStage === 'none') { if (inPipeline(o)) return false; }
+    else if (state.offStage && (!inPipeline(o) || sfStageFor(o) !== state.offStage)) return false;
     if (state.offStalled === 'stalled' && !isStalled(o)) return false;
     if (state.offProvince && o.province !== state.offProvince) return false;
     return true;
@@ -55,7 +59,7 @@ function renderOfftakers() {
       'oninput="state.offSearch=this.value;state.offPage=1;renderOfftakers()"></div>' +
       '<select class="flt" onchange="state.offSector=this.value;state.offPage=1;renderOfftakers()">' +
         '<option value="">All sectors</option>' + sectorOptions(state.offSector) + '</select>' +
-      selectFlt('offStage', 'Any sales stage', SF_STAGES.map(st => [st.id, st.label])) +
+      selectFlt('offStage', 'Any sales stage', SF_STAGES.map(st => [st.id, st.label]).concat([['none', 'Not in the pipeline']])) +
       selectFlt('offStalled', 'Stalled or not', [['stalled', 'Stalled only']]) +
       selectFlt('offStatus', 'All statuses', Object.entries(STATUS_LABEL)) +
       selectFlt('offProvince', 'All provinces', provinces.map(p => [p, p])) +
@@ -347,7 +351,7 @@ function renderDetail() {
       '</div>'
     : '';
 
-  setContent(hero + sfPathCardHtml(o) + overview + pitch +
+  setContent(hero + (inPipeline(o) ? sfPathCardHtml(o) : sfNotStartedCardHtml(o)) + overview + pitch +
     '<div style="margin-top:14px">' + contactMixHtml(o, people) + '</div>' +
     '<div class="cols-2" style="margin-top:14px">' +
       '<div style="display:flex;flex-direction:column;gap:14px">' + contactsHtml + dealsHtml + logHtml + '</div>' +
