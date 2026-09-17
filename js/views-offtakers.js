@@ -45,7 +45,7 @@ function filteredOfftakers() {
 function renderOfftakers() {
   const list = filteredOfftakers();
   const totalGwh = list.reduce((s, o) => s + num(o.annualGwh), 0);
-  setPage('Offtakers', state.offtakers.length + ' companies tracked · ' + fmtNum(totalGwh) + ' GWh/yr addressable',
+  setPage('Off-taker Prospects', state.offtakers.length + ' companies tracked · ' + fmtNum(totalGwh) + ' GWh/yr addressable',
     viewToggle('offView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
