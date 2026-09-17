@@ -116,11 +116,34 @@ function offtakerCardHtml(o) {
     '<div class="ec-footer" style="border-top:none;padding-top:0;margin-top:6px">' +
       '<span>' + icon('contacts', 13) + ' ' + cc + ' contact' + (cc === 1 ? '' : 's') + '</span>' +
       '<div class="ec-actions">' +
+        workItButtonHtml(o, true) +
         '<button class="btn btn-xs btn-outline" data-admin-only onclick="event.stopPropagation();openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 12) + '</button>' +
         '<button class="btn btn-xs btn-danger" data-admin-only onclick="event.stopPropagation();confirmDelete(\'offtaker\',\'' + o.id + '\')">' + icon('trash', 12) + '</button>' +
       '</div>' +
     '</div>' +
   '</div>';
+}
+
+/* Start working a company without opening it.
+
+   A record sits in this list a long time before anybody picks it up, and
+   the move that changes that - putting it on the pipeline board - used to
+   need a trip into the record to find. It is the one action here that
+   changes what the row IS rather than editing its fields, so it leads the
+   actions cell.
+
+   Shown only while the account is outside the pipeline. Once it is on the
+   board the button has nothing left to do, and leaving it there invites a
+   click that can only answer "already in the pipeline".
+
+   The card passes stopProp because its whole surface opens the record;
+   the table cell already stops propagation for every control in it. */
+function workItButtonHtml(o, stopProp) {
+  if (inPipeline(o)) return '';
+  return '<button class="btn btn-xs btn-primary" data-admin-only ' +
+    'title="Move into the pipeline at Prospecting - makes this a workable opportunity" ' +
+    'onclick="' + (stopProp ? 'event.stopPropagation();' : '') + 'addToPipeline(' + jsStr(o.id) + ')">' +
+    icon('target', 12) + ' Work it</button> ';
 }
 
 function offtakerTableHtml(list) {
@@ -149,6 +172,7 @@ function offtakerTableHtml(list) {
         '<td>' + dwellChipHtml(o) + '</td>' +
         '<td class="num">' + contactsFor(o.id).length + '</td>' +
         '<td onclick="event.stopPropagation()" style="white-space:nowrap">' +
+          workItButtonHtml(o) +
           (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Site</a> ' : '') +
           '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 12) + '</button> ' +
           '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'offtaker\',\'' + o.id + '\')">' + icon('trash', 12) + '</button>' +
