@@ -178,13 +178,6 @@ function renderDetail() {
   const people = contactsFor(o.id);
 
   setPage(o.short || o.name, sectorName(o.sector) + ' · ' + esc(o.city) + ', ' + esc(o.province),
-    /* The only way into the pipeline used to be a button on the stage
-       card. With that card gone the action still has to exist, and it is
-       only worth offering while the account is outside the pipeline. */
-    (inPipeline(o) ? '' :
-      '<button class="btn btn-outline btn-sm" data-admin-only onclick="addToPipeline(' + jsStr(o.id) + ')" ' +
-      'title="Start working this account - puts it on the pipeline board at Prospecting">' +
-      icon('target', 14) + ' Move into the pipeline</button>') +
     '<button class="btn btn-outline btn-sm" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})" title="Visual org chart: who sits where">' + icon('grid', 14) + ' Org map</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openLogInteraction(\'' + o.id + '\')">' + icon('note', 14) + ' Log activity</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add contact</button>' +
@@ -246,6 +239,11 @@ function renderDetail() {
     : '';
 
   setContent(hero +
+    /* The path is the control a rep uses every day, so it sits at the top
+       of the record where Salesforce puts it. A company nobody has started
+       working gets the greyed-out version, which carries the move that
+       starts the process rather than claiming one already exists. */
+    (inPipeline(o) ? sfPathCardHtml(o) : sfNotStartedCardHtml(o)) +
     overview +
     /* No contacts list under it any more, so the panel's segments have
        nothing on this page to narrow — they open the people instead. */
