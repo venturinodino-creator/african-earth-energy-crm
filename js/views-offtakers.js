@@ -227,9 +227,6 @@ function renderDetail() {
       '</div>' +
     '</div>';
 
-  /* Real paragraphs rather than one block of pre-line text: the column
-     layout needs something it can avoid breaking in the middle of, and a
-     blank line in the source is what the writer meant by a paragraph. */
   /* The researched overview, and how to approach the call. Both came
      across when leads and offtakers became one record type, and they are
      the only thing a company nobody has sized yet actually has. */
@@ -253,6 +250,16 @@ function renderDetail() {
     /* No contacts list under it any more, so the panel's segments have
        nothing on this page to narrow — they open the people instead. */
     '<div style="margin-top:14px">' + contactMixHtml(o, people, { noList: true }) + '</div>');
+}
+
+/* Blank-line-separated text into real paragraphs. The blurbs were written
+   as prose and used to render as one pre-line block, which the column
+   layout has no way to avoid breaking mid-sentence — a <p> it can keep
+   whole. A single newline stays a line break inside its paragraph. */
+function proseHtml(text) {
+  return String(text || '').split(/\n\s*\n/)
+    .map(p => p.trim()).filter(Boolean)
+    .map(p => '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>').join('');
 }
 
 function dhMetric(value, label, hl) {
