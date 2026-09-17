@@ -334,6 +334,16 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .fg textarea{min-height:74px;resize:vertical;line-height:1.5}
 .fg select option{background:#0d1524}
 .fg-hint{font-size:10px;color:var(--muted);line-height:1.4}
+
+/* The researched overview runs to several paragraphs. Capped at one 80ch
+   column it left most of a wide card empty and stood twice as tall as it
+   needed to, so it flows into as many columns as the card can hold at a
+   readable measure — two on a desktop, one on a laptop or a phone, with
+   no breakpoint to maintain. Paragraphs stay whole across the split. */
+.blurb{font-size:12.5px;color:var(--text2);line-height:1.7;
+  columns:36em;column-gap:36px}
+.blurb p{margin:0 0 1.1em;break-inside:avoid}
+.blurb p:last-child{margin-bottom:0}
 .form-section{border-top:1px solid var(--border);margin-top:16px;padding-top:16px}
 .form-section-title{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.9px;text-transform:uppercase;margin-bottom:12px}
 
