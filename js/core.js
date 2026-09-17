@@ -14,7 +14,6 @@ let state = {
   contacts: [],
   deals: [],
   interactions: [],
-  prospects: [],
   projects: [],
 
   role: null,   // 'admin' | 'viewer' | 'pending' | null (signed out)
@@ -162,9 +161,20 @@ function sectorOptions(selected) {
 }
 
 function getOfftaker(id) { return state.offtakers.find(o => o.id === id) || {}; }
-/* Returns undefined rather than {} — the router uses it as an existence
-   check before routing to a prospect profile. */
-function getProspect(id) { return state.prospects.find(p => p.id === id); }
+/* Leads and offtakers are one record type. A company nobody has
+   established a load for is not a different kind of thing — it is an
+   account at the start of the process, so "unworked" is a question about
+   the figures, not about which table the row sits in. */
+function isUnworked(o) { return !num(o && o.annualGwh); }
+/* What to show in place of a firm annual figure when nobody has
+   established one. A band with its basis attached stays honest; a bare
+   number reads as fact and ends up in a quote. */
+function loadBandText(o) {
+  const lo = num(o.gwhLow), hi = num(o.gwhHigh);
+  if (!lo && !hi) return 'not established';
+  if (lo && hi) return fmtNum(lo) + '–' + fmtNum(hi);
+  return fmtNum(lo || hi);
+}
 /* Contacts, interactions and the org map all hang off one id column, and
    that id is now either an offtaker or a municipality. Anything generic
    resolves through getAccount; getOfftaker stays offtaker-only, so an
@@ -323,18 +333,16 @@ function lsSet(key, value) {
 async function load() {
   state.projects = JSON.parse(JSON.stringify(AEE_PROJECTS));
   try {
-    const [offtakers, contacts, deals, interactions, prospects] = await Promise.all([
+    const [offtakers, contacts, deals, interactions] = await Promise.all([
       supaFetch('aee_offtakers?select=*&order=name'),
       supaFetch('aee_contacts?select=*&order=last'),
       supaFetch('aee_deals?select=*&order=mw.desc'),
       supaFetch('aee_interactions?select=*&order=date.desc'),
-      supaFetch('aee_prospects?select=*&order=name'),
     ]);
     state.offtakers = (offtakers || []).map(rowToOfftaker);
     state.contacts = (contacts || []).map(rowToContact);
     state.deals = (deals || []).map(rowToDeal);
     state.interactions = (interactions || []).map(rowToInteraction);
-    state.prospects = (prospects || []).map(rowToProspect);
     cacheLocally();
   } catch (e) {
     console.warn('Could not reach Supabase, falling back to the local cache:', e);
@@ -344,10 +352,9 @@ async function load() {
       state.contacts = cache.contacts || [];
       state.deals = cache.deals || [];
       state.interactions = cache.interactions || [];
-      state.prospects = cache.prospects || [];
       toast('Working from a cached copy — changes will not be saved', 'warn');
     } else {
-      state.offtakers = []; state.contacts = []; state.deals = []; state.interactions = []; state.prospects = [];
+      state.offtakers = []; state.contacts = []; state.deals = []; state.interactions = [];
       toast('Could not load the CRM data', 'danger');
     }
   }
@@ -358,7 +365,7 @@ async function load() {
 function cacheLocally() {
   lsSet('cache', {
     offtakers: state.offtakers, contacts: state.contacts,
-    deals: state.deals, interactions: state.interactions, prospects: state.prospects,
+    deals: state.deals, interactions: state.interactions,
     at: new Date().toISOString(),
   });
 }
@@ -397,6 +404,23 @@ function sfStageFor(rec) {
 }
 function sfStageLabel(rec) { return (sfStageOf(sfStageFor(rec)) || {}).label || '—'; }
 
+/* ─── WHO IS ACTUALLY IN THE PIPELINE ──────────────────────────
+   The company list is a research bench of several hundred names, and a
+   name on it is not a sales process. A record joins the pipeline when
+   somebody puts it there, and the stage on the record IS that act — which
+   is why an untouched company carries no stage rather than defaulting to
+   Prospecting. Without the distinction the first column of the board is
+   three hundred cards nobody has called and every conversion figure is
+   measured against a list of strangers. */
+function inPipeline(rec) {
+  if (!rec) return false;
+  if (rec.sfStage && sfStageOf(rec.sfStage)) return true;
+  /* Records that predate the stage but have plainly been worked: a status
+     past prospect only gets written by somebody moving them along. */
+  return !!rec.status && rec.status !== 'prospect' && rec.status !== 'parked';
+}
+function pipelineAccounts() { return state.offtakers.filter(inPipeline); }
+
 /* Closed splits in two and only the status records which way it went. */
 function sfIsClosedLost(rec) { return sfStageFor(rec) === 'closed' && rec.status === 'lost'; }
 function sfStageBadge(rec) {
@@ -427,7 +451,7 @@ function sfStageBadge(rec) {
 function logsForAccount(rec) {
   if (!rec || !rec.id) return [];
   return state.interactions
-    .filter(i => i.offtakerId === rec.id || i.prospectId === rec.id)
+    .filter(i => i.offtakerId === rec.id)
     .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 }
 
@@ -510,6 +534,22 @@ function sfPathHtml(rec) {
   }).join('') + '</div>';
 }
 
+/* A company nobody has started working is not partway through anything,
+   and drawing it parked at Prospecting claims a process that does not
+   exist. Show the path greyed out with the move that would start one. */
+function sfNotStartedCardHtml(rec) {
+  return '<div class="card" style="margin-bottom:14px">' +
+    '<div class="card-header"><div><div class="card-title">Not in the pipeline</div>' +
+    '<div class="card-sub">Researched, but nobody is working it. Moving it in starts the sales ' +
+    'process and puts it on the board.</div></div>' +
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="addToPipeline(' + jsStr(rec.id) + ')">' +
+    icon('target', 14) + ' Move into the pipeline</button></div>' +
+    '<div class="sfpath">' + SF_STAGES.map(st =>
+      '<div class="sfp-step idle" title="' + esc(st.hint) + '">' + esc(st.label) + '</div>').join('') +
+    '</div>' +
+  '</div>';
+}
+
 /* The card the path sits in, with the stage's own one-line definition
    underneath so nobody has to guess what "Needs Analysis" means here. */
 function sfPathCardHtml(rec) {
@@ -527,9 +567,11 @@ function sfPathCardHtml(rec) {
    unknown. Everything that renders a deal asks here rather than reaching
    for offtakerId directly, so a prospect's opportunity is never shown as
    belonging to an unknown company. */
-function dealsForProspect(id) { return state.deals.filter(d => d.prospectId === id); }
+/* Kept for the few callers that still ask "what is filed against this
+   company" without knowing it is now always an offtaker. */
+function dealsForProspect(id) { return dealsFor(id); }
 function interactionsForProspect(id) {
-  return state.interactions.filter(i => i.prospectId === id)
+  return state.interactions.filter(i => i.offtakerId === id)
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
@@ -541,15 +583,11 @@ function dealAccount(d) {
     const o = getAccount(d.offtakerId);
     if (o.id) return { id: o.id, name: o.short || o.name, view: accountView(o.id), kind: 'offtaker' };
   }
-  if (d && d.prospectId) {
-    const p = getProspect(d.prospectId);
-    if (p) return { id: p.id, name: p.name, view: 'prospect', kind: 'prospect' };
-  }
   return { id: '', name: 'Unknown account', view: '', kind: 'none' };
 }
 
 /* ─── ROUTING ─────────────────────────────────────────────────── */
-const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map', 'prospect']);
+const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map']);
 
 function navUrlFor(view, id) {
   const p = new URLSearchParams(location.search);
@@ -590,7 +628,6 @@ addEventListener('popstate', e => {
   }
   if ((view === 'detail' || view === 'org-map') && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
   if (view === 'sector' && !(id && sectorOf(id))) { view = 'sectors'; id = null; }
-  if (view === 'prospect' && !(id && getProspect(id))) { view = 'prospects'; id = null; }
   if (id) { if (view === 'sector') state.sectorId = id; else state.detailId = id; }
   nav(view, id ? { id } : {}, true);
 });
@@ -615,8 +652,6 @@ function render() {
     sectors: renderSectors,
     sector: renderSector,
     prospects: renderContactFinder,
-    'prospect-companies': renderProspects,
-    prospect: renderProspect,
     regions: renderRegions,
     contacts: renderContacts,
     projects: renderProjects,
@@ -654,9 +689,6 @@ function updateNavBadges() {
   const hot = state.offtakers.filter(o => fitScore(o) >= 70 && o.status === 'prospect').length;
   const el = document.getElementById('nav-offtakers-badge');
   if (el) { el.textContent = hot; el.style.display = hot ? '' : 'none'; }
-  const pEl = document.getElementById('nav-prospects-badge');
-  const tier1New = state.prospects.filter(p => p.status === 'new' && sectorTier(p.sectorId) === 1).length;
-  if (pEl) { pEl.textContent = tier1New; pEl.style.display = tier1New ? '' : 'none'; }
   const dueEl = document.getElementById('nav-activity-badge');
   const due = state.deals.filter(d => d.closeDate && d.closeDate <= todayISO() && d.stage !== 'signed').length;
   if (dueEl) { dueEl.textContent = due; dueEl.style.display = due ? '' : 'none'; }
@@ -717,11 +749,6 @@ function globalSearch(q) {
   state.projects.forEach(p => {
     if (p.name.toLowerCase().includes(term))
       rows.push({ t: p.name, s: p.mw + ' MW · ' + p.province, go: "nav('projects')" });
-  });
-  state.prospects.forEach(p => {
-    if (p.name.toLowerCase().includes(term))
-      rows.push({ t: p.name, s: 'Prospect · ' + sectorName(p.sectorId),
-        go: "nav('prospect',{id:" + jsStr(p.id) + "})" });
   });
   ALL_SECTORS.forEach(s => {
     if (s.name.toLowerCase().includes(term))

@@ -47,7 +47,7 @@ function renderSectors() {
       statTile('target', 'green', 'Tier 1 — prospect now', tierCounts[1], 'shortest path to a signature') +
       statTile('pipeline', 'amber', 'Tier 2 — real pipeline', tierCounts[2], 'longer cycle, still worth resourcing') +
       statTile('list', 'blue', 'Tier 3 — opportunistic', tierCounts[3], 'inbound or bundled only') +
-      statTile('building', 'purple', 'Named prospects', state.prospects.length, 'across every sector') +
+      statTile('building', 'purple', 'Companies', state.offtakers.length, 'across every sector') +
     '</div>';
 
   if (!list.length) {
@@ -62,7 +62,7 @@ function renderSectors() {
 }
 
 function sectorCardHtml(s) {
-  const promoted = state.prospects.filter(p => p.sectorId === s.id).length;
+  const promoted = state.offtakers.filter(o => o.sector === s.id).length;
   return '<div class="sector-card" onclick="nav(\'sector\',{id:\'' + s.id + '\'})">' +
       '<div class="ec-head">' +
         '<div style="min-width:0">' +
@@ -98,7 +98,7 @@ function sectorTableHtml(list) {
     '<th class="num">Prospects</th><th class="num">Offtakers</th>' +
     '</tr></thead><tbody>' +
     list.map(s => {
-      const promoted = state.prospects.filter(p => p.sectorId === s.id).length;
+      const promoted = state.offtakers.filter(o => o.sector === s.id).length;
       const tracked = state.offtakers.filter(o => o.sector === s.id).length;
       return '<tr class="clickable" onclick="nav(\'sector\',{id:\'' + s.id + '\'})">' +
         '<td><div class="name-cell"><span style="opacity:.6;display:flex">' + sectorIcon(s.id, 15) + '</span>' +
@@ -124,7 +124,6 @@ function renderSector() {
 
   const questions = SECTOR_QUESTIONS[s.id] || [];
   const objections = SECTOR_OBJECTIONS[s.id] || [];
-  const prospects = state.prospects.filter(p => p.sectorId === s.id);
   const offtakers = state.offtakers.filter(o => o.sector === s.id);
   const subs = SUB_SECTORS.filter(x => x.sectorId === s.id);
 
@@ -190,14 +189,16 @@ function renderSector() {
   const qCard = questionsCardHtml(s.id, 'Ask these on the first call');
   const oCard = objectionsCardHtml(s.id);
 
+  const worked = offtakers.filter(o => !isUnworked(o)).length;
   const listCard =
     '<div class="card">' +
-      '<div class="card-header"><div><div class="card-title">Named companies (' + prospects.length + ')</div>' +
-      '<div class="card-sub">' + offtakers.length + ' already being worked as offtakers</div></div>' +
-      '<button class="btn btn-ghost btn-xs" onclick="state.prospectSector=\'' + s.id + '\';nav(\'prospects\')">Open list</button></div>' +
-      (prospects.length ? prospects.slice(0, 12).map(p => prospectRowHtml(p)).join('') +
-        (prospects.length > 12 ? '<div class="fg-hint" style="margin-top:9px">and ' + (prospects.length - 12) + ' more</div>' : '')
-        : '<div class="fg-hint">No named companies in this sector yet.</div>') +
+      '<div class="card-header"><div><div class="card-title">Companies (' + offtakers.length + ')</div>' +
+      '<div class="card-sub">' + worked + ' with an established load</div></div>' +
+      '<button class="btn btn-ghost btn-xs" onclick="state.offSector=\'' + s.id + '\';nav(\'offtakers\')">Open list</button></div>' +
+      (offtakers.length
+        ? offtakers.slice(0, 12).map(o => companyRowHtml(o)).join('') +
+          (offtakers.length > 12 ? '<div class="fg-hint" style="margin-top:9px">and ' + (offtakers.length - 12) + ' more</div>' : '')
+        : '<div class="fg-hint">No companies in this sector yet.</div>') +
     '</div>';
 
   /* Questions and objections are reference material — read once, then
@@ -253,234 +254,17 @@ function copyQuestions(sectorId) {
     .catch(() => toast('Could not copy to the clipboard', 'warn'));
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PROSPECTS — the long list. A prospect carries a name and a sector
-   but no load data, so it is not ranked; it is worked through and
-   promoted into an offtaker once the load is known.
-   ═══════════════════════════════════════════════════════════════ */
-const PROSPECT_STATUS = {
-  new: 'Not started', researching: 'Researching', promoted: 'Promoted',
-  parked: 'Parked', rejected: 'Not a fit',
-};
-
-function renderProspects() {
-  const term = state.prospectSearch.toLowerCase();
-  let list = state.prospects.filter(p => {
-    if (term && !(p.name + ' ' + p.note + ' ' + sectorName(p.sectorId)).toLowerCase().includes(term)) return false;
-    if (state.prospectSector && p.sectorId !== state.prospectSector) return false;
-    if (state.prospectTier && String(sectorTier(p.sectorId)) !== String(state.prospectTier)) return false;
-    if (state.prospectStatus && p.status !== state.prospectStatus) return false;
-    return true;
-  });
-  list = list.sort((a, b) =>
-    sectorTier(a.sectorId) - sectorTier(b.sectorId) ||
-    (sectorOf(b.sectorId)?.ppaFit || 0) - (sectorOf(a.sectorId)?.ppaFit || 0) ||
-    a.name.localeCompare(b.name));
-
-  const open = state.prospects.filter(p => p.status === 'new').length;
-  setPage('Prospects', state.prospects.length + ' named companies · ' + open + ' not yet started',
-    viewToggle('prospectView') +
-    '<button class="btn btn-outline btn-sm" onclick="exportProspects()">' + icon('download', 14) + ' Export</button>' +
-    '<button class="btn btn-outline btn-sm" onclick="nav(\'sectors\')">' + icon('grid', 14) + ' Sectors</button>' +
-    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddProspect()">' +
-      icon('plus', 14) + ' Add lead</button>');
-
-  const counts = {};
-  state.prospects.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1; });
-
-  const stats =
-    '<div class="stats-grid">' +
-      statTile('target', 'green', 'Not started', counts.new || 0, 'still to be worked') +
-      statTile('search', 'amber', 'Researching', counts.researching || 0, 'load data being gathered') +
-      statTile('check', 'blue', 'Promoted', counts.promoted || 0, 'now tracked as offtakers') +
-      statTile('list', 'purple', 'Tier 1 companies',
-        state.prospects.filter(p => sectorTier(p.sectorId) === 1).length, 'in prospect-now sectors') +
-    '</div>';
-
-  const toolbar =
-    '<div class="toolbar">' +
-      '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
-      '<input placeholder="Search company or note..." value="' + esc(state.prospectSearch) + '" ' +
-      'oninput="state.prospectSearch=this.value;state.prospectPage=1;renderProspects()"></div>' +
-      '<select class="flt" onchange="state.prospectSector=this.value;state.prospectPage=1;renderProspects()">' +
-        '<option value="">All sectors</option>' + sectorOptions(state.prospectSector) + '</select>' +
-      '<select class="flt" onchange="state.prospectTier=this.value;state.prospectPage=1;renderProspects()">' +
-        '<option value="">All tiers</option>' +
-        [1, 2, 3].map(t => '<option value="' + t + '"' + (String(state.prospectTier) === String(t) ? ' selected' : '') +
-          '>Tier ' + t + '</option>').join('') + '</select>' +
-      '<select class="flt" onchange="state.prospectStatus=this.value;state.prospectPage=1;renderProspects()">' +
-        '<option value="">Any status</option>' +
-        Object.entries(PROSPECT_STATUS).map(([k, v]) =>
-          '<option value="' + k + '"' + (state.prospectStatus === k ? ' selected' : '') + '>' + esc(v) + '</option>').join('') +
-      '</select>' +
-            '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
-    '</div>';
-
-  if (!list.length) {
-    setContent(stats + toolbar + '<div class="empty"><div class="ei">' + icon('search', 30) + '</div>' +
-      '<h3>No prospects match</h3><p>Loosen the filters to see more of the list.</p></div>');
-    return;
-  }
-
-  const pages = Math.ceil(list.length / PER_PAGE);
-  state.prospectPage = Math.min(Math.max(1, state.prospectPage), pages);
-  const page = list.slice((state.prospectPage - 1) * PER_PAGE, state.prospectPage * PER_PAGE);
-
-  const body = state.prospectView === 'grid'
-    ? '<div class="ent-grid">' + page.map(prospectCardHtml).join('') + '</div>'
-    : prospectTableHtml(page);
-
-  setContent(stats + toolbar + body +
-    (pages > 1 ? '<div class="pagination">' +
-      '<button class="pg-btn" ' + (state.prospectPage === 1 ? 'disabled' : '') + ' onclick="state.prospectPage--;renderProspects()">Previous</button>' +
-      '<span class="pg-info">Page ' + state.prospectPage + ' of ' + pages + '</span>' +
-      '<button class="pg-btn" ' + (state.prospectPage === pages ? 'disabled' : '') + ' onclick="state.prospectPage++;renderProspects()">Next</button>' +
-    '</div>' : '') +
-    '<div class="fg-hint" style="margin-top:12px">Prospects carry a name and a sector but no load data, so they are not ' +
-    'fit-scored. Convert one to an offtaker once you know roughly what it consumes — that is when it starts being ranked.</div>');
-}
-
-function prospectCardHtml(p) {
-  const s = sectorOf(p.sectorId);
-  const promotedTo = p.promotedTo ? getOfftaker(p.promotedTo) : null;
-  return '<div class="ec clickable" onclick="nav(\'prospect\',{id:\'' + esc(p.id) + '\'})">' +
-    '<div class="ec-head">' +
-      '<div class="ec-icon">' + sectorIcon(p.sectorId, 18) + '</div>' +
-      '<span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : p.status === 'new' ? 'b-prospect' : 'b-medium') + '">' +
-        esc(PROSPECT_STATUS[p.status] || p.status) + '</span>' +
-    '</div>' +
-    '<h3>' + esc(p.name) + '</h3>' +
-    (p.note ? '<div class="short">' + esc(p.note) + '</div>' : '') +
-    /* The switchboard and who to ask for. contactLineHtml lives in
-       views-regions.js and is shared so a prospect reads the same way
-       here as it does in a site catchment. */
-    contactLineHtml(p) +
-    /* The overview, source and approach notes all live on the profile
-       now — the card stays a scanning summary and says whether there is
-       anything written to open. */
-    '<div style="font-size:10.5px;color:var(--muted);margin-top:6px">' +
-      (p.blurb ? icon('note', 11) + ' Overview written' : 'No overview yet') + '</div>' +
-    '<div class="meta" style="margin-top:6px">' + icon('grid', 13) +
-      '<span class="ext-link" style="cursor:pointer" onclick="event.stopPropagation();nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
-      esc(sectorName(p.sectorId)) + '</span></div>' +
-    '<div class="fit-row"><span>Tier ' + sectorTier(p.sectorId) + '</span>' + ppaDots(s ? s.ppaFit : 0) + '</div>' +
-    '<div class="ec-footer">' +
-      '<span>' + esc(SECTOR_GROUPS[sectorGroup(p.sectorId)] || '—') + '</span>' +
-      '<div style="display:flex;gap:4px">' +
-        (promotedTo && promotedTo.id
-          ? '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
-          : '<button class="btn btn-xs btn-primary" data-admin-only onclick="event.stopPropagation();promoteProspect(\'' + p.id + '\')">' +
-            icon('plus', 11) + ' Convert</button>') +
-        '<button class="btn btn-xs btn-danger" data-admin-only title="Delete this prospect" ' +
-          'onclick="event.stopPropagation();confirmDelete(\'prospect\',\'' + p.id + '\')">' + icon('trash', 11) + '</button>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-}
-
-function prospectTableHtml(page) {
-  return '<div class="table-wrap"><table><thead><tr>' +
-      '<th>Company</th><th>Sector</th><th>Tier</th><th>PPA fit</th><th>Status</th><th>Actions</th>' +
-    '</tr></thead><tbody>' +
-    page.map(p => {
-      const s = sectorOf(p.sectorId);
-      const promotedTo = p.promotedTo ? getOfftaker(p.promotedTo) : null;
-      return '<tr class="clickable" onclick="nav(\'prospect\',{id:\'' + esc(p.id) + '\'})">' +
-        '<td><div style="font-weight:700">' + esc(p.name) + '</div>' +
-          (p.note ? '<div style="font-size:10.5px;color:var(--muted)">' + esc(p.note) + '</div>' : '') +
-          /* Table is the default view, so the number has to be here and
-             not only on the card — this is the list a rep works down. */
-          (p.phone ? '<div style="font-size:10.5px;margin-top:2px">' +
-            '<a href="tel:' + esc(p.phone.replace(/\s/g, '')) + '" class="ext-link" onclick="event.stopPropagation()">' +
-            esc(p.phone) + '</a></div>' : '') + '</td>' +
-        '<td><span class="ext-link" style="cursor:pointer" onclick="event.stopPropagation();nav(\'sector\',{id:\'' + esc(p.sectorId) + '\'})">' +
-          esc(sectorName(p.sectorId)) + '</span></td>' +
-        '<td><span class="badge b-tier-' + sectorTier(p.sectorId) + '">' + sectorTier(p.sectorId) + '</span></td>' +
-        '<td>' + ppaDots(s ? s.ppaFit : 0) + '</td>' +
-        '<td><span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : p.status === 'new' ? 'b-prospect' : 'b-medium') + '">' +
-          esc(PROSPECT_STATUS[p.status] || p.status) + '</span></td>' +
-        '<td style="white-space:nowrap">' +
-          (promotedTo && promotedTo.id
-            ? '<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();nav(\'detail\',{id:\'' + promotedTo.id + '\'})">Open offtaker</button>'
-            : '<button class="btn btn-xs btn-primary" data-admin-only onclick="event.stopPropagation();promoteProspect(\'' + p.id + '\')">' +
-              icon('plus', 11) + ' Convert</button>') +
-          ' <button class="btn btn-xs btn-danger" data-admin-only title="Delete this prospect" ' +
-            'onclick="event.stopPropagation();confirmDelete(\'prospect\',\'' + p.id + '\')">' + icon('trash', 11) + '</button>' +
-        '</td></tr>';
-    }).join('') + '</tbody></table></div>';
-}
-
-function prospectRowHtml(p) {
-  return '<div class="person-row clickable" onclick="nav(\'prospect\',{id:\'' + esc(p.id) + '\'})">' +
+/* One row per company, for the sector page. Says whether anyone has
+   established a load yet, which is the only thing that now separates a
+   fresh name from an account already being worked. */
+function companyRowHtml(o) {
+  return '<div class="person-row clickable" onclick="nav(\'detail\',{id:\'' + esc(o.id) + '\'})">' +
     '<div style="min-width:0;flex:1">' +
-      '<div class="person-name">' + esc(p.name) + '</div>' +
-      (p.note ? '<div class="person-title">' + esc(p.note) + '</div>' : '') +
+      '<div class="person-name">' + esc(o.short || o.name) + '</div>' +
+      (o.description ? '<div class="person-title">' + esc(o.description) + '</div>' : '') +
     '</div>' +
-    '<span class="badge ' + (p.status === 'promoted' ? 'b-contracted' : 'b-prospect') + '">' +
-      esc(PROSPECT_STATUS[p.status] || p.status) + '</span>' +
+    (isUnworked(o)
+      ? '<span class="badge b-prospect">No load yet</span>'
+      : '<span class="badge b-medium">' + fmtNum(o.annualGwh) + ' GWh/yr</span>') +
   '</div>';
-}
-
-/* Promote a prospect into a working offtaker. Everything the taxonomy
-   knows carries across; the load figures are left blank because they are
-   exactly what the rep has to go and find out. */
-async function promoteProspect(id) {
-  const p = state.prospects.find(x => x.id === id);
-  if (!p) return;
-  if (state.role !== 'admin') { toast('Read-only access — ask an admin to convert this', 'warn'); return; }
-
-  const s = sectorOf(p.sectorId);
-  /* Prospects carry no sales stage, so the new offtaker starts at the
-     beginning of the path. Promotion is the moment the process begins. */
-  const stage = SF_STAGES[0].id;
-  const offtaker = {
-    id: 'off-' + p.id.replace(/^p-/, '').slice(0, 48),
-    name: p.name, short: p.name.split(/[—(,/]/)[0].trim().slice(0, 40),
-    sector: p.sectorId, province: p.province || '', city: p.town || '', website: p.website || '',
-    /* The load band stays behind: it is an estimate with a basis, and the
-       offtaker record's figures are the established ones a quote is built
-       on. Finding them is the job the promotion creates. */
-    annualGwh: 0, peakMw: 0, tariff: MARKET_MEGAFLEX_MID, nmd: 0,
-    supply: 'eskom', wheeling: 'unknown',
-    sfStage: stage,
-    status: (sfStageOf(stage) || {}).status || 'prospect',
-    priority: s && s.tier === 1 ? 'high' : s && s.tier === 2 ? 'medium' : 'low',
-    description: p.note ? p.note + ' — promoted from the ' + sectorName(p.sectorId) + ' prospect list.' : '',
-    estimated: true,
-  };
-  state.offtakers.push(offtaker);
-  p.status = 'promoted';
-  p.promotedTo = offtaker.id;
-
-  /* Opportunities and logged calls belong to the company, not to the row
-     that happened to hold it, so they follow it across. */
-  const moved = dealsForProspect(p.id);
-  moved.forEach(d => { d.offtakerId = offtaker.id; d.prospectId = ''; });
-  const movedLogs = interactionsForProspect(p.id);
-  movedLogs.forEach(i => { i.offtakerId = offtaker.id; i.prospectId = ''; });
-
-  /* Move the screen before syncing. Local state is already correct, and
-     awaiting four round-trips first meant the user clicked Convert and
-     watched nothing happen for seconds — longer, or for ever, when the
-     network is slow or down. guardWrite still surfaces a failed write. */
-  save();
-  toast('Converted — add the load figures to start ranking it');
-  nav('detail', { id: offtaker.id });
-
-  await pushOfftaker(offtaker);
-  await pushProspect(p);
-  await Promise.all(moved.map(d => pushDeal(d)));
-  await Promise.all(movedLogs.map(i => pushInteraction(i)));
-}
-
-function exportProspects() {
-  const head = ['company', 'sector', 'tier', 'group', 'ppa_fit', 'status', 'note', 'promoted_to'];
-  const rows = [head].concat(state.prospects.map(p => {
-    const s = sectorOf(p.sectorId);
-    return [p.name, sectorName(p.sectorId), sectorTier(p.sectorId),
-      SECTOR_GROUPS[sectorGroup(p.sectorId)] || '', s ? s.ppaFit : '',
-      PROSPECT_STATUS[p.status] || p.status, p.note, p.promotedTo || ''];
-  }));
-  downloadCSV('aee-prospects-' + todayISO() + '.csv', rows);
-  toast('Exported ' + state.prospects.length + ' prospects');
 }
