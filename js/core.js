@@ -415,6 +415,9 @@ function sfStageLabel(rec) { return (sfStageOf(sfStageFor(rec)) || {}).label || 
 function inPipeline(rec) {
   if (!rec) return false;
   if (rec.sfStage && sfStageOf(rec.sfStage)) return true;
+  /* An opportunity filed against a company is a sales process by
+     definition, whatever the stage column says. */
+  if (dealsFor(rec.id).length) return true;
   /* Records that predate the stage but have plainly been worked: a status
      past prospect only gets written by somebody moving them along. */
   return !!rec.status && rec.status !== 'prospect' && rec.status !== 'parked';

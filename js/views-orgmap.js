@@ -105,12 +105,20 @@ function aeSeatMatch(seat, c) {
 window.AE_CX_FILTER = null;   // {kind:'role'|'lead'|'dept'|'email'|'dupe'|'ladder', value, oid}
 
 function aeSetFilter(kind, value) {
+  /* Where the panel is shown without a contacts list beneath it, a filter
+     would narrow something the reader cannot see. Send them to the org
+     map, which is where the names are. */
+  if (window.AE_CX_NO_LIST) { nav('org-map', { id: state.detailId }); return; }
   const f = window.AE_CX_FILTER;
   window.AE_CX_FILTER = (f && f.kind === kind && String(f.value) === String(value))
     ? null : { kind, value, oid: state.detailId };
-  renderDetail();
+  /* render, not renderDetail: the panel sits on a municipality page too,
+     and renderDetail there finds no offtaker for the id and bounces to the
+     company list, which is how filtering a municipality's contacts has
+     always thrown the reader off the page. */
+  render();
 }
-function aeClearFilter() { window.AE_CX_FILTER = null; renderDetail(); }
+function aeClearFilter() { window.AE_CX_FILTER = null; render(); }
 function aeActiveFilter(oid) {
   const f = window.AE_CX_FILTER;
   if (f && f.oid !== oid) { window.AE_CX_FILTER = null; return null; }
@@ -162,8 +170,12 @@ function aeDeptKey(d) {
 /* ═══════════════════════════════════════════════════════════════
    THE PANEL
    ═══════════════════════════════════════════════════════════════ */
-function contactMixHtml(o, contacts) {
-  const f = aeActiveFilter(o.id);
+function contactMixHtml(o, contacts, opts) {
+  /* Whether a contacts card follows this panel on the page. It does on a
+     municipality; it no longer does on a company. */
+  const hasList = !(opts && opts.noList);
+  window.AE_CX_NO_LIST = !hasList;
+  const f = hasList ? aeActiveFilter(o.id) : null;
 
   const people = aePeople(contacts);
   const dupeKeys = [];
@@ -246,7 +258,7 @@ function contactMixHtml(o, contacts) {
     return held
       ? '<button class="ia-prod is-linked" style="background:rgba(61,220,132,.10);border-color:rgba(61,220,132,.28)" ' +
         'aria-pressed="' + !!on + '" onclick="aeSetFilter(\'ladder\',\'' + seat.k + '\')" ' +
-        'title="Show only ' + esc(seat.label) + ' contacts">' + inner + '</button>'
+        'title="' + (hasList ? 'Show only ' + esc(seat.label) + ' contacts' : 'Open the org map') + '">' + inner + '</button>'
       : '<div class="ia-prod" style="background:rgba(251,146,60,.07);border-color:rgba(251,146,60,.22)">' + inner + '</div>';
   }).join('');
   const seatsHeld = AE_LADDER.filter(s => people.some(c => aeSeatMatch(s, c))).length;
@@ -267,7 +279,8 @@ function contactMixHtml(o, contacts) {
   return '<div class="card ia-card">' +
     '<div class="card-header" style="margin-bottom:14px">' +
       '<div><div class="card-title">Who is here, and what they hold</div>' +
-      '<div class="card-sub">Read off job titles — click any band to filter the contacts below</div></div>' +
+      '<div class="card-sub">Read off job titles — click any band to ' +
+        (hasList ? 'filter the contacts below' : 'open the people behind it') + '</div></div>' +
       filterChip +
     '</div>' +
     '<div class="ia-grid">' +

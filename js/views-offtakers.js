@@ -157,7 +157,17 @@ function offtakerTableHtml(list) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DETAIL — everything a rep needs on one screen before dialling
+   DETAIL — what is known about a company, and where it stands
+
+   Deliberately three things and no more: who they are, what the desk has
+   researched, and who works there. The pitch, the sector briefing, the
+   supply notes and the outreach templates all used to sit here too, and
+   between them they buried the two cards anybody actually reads.
+
+   The sales path sits at the top for a company being worked, because the
+   pipeline sends you here to move it. A company nobody has picked up gets
+   the way in instead. Opportunities and activity are still logged from the
+   header buttons; they are just not read here.
    ═══════════════════════════════════════════════════════════════ */
 function renderDetail() {
   const o = getOfftaker(state.detailId);
@@ -166,9 +176,6 @@ function renderDetail() {
   const f = fitScore(o);
   const np = nearestProject(o);
   const people = contactsFor(o.id);
-  const deals = dealsFor(o.id);
-  const logs = interactionsFor(o.id);
-  const model = savingsModel(o.annualGwh, o.tariff, DEFAULT_PPA_TARIFF, 100, 20, ESKOM_ESCALATION, DEFAULT_ESCALATION);
 
   setPage(o.short || o.name, sectorName(o.sector) + ' · ' + esc(o.city) + ', ' + esc(o.province),
     '<button class="btn btn-outline btn-sm" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})" title="Visual org chart: who sits where">' + icon('grid', 14) + ' Org map</button>' +
@@ -213,123 +220,6 @@ function renderDetail() {
       '</div>' +
     '</div>';
 
-  /* The pitch block — the numbers a rep quotes on the call. */
-  /* The pitch is arithmetic on the load. With no load established it
-     computes to R0, which reads as "this deal is worth nothing" rather
-     than "nobody has sized it yet" — so say the latter instead. */
-  const pitch = isUnworked(o)
-    ? '<div class="card">' +
-        '<div class="card-header"><div><div class="card-title">The pitch</div>' +
-        '<div class="card-sub">Needs a load figure before it can be modelled</div></div>' +
-        '<button class="btn btn-ghost btn-xs" onclick="openEditOfftaker(\'' + o.id + '\')">Add load</button></div>' +
-        '<div class="fg-hint">' + (num(o.gwhLow) || num(o.gwhHigh)
-          ? 'The band on this record is an estimate with a basis, not a figure to quote. Establish the ' +
-            'annual consumption and the savings case builds itself.'
-          : 'Nobody has established what this company consumes yet. That is the first question on the call.') +
-        '</div>' +
-      '</div>'
-    : '<div class="card">' +
-      '<div class="card-header"><div><div class="card-title">The pitch</div>' +
-      '<div class="card-sub">Indicative, at R' + DEFAULT_PPA_TARIFF.toFixed(2) + '/kWh over 20 years, full load covered</div></div>' +
-      '<button class="btn btn-ghost btn-xs" onclick="openCalcFor(\'' + o.id + '\')">Model it</button></div>' +
-      '<div class="calc-out">' +
-        '<div class="calc-tile"><div class="calc-tile-v">' + fmtR(model.year1Saving) + '</div>' +
-        '<div class="calc-tile-l">Year one saving</div>' +
-        '<div class="calc-tile-s">' + fmtR(model.year1Current) + ' now vs ' + fmtR(model.year1Ppa) + ' on a PPA</div></div>' +
-        '<div class="calc-tile amber"><div class="calc-tile-v">' + fmtR(model.totalSaving) + '</div>' +
-        '<div class="calc-tile-l">20-year saving</div>' +
-        '<div class="calc-tile-s">' + model.pctSaving.toFixed(0) + '% below the projected tariff path</div></div>' +
-        '<div class="calc-tile blue"><div class="calc-tile-v">' + fmtNum(model.co2) + ' t</div>' +
-        '<div class="calc-tile-l">CO₂e avoided a year</div>' +
-        '<div class="calc-tile-s">at ' + GRID_EMISSION_FACTOR + ' t/MWh grid factor</div></div>' +
-      '</div>' +
-      '<div class="fg-hint" style="margin-top:12px">Assumes ' + ESKOM_ESCALATION + '% a year on the current tariff and ' +
-      DEFAULT_ESCALATION + '% on the PPA. Quote as indicative until half-hourly data has been modelled.</div>' +
-    '</div>';
-
-  /* What the desk knows about this sector as a whole. */
-  const sec = sectorOf(o.sector);
-  const sectorCard = sec ? '<div class="card">' +
-      '<div class="card-header"><div><div class="card-title">Sector — ' + esc(sec.name) + '</div>' +
-      '<div class="card-sub">Tier ' + sec.tier + ' · PPA fit ' + sec.ppaFit + '/5 · ' + esc(sec.cycleMonths) + ' month cycle</div></div>' +
-      '<button class="btn btn-ghost btn-xs" onclick="nav(\'sector\',{id:\'' + sec.id + '\'})">Open</button></div>' +
-      '<dl class="kv">' +
-        '<dt>Typical load</dt><dd>' + esc(sec.loadMw) + ' MW</dd>' +
-        '<dt>Typical deal</dt><dd>' + esc(sec.dealMw) + ' MW</dd>' +
-        '<dt>Load profile</dt><dd>' + esc(sec.profile) + '</dd>' +
-        '<dt>Solar match</dt><dd>' + esc(sec.solarMatch) + '</dd>' +
-      '</dl>' +
-      '<div class="form-section-title" style="margin-top:14px">Structures that work here</div>' +
-      '<ul class="check-list">' + sec.structures.slice(0, 3).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
-    '</div>' : '';
-
-  const supply =
-    '<div class="card">' +
-      '<div class="card-header"><div class="card-title">Supply &amp; connection</div></div>' +
-      '<dl class="kv">' +
-        '<dt>Supply authority</dt><dd>' + esc({ eskom: 'Eskom direct', municipal: 'Municipal', mixed: 'Mixed' }[o.supply] || o.supply || '—') + '</dd>' +
-        '<dt>Wheeling</dt><dd>' + esc(WHEELING_LABEL[o.wheeling] || '—') + '</dd>' +
-        '<dt>Notified max demand</dt><dd>' + (num(o.nmd) ? fmtNum(o.nmd) + ' MVA' : '—') + '</dd>' +
-        '<dt>Nearest AEE site</dt><dd>' + (np ? esc(np.project.name) + ' — ' + distanceLabel(np) : '—') + '</dd>' +
-        '<dt>Site capacity</dt><dd>' + (np ? fmtNum(np.project.mw) + ' MW, COD ' + esc(np.project.cod) : '—') + '</dd>' +
-      '</dl>' +
-      (np && np.approx ? '<div class="fg-hint" style="margin-top:12px;color:var(--warn)">' + esc(APPROX_DISTANCE_NOTE) + '</div>' : '') +
-      (np ? '<div class="fg-hint" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">' + esc(np.project.note) + '</div>' : '') +
-    '</div>';
-
-  /* The contacts card. Rendered from views-orgmap.js so the "who is
-     here" panel above it and this list stay in step — the panel's
-     segments filter exactly what this card shows. */
-  const contactsHtml = contactsCardHtml(o);
-
-  const dealsHtml =
-    '<div class="card">' +
-      '<div class="card-header"><div><div class="card-title">Opportunities (' + deals.length + ')</div>' +
-      '<div class="card-sub">Account is at ' + esc(sfStageLabel(o)) + '</div></div>' +
-      '<button class="btn btn-ghost btn-xs" onclick="openAddDeal(\'' + o.id + '\')">Add</button></div>' +
-      (deals.length ? deals.map(d => {
-        const st = PIPELINE_STAGES.find(s => s.id === d.stage) || {};
-        return '<div class="person-row" style="cursor:pointer" onclick="openEditDeal(\'' + d.id + '\')">' +
-          '<div style="min-width:0;flex:1">' +
-            '<div class="person-name">' + fmtNum(d.mw) + ' MW · ' + esc(getProject(d.projectId).town || 'unassigned') + '</div>' +
-            '<div class="person-title">' + esc(st.label || d.stage) + ' · ' + num(d.tenor) + ' yr at R' + num(d.tariff).toFixed(2) + '/kWh · ' + num(d.probability) + '% likely</div>' +
-          '</div>' +
-          '<div class="person-actions"><span style="font-weight:800;color:var(--accent);font-size:12.5px">' + fmtR(dealAnnualValue(d)) + '/yr</span></div>' +
-        '</div>';
-      }).join('')
-        : '<div class="empty" style="padding:26px 10px"><h3>No opportunity yet</h3><p>Create one once you know roughly how many MW they could take.</p></div>') +
-    '</div>';
-
-  const logHtml =
-    '<div class="card">' +
-      '<div class="card-header"><div class="card-title">Activity (' + logs.length + ')</div>' +
-      '<button class="btn btn-ghost btn-xs" onclick="openLogInteraction(\'' + o.id + '\')">Log</button></div>' +
-      (logs.length ? logs.map(i =>
-        '<div class="int-row"><div class="int-dot"></div><div class="int-body">' +
-        '<div class="int-meta">' + esc(i.type) + ' · ' + esc(i.date) + ' · ' + relTime(i.date) + '</div>' +
-        '<div class="int-text">' + esc(i.summary) + '</div></div>' +
-        '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('')
-        : '<div class="empty" style="padding:26px 10px"><h3>Nothing logged</h3><p>Log every call. The next rep to pick this account up will thank you.</p></div>') +
-    '</div>';
-
-  const outreach =
-    '<div class="card">' +
-      '<div class="card-header"><div><div class="card-title">Outreach templates</div>' +
-      '<div class="card-sub">Pre-filled with this offtaker\'s details</div></div>' +
-      '<button class="btn btn-ghost btn-xs" onclick="nav(\'playbook\')">Full playbook</button></div>' +
-      PLAYBOOK.filter(p => p.tag === 'Cold email' || p.tag === 'Follow-up').map(p =>
-        '<div class="person-row" style="cursor:pointer" onclick="copyTemplate(\'' + p.id + '\',\'' + o.id + '\')">' +
-          '<div style="min-width:0;flex:1"><div class="person-name">' + esc(p.title) + '</div>' +
-          '<div class="person-title">' + esc(p.tag) + ' — click to copy, filled in for ' + esc(o.short || o.name) + '</div></div>' +
-          '<div class="person-actions">' + icon('copy', 14) + '</div>' +
-        '</div>').join('') +
-    '</div>';
-
-  /* Two columns, each a stack rather than a row of pairs: a card that has
-     nothing to say shortens its column instead of leaving a hole beside a
-     card that does. The wide column carries what is specific to this
-     account and gets worked — people, opportunities, what was said. The
-     narrow one carries what is looked up. */
   /* The researched overview, and how to approach the call. Both came
      across when leads and offtakers became one record type, and they are
      the only thing a company nobody has sized yet actually has. */
@@ -351,12 +241,12 @@ function renderDetail() {
       '</div>'
     : '';
 
-  setContent(hero + (inPipeline(o) ? sfPathCardHtml(o) : sfNotStartedCardHtml(o)) + overview + pitch +
-    '<div style="margin-top:14px">' + contactMixHtml(o, people) + '</div>' +
-    '<div class="cols-2" style="margin-top:14px">' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + contactsHtml + dealsHtml + logHtml + '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + supply + sectorCard + outreach + '</div>' +
-    '</div>');
+  setContent(hero +
+    (inPipeline(o) ? sfPathCardHtml(o) : sfNotStartedCardHtml(o)) +
+    overview +
+    /* No contacts list under it any more, so the panel's segments have
+       nothing on this page to narrow — they open the people instead. */
+    '<div style="margin-top:14px">' + contactMixHtml(o, people, { noList: true }) + '</div>');
 }
 
 function dhMetric(value, label, hl) {

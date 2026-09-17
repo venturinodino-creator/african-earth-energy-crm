@@ -290,6 +290,15 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 
 .pc-name{font-size:12px;font-weight:700;color:var(--text2);line-height:1.35;margin-bottom:3px;
   overflow-wrap:anywhere}
+/* Sits in the card title row, out of the way until the card is hovered:
+   the card itself opens the company, this opens the deal. */
+.pc-edit{float:right;margin:-2px 0 0 6px;padding:2px 5px;border:1px solid transparent;
+  border-radius:5px;background:none;color:var(--muted);cursor:pointer;opacity:0;transition:.15s}
+.pipeline-card:hover .pc-edit{opacity:1}
+.pc-edit:hover{background:var(--bg3);border-color:var(--border2);color:var(--text)}
+.pc-edit:focus-visible{opacity:1}
+/* No hover on a touch screen, so it would never appear at all. */
+@media(hover:none){.pc-edit{opacity:.65}}
 .pc-sub{font-size:10.5px;color:var(--muted);margin-bottom:8px;overflow-wrap:anywhere}
 /* The MW / value and likelihood / date rows wrap rather than overflow once
    a column is narrow — the figures stay readable, just stacked. */
