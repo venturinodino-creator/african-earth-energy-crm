@@ -364,11 +364,22 @@ function sfDrop(e) {
   setSfStage(_dragAccountId, stage);
 }
 
+/* Clicking a card opens the company, not the deal form. The question a
+   rep has in front of the board is "where is this one and what do I do
+   next", and that is answered on the profile — which is why the sales
+   path is the first thing on it. Editing the opportunity's own numbers is
+   the rarer job, so it gets the small button rather than the whole card. */
 function dealCardHtml(d) {
   const acc = dealAccount(d);
   const p = getProject(d.projectId);
-  return '<div class="pipeline-card" draggable="true" data-id="' + d.id + '" ondragstart="pipeDragStart(event)" ondragend="pipeDragEnd(event)" onclick="openEditDeal(\'' + d.id + '\')">' +
-    '<div class="pc-name">' + esc(acc.name) + '</div>' +
+  return '<div class="pipeline-card" draggable="true" data-id="' + d.id + '" ondragstart="pipeDragStart(event)" ondragend="pipeDragEnd(event)" onclick="' +
+    /* jsStr already escapes for an attribute; escaping it again turns the
+       quotes into &amp;quot; and the handler dies silently on click. */
+    (acc.id ? 'nav(' + jsStr(acc.view) + ',{id:' + jsStr(acc.id) + '})' : 'openEditDeal(&#39;' + d.id + '&#39;)') + '">' +
+    '<div class="pc-name">' + esc(acc.name) +
+      '<button class="pc-edit" data-admin-only title="Edit this opportunity" ' +
+      'onclick="event.stopPropagation();openEditDeal(&#39;' + d.id + '&#39;)">' + icon('edit', 11) + '</button>' +
+    '</div>' +
     '<div class="pc-sub">' + esc(p.town || p.name || 'No site assigned') + ' · ' + num(d.tenor) + ' yr · R' + num(d.tariff).toFixed(2) + '/kWh</div>' +
     '<div class="pc-row"><span>' + fmtNum(d.mw) + ' MW</span><span class="pc-val">' + fmtR(dealAnnualValue(d)) + '/yr</span></div>' +
     '<div class="fit-bar" style="margin-top:8px"><span data-w="' + num(d.probability) + '" style="background:var(--accent);width:' + num(d.probability) + '%"></span></div>' +
