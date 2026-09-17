@@ -255,6 +255,16 @@ function renderDetail() {
     '<div style="margin-top:14px">' + contactMixHtml(o, people, { noList: true }) + '</div>');
 }
 
+/* Blank-line-separated text into real paragraphs. The blurbs were written
+   as prose and used to render as one pre-line block, which the column
+   layout has no way to avoid breaking mid-sentence — a <p> it can keep
+   whole. A single newline stays a line break inside its paragraph. */
+function proseHtml(text) {
+  return String(text || '').split(/\n\s*\n/)
+    .map(p => p.trim()).filter(Boolean)
+    .map(p => '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>').join('');
+}
+
 function dhMetric(value, label, hl) {
   return '<div class="dh-metric' + (hl ? ' hl' : '') + '"><div class="dh-metric-v">' + value + '</div>' +
     '<div class="dh-metric-l">' + esc(label) + '</div></div>';

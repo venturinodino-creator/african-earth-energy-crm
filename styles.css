@@ -334,6 +334,20 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .fg textarea{min-height:74px;resize:vertical;line-height:1.5}
 .fg select option{background:#0d1524}
 .fg-hint{font-size:10px;color:var(--muted);line-height:1.4}
+
+/* The researched overview runs to several paragraphs, and used to sit in
+   one 80ch column that left most of a wide card empty.
+
+   Two columns, never three. Letting it take as many as fit gave three
+   ~45-character columns on a wide screen, which is too narrow to read and
+   makes the eye travel to the bottom of the card and back up twice. Two
+   keeps the measure at a comfortable 70-odd characters, and the cap on
+   the whole block stops the lines stretching on an ultra-wide monitor.
+   Paragraphs are never split down the middle by the column break. */
+.blurb{font-size:12.5px;color:var(--text2);line-height:1.7;max-width:150ch}
+@media(min-width:1280px){.blurb{columns:2;column-gap:40px}}
+.blurb p{margin:0 0 1.1em;break-inside:avoid}
+.blurb p:last-child{margin-bottom:0}
 .form-section{border-top:1px solid var(--border);margin-top:16px;padding-top:16px}
 .form-section-title{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.9px;text-transform:uppercase;margin-bottom:12px}
 
