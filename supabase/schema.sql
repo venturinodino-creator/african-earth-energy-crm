@@ -13,9 +13,15 @@
 -- public repository. Use the app's CSV export for a data backup.
 --
 -- aee_prospects is deliberately absent. Leads and offtakers became one
--- record type, the table was retired in the live project, and a
--- `create table if not exists` for it here would have re-created
--- it — with RLS, a trigger and indexes — on the next run of this file.
+-- record type; the table was retired and then dropped, along with the
+-- six snapshots the merge, the de-duplication and the sf_stage
+-- migration left behind. A `create table if not exists` for it here
+-- would re-create it — with RLS, a trigger and indexes — on the next
+-- run of this file, which is why it is not written back in.
+--
+-- What this file creates is now exactly what is live: these six aee_*
+-- tables, plus profiles and mining_leads. Nothing else remains in
+-- public, and there is no backup copy left to restore a prospect from.
 --
 -- Access model, enforced here rather than in the JavaScript:
 --   pending  new account, sees nothing at all (the default)

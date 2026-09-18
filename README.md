@@ -315,12 +315,26 @@ they happen.
   project reproduces the schema and the security model. It does not carry the data —
   offtakers, contacts and the pipeline are customer records and are not committed to a
   public repository. Use the CSV exports for a data backup.
-- **Tables:** `aee_offtakers`, `aee_contacts`, `aee_deals`, `aee_interactions`,
-  `aee_contact_runs`, `aee_found_contacts`, plus `profiles` for roles. They are namespaced
-  `aee_*` so they sit alongside the pre-existing `mining_leads` table without touching it.
-  `aee_prospects` is gone: leads and offtakers are one record type now, and the live table
-  was retired to `aee_prospects_retired` rather than dropped, so the 282 rows it held are
-  still there if anything is ever wanted back off them.
+- **Tables:** six of them, and that is the whole of `public` bar two:
+
+  | Table | Holds |
+  | --- | --- |
+  | `aee_offtakers` | The companies — leads and opportunities alike, one record type |
+  | `aee_contacts` | People, at an offtaker or a municipality |
+  | `aee_deals` | PPA opportunities |
+  | `aee_interactions` | The activity log — calls, emails, stage changes |
+  | `aee_contact_runs` | The finder's queue: one row per run |
+  | `aee_found_contacts` | What a run turned up, pending review |
+
+  Plus `profiles`, which carries the role each account signs in with, and the pre-existing
+  `mining_leads`. The `aee_*` prefix exists so this CRM sits beside `mining_leads` without
+  touching it.
+
+  **`aee_prospects` is gone, and so are its backups.** Leads and offtakers became one record
+  type, the table was retired, and the seven snapshots left behind by that merge, the
+  de-duplication and the sf_stage migration were dropped once every row in them had been
+  traced to a surviving live record. Nothing remains to restore from, which is the point:
+  the list above is now the whole database rather than the live part of it.
 - **The generation portfolio is not in the database.** It is AEE's own published
   project list, so it ships in `data/seed.js` and needs no sync.
 - **Local cache:** the last successful read is kept in `localStorage` purely so a
