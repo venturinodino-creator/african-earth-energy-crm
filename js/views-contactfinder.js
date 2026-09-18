@@ -147,19 +147,31 @@ function renderContactFinder() {
      an earlier run is still a find waiting. */
   const live = state.foundContacts.filter(f => f.status !== 'discarded');
   const pending = live.filter(f => f.status === 'pending');
+  const acceptable = pending.filter(findHasEmail);
+  const noEmail = pending.length - acceptable.length;
   const scoped = finderScopeOfftakers();
 
   const findLabel = 'Find ' + FINDER_TARGET_LABEL.toLowerCase() + ' contacts now';
+
+  /* Accept all is always on the bar, greyed when there is nothing to
+     take, so a reviewer never has to hunt for it after a run lands.
+     Its count is the rows that CAN be accepted — a find without a work
+     email is held back, because a contact nobody can write to is not
+     a contact this desk wants in its book. */
+  const acceptTitle = noEmail
+    ? noEmail + ' pending find' + (noEmail === 1 ? ' has' : 's have') + ' no email and will be skipped — add one on the row to accept it'
+    : acceptable.length ? 'Accept every pending find with an email' : 'Nothing pending';
 
   setPage('Contact finder',
     'Contacts found by the agent, awaiting review — accept to add to the CRM, discard to drop',
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="queueContactRun()"' +
       (scoped.length && state.cfRoles.length ? '' : ' disabled') + '>' +
       icon('search', 14) + ' ' + esc(findLabel) + '</button>' +
-    (pending.length
-      ? '<button class="btn btn-primary btn-sm" data-admin-only onclick="acceptAllFound()">' +
-        'Accept all (' + pending.length + ')</button>'
-      : '') +
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="acceptAllFound()"' +
+      (acceptable.length ? '' : ' disabled') + ' title="' + esc(acceptTitle) + '">' +
+      'Accept all (' + acceptable.length + ')' +
+      (noEmail ? ' <span style="opacity:.75;font-weight:400">· ' + noEmail + (noEmail === 1 ? ' needs' : ' need') + ' an email</span>' : '') +
+      '</button>' +
     '<button class="btn btn-outline btn-sm" onclick="nav(\'prospect-companies\')">' +
       icon('building', 14) + ' Prospect companies</button>' +
     '<button class="btn btn-outline btn-sm" onclick="refreshFinderFromServer(true)">' +
@@ -227,8 +239,19 @@ function finderNoticeHtml() {
     '<span><strong>Queuing a run does not start it.</strong> "Find contacts now" records the request ' +
     'and leaves it <em>Queued</em>. An operator runs the agent against it — see ' +
     '<code>docs/contact-finder-agents.md</code> — and it appends what it finds here. ' +
-    'Nothing becomes a contact until someone accepts the row.</span></div>';
+    'Nothing becomes a contact until someone accepts the row, and <strong>every accepted contact ' +
+    'must have a work email</strong> — the agent skips people it cannot find one for, and a row ' +
+    'that arrived without one is held until someone adds it.</span></div>';
 }
+
+/* The email gate. A find with no work email cannot be accepted — not
+   by the row button, not by Accept all — because the desk writes to
+   people before it phones them, and a contact with only a switchboard
+   number is a contact nobody follows up. The check is deliberately
+   loose (shape only): whether the address is REAL is what the source
+   link and the reviewer are for. */
+const FIND_EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+function findHasEmail(f) { return FIND_EMAIL_RE.test(String(f.email || '').trim()); }
 
 /* One line per run rather than a table — a run is a request, and the
    interesting part is what came back, which is the table below. */
@@ -316,14 +339,19 @@ function finderTableHtml(list) {
             : '<span class="badge b-grp-' + sectorGroup(o.sector) + '">' + esc(o.short || o.name) + '</span>') + '</td>' +
         '<td>' + (f.phone ? esc(f.phone) : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td>' + (f.email ? '<a class="ext-link" href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a>'
-          : '<span style="color:var(--muted)">—</span>') + '</td>' +
+          : f.status === 'pending'
+            ? '<span class="badge b-medium" title="Cannot be accepted until a work email is added">Needs email</span>'
+            : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td>' + (href ? '<a class="ext-link" href="' + esc(href) + '" target="_blank" rel="noopener">Source</a>'
           : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td><span class="badge ' + (f.status === 'approved' ? 'b-contracted' : 'b-medium') + '">' +
           esc(FIND_STATUS_LABEL[f.status] || f.status) + '</span></td>' +
         '<td style="white-space:nowrap">' +
           (f.status === 'pending'
-            ? '<button class="btn btn-xs btn-primary" data-admin-only onclick="approveFoundContact(\'' + f.id + '\')">Accept</button> ' +
+            ? (findHasEmail(f)
+                ? '<button class="btn btn-xs btn-primary" data-admin-only onclick="approveFoundContact(\'' + f.id + '\')">Accept</button> '
+                : '<button class="btn btn-xs btn-outline" data-admin-only onclick="addEmailAndAccept(\'' + f.id + '\')" ' +
+                  'title="Enter the work email, then accept">Add email &amp; accept</button> ') +
               '<button class="btn btn-xs btn-danger" data-admin-only onclick="discardFoundContact(\'' + f.id + '\')">Discard</button>'
             : '<span style="color:var(--muted);font-size:11px">in the contact book</span>') +
         '</td></tr>';
@@ -346,6 +374,7 @@ async function approveFoundContact(id) {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
   const f = state.foundContacts.find(x => x.id === id);
   if (!f || f.status !== 'pending') return;
+  if (!findHasEmail(f)) { addEmailAndAccept(id); return; }
 
   const contact = foundToContact(f);
   state.contacts.push(contact);
@@ -368,6 +397,23 @@ async function approveFoundContact(id) {
   }
 }
 
+/* The one way past the email gate by hand: the reviewer has found the
+   address themselves (the source page, a signature, the switchboard)
+   and types it in. It is written back to the find so the row shows
+   where the contact's email came from — a person, not the agent. */
+async function addEmailAndAccept(id) {
+  if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
+  const f = state.foundContacts.find(x => x.id === id);
+  if (!f || f.status !== 'pending') return;
+  const typed = prompt('Work email for ' + f.first + ' ' + f.last + ' (' + (f.title || 'no title') + '):', f.email || '');
+  if (typed === null) return;
+  const email = String(typed).trim().toLowerCase();
+  if (!FIND_EMAIL_RE.test(email)) { toast('That does not look like an email address', 'warn'); return; }
+  f.email = email;
+  saveFinderState();
+  await approveFoundContact(id);
+}
+
 async function acceptAllFound() {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
   await acceptFinds(state.foundContacts.filter(f => f.status === 'pending'));
@@ -376,15 +422,25 @@ async function acceptAllFound() {
 /* The same acceptance from outside the finder: every pending find,
    companies and municipalities alike, ignoring whatever chip the finder
    was last filtered to. The prospect list offers this so the whole
-   review queue can be ingested into the accounts in one press. */
+   review queue can be ingested into the accounts in one press. The
+   email gate is acceptFinds' and applies here exactly as on the finder
+   — a find without a work email is held back, never batched in. */
 async function acceptAllFoundEverywhere() {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
   if (!state.foundContacts) loadFinderCache();
   await acceptFinds(state.foundContacts.filter(f => f.status === 'pending'));
 }
 
-async function acceptFinds(live) {
-  if (!live.length) return;
+async function acceptFinds(all) {
+  /* Held back, not discarded: a find without an email stays pending
+     with its "Add email & accept" button, so nothing is lost and
+     nothing unreachable slips into the book under cover of a batch. */
+  const live = all.filter(findHasEmail);
+  const held = all.length - live.length;
+  if (!live.length) {
+    if (held) toast(held + ' pending find' + (held === 1 ? ' has' : 's have') + ' no email — add one on each row to accept it', 'warn');
+    return;
+  }
 
   const made = live.map(f => { const c = foundToContact(f); state.contacts.push(c); f.status = 'approved'; return c; });
   saveFinderState();
@@ -393,7 +449,8 @@ async function acceptFinds(live) {
      prospect list too, and the repaint has to land on whichever screen
      the press came from. */
   render();
-  toast('Accepted ' + made.length + ' contact' + (made.length === 1 ? '' : 's'));
+  toast('Accepted ' + made.length + ' contact' + (made.length === 1 ? '' : 's') +
+    (held ? ' · ' + held + ' held back without an email' : ''));
 
   let failed = 0;
   for (const c of made) {

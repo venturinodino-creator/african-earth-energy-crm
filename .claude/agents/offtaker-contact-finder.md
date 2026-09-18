@@ -113,9 +113,13 @@ node scripts/finder-agent.js add run_xxx '{
 ```
 
 `offtakerId` must be one of the ids `targets` gave you. `title`,
-`source` and `role` are required, and a find needs **either** an email
-or a phone — a person nobody can contact is not yet worth a row, so skip
-them. The script refuses anything malformed and tells you why; fix it
+`source`, `role` and **`email`** are required; `phone` is optional.
+The desk writes before it phones, so a person with no work email is not
+yet worth a row — keep looking (contact page, annual report, press
+release signature, conference programme) and skip them only when the
+official sources genuinely do not publish one. Say in the summary who
+you skipped for want of an email, so the Apollo source can be pointed
+at them. The script refuses anything malformed and tells you why; fix it
 rather than working around it.
 
 Confidence, honestly:

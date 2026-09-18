@@ -127,7 +127,11 @@ node scripts/finder-agent.js add run_xxx '{
 }'
 ```
 
-A generic switchboard number is acceptable as `phone` when it is the
+`email` is required and `phone` is optional: a person with no work
+email is not written, because the desk writes before it phones. Municipal
+sites and IDPs usually publish office addresses (`mm@`, `cfo@`) against
+the named holder — those count, because they reach a named person. A
+generic switchboard number is acceptable as `phone` when it is the
 number published against that office — say so in the summary rather than
 dressing it as a direct line. A generic inbox (`info@`) is **not** a
 find: it belongs to no named person, and this table is about named

@@ -341,8 +341,10 @@ they happen.
   dropped connection shows the last known data instead of an empty app. It is
   never written back to the server.
 - **Export offtakers / contacts / pipeline** produces CSV for sharing or backup.
-- **Import contacts** reads a CSV with a header row and matches companies to
-  existing offtakers by name; anything unmatched is filed as unassigned.
+- **Import contacts** reads a CSV with a header row and matches the company
+  column to an existing offtaker by name, or to a municipality by name, id
+  (`mun_MP312`) or code (`MP312`); a `province` column settles a municipality
+  name that is not unique. Anything unmatched is filed as unassigned.
 
 The URL and publishable key in `js/supabase.js` are meant to be public — they
 identify the project and grant nothing on their own.
