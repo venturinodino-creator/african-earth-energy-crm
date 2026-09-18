@@ -150,7 +150,7 @@ function renderSector() {
         dhMetric(esc(s.dealMw) + ' MW', 'Typical deal', true) +
         dhMetric(esc(s.cycleMonths) + ' mo', 'Sales cycle') +
         dhMetric(esc(s.solarMatch), 'Solar self-match') +
-        dhMetric(prospects.length, 'Named prospects', true) +
+        dhMetric(offtakers.length, 'Companies tracked', true) +
       '</div>' +
     '</div>';
 
