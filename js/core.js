@@ -1187,11 +1187,10 @@ function previewContactImport(rows, find, firstIdx, lastIdx) {
 
   /* The email gate. A bulk file is where phone-only people slip into
      the book unnoticed — 63 came in through here in a day and were
-     deleted again by hand — so the importer refuses them, unlike the
-     Contact finder, where each find is reviewed by hand and a missing
-     email is flagged rather than blocking. A row without a work email
-     is shown, so the reviewer can see what the file is missing, and
-     skipped. */
+     deleted again by hand — so the importer refuses them, as the
+     Contact finder does: a find without an email is held there until
+     someone adds the address. A row without a work email is shown, so
+     the reviewer can see what the file is missing, and skipped. */
   _importRows.forEach(r => { r.noEmail = !findHasEmail(r); });
   const importable = _importRows.filter(r => !r.noEmail);
   const noEmail = _importRows.length - importable.length;
