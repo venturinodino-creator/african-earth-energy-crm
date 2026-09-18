@@ -50,6 +50,10 @@ npm-debug.log*
 .env
 .env.*
 *.pem
+# ...except the template, which is the point: it carries the variable
+# names and not one value. Listed after the rules above so it overrides
+# `.env.*`, and narrow enough that `.env.local` stays ignored.
+!.env.example
 
 # Local exports
 *.csv
