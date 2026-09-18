@@ -9,8 +9,11 @@
      Flow      where those companies are, and where they stop
      Table     the whole deal list in stage order
 
-   The company list is a research bench of several hundred names. Only the
-   ones somebody has actually picked up belong here — see inPipeline().
+   This is the other half of the book. Off-taker Prospects holds the
+   leads — researched names nobody has picked up, carrying no stage. A
+   record arrives here only when somebody presses "Work it" on it, and
+   from that moment it is here and not there. inPipeline() in core.js is
+   the line, and it is the same line both lists read.
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
@@ -28,7 +31,8 @@ function renderPipeline() {
     setContent(stageDriftCardHtml() + accountStageStats() + accountBoardHtml() +
       '<div class="fg-hint" style="margin-top:12px">Drag a company between columns to move it along the sales ' +
       'process. Moving it writes the matching status on the record and logs the change against the account. ' +
-      'A company only appears here once it has been moved into the pipeline from its own page.</div>');
+      'A company appears here only once somebody has pressed <b>Work it</b> on it in Off-taker Prospects, ' +
+      'and it leaves that list the moment it does — a record is a lead or an opportunity, never both.</div>');
     return;
   }
 
@@ -125,9 +129,9 @@ function flowHtml() {
   if (!accounts.length) {
     return '<div class="empty"><div class="ei">' + icon('trending', 30) + '</div>' +
       '<h3>Nothing in the pipeline yet</h3>' +
-      '<p>Open a company and move it into the pipeline. Once it is being worked it gets the ' +
+      '<p>Open a lead in Off-taker Prospects and press <b>Work it</b>. Once it is here it gets the ' +
       'sales stages, and this page starts reading how it moves through them.</p>' +
-      '<button class="btn btn-primary btn-sm" onclick="nav(\'offtakers\')">Browse companies</button></div>';
+      '<button class="btn btn-primary btn-sm" onclick="nav(\'offtakers\')">Browse the leads</button></div>';
   }
 
   const reached = reachedCounts(accounts);
@@ -138,9 +142,12 @@ function flowHtml() {
     const here = accounts.filter(o => sfStageFor(o) === st.id);
     const gwh = here.reduce((a, o) => a + num(o.annualGwh), 0);
     const bar =
+      /* Opens the accounts board, where this stage is a column. It used to
+         open the company list narrowed to the stage; that list holds leads
+         now, and a lead has no stage to be narrowed by. */
       '<div class="bar-row with-count clickable" title="' + esc(st.hint) +
-        (gwh ? ' — ' + fmtNum(gwh) + ' GWh a year at this stage' : '') + '" ' +
-      'onclick="state.offStage=' + jsStr(st.id) + ';state.offStalled=\'\';state.offPage=1;nav(\'offtakers\')">' +
+        (gwh ? ' — ' + fmtNum(gwh) + ' GWh a year at this stage. ' : '. ') + 'Open the board" ' +
+      'onclick="setViewMode(&#39;pipeView&#39;,&#39;accounts&#39;)">' +
       '<div class="bar-label">' + esc(st.label) + '</div>' +
       '<div class="bar-track"><span class="bar-fill" data-w="' + ((reached[i] / maxReached) * 100) + '" ' +
       'style="background:linear-gradient(90deg,var(--accent),var(--accent2))"></span></div>' +
@@ -199,7 +206,7 @@ function flowHtml() {
     '<div class="card">' +
       '<div class="card-header"><div><div class="card-title">Where it stops</div>' +
       '<div class="card-sub">Median days sitting at each stage, against what that stage is given</div></div>' +
-      '<button class="btn btn-ghost btn-xs" onclick="state.offStalled=\'stalled\';state.offStage=\'\';state.offPage=1;nav(\'offtakers\')">Stalled only</button></div>' +
+      '<button class="btn btn-ghost btn-xs" title="Show only the accounts sitting longer than their stage allows" onclick="state.pipeStalled=&#39;stalled&#39;;setViewMode(&#39;pipeView&#39;,&#39;accounts&#39;)">Stalled only</button></div>' +
       '<div class="funnel-head"><span>Stage</span><span>stalled</span><span>median</span></div>' +
       stallRows +
       '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
@@ -337,7 +344,7 @@ function accountStageStats() {
     statTile('alert', 'blue', 'Closed lost', lost.length, 'out of the process') +
     statTile('clock', 'amber', 'Stalled', accounts.filter(isStalled).length,
       'sitting longer than the stage allows') +
-    statTile('target', 'purple', 'Research bench', bench, 'not being worked yet', "nav('offtakers')") +
+    statTile('target', 'purple', 'Leads in Prospects', bench, 'researched, not being worked', "nav('offtakers')") +
   '</div>';
 }
 
@@ -345,13 +352,25 @@ function accountBoardHtml() {
   const accounts = pipelineAccounts();
   if (!accounts.length) {
     return '<div class="empty"><div class="ei">' + icon('target', 30) + '</div>' +
-      '<h3>No accounts on the board</h3>' +
-      '<p>The company list is a research bench — a name on it is not yet a sales process. ' +
-      'Open one and move it into the pipeline; it becomes a working opportunity and picks up the stages.</p>' +
-      '<button class="btn btn-primary btn-sm" onclick="nav(\'offtakers\')">Browse companies</button></div>';
+      '<h3>Nothing is being worked yet</h3>' +
+      '<p>Off-taker Prospects is a list of leads — a name on it is not a sales process. ' +
+      'Open one and press <b>Work it</b>: it moves out of Prospects, lands here as an ' +
+      'opportunity and picks up the sales stages.</p>' +
+      '<button class="btn btn-primary btn-sm" onclick="nav(\'offtakers\')">Browse the leads</button></div>';
   }
+  /* Narrowing set by "Stalled only" on the Flow page. It is a filter on
+     the board rather than a list of its own, so the stage columns stay
+     put and the answer reads as "where the stuck ones are" rather than as
+     a flat roll-call with no positions on it. */
+  const shown = state.pipeStalled === 'stalled' ? accounts.filter(isStalled) : accounts;
+  const filterBar = state.pipeStalled === 'stalled'
+    ? '<div class="toolbar"><span class="result-count">Stalled only — ' + shown.length +
+      ' of ' + accounts.length + ' account' + (accounts.length === 1 ? '' : 's') + '</span>' +
+      '<button class="btn btn-outline btn-sm" onclick="state.pipeStalled=&#39;&#39;;renderPipeline()">' +
+      'Show all</button></div>'
+    : '';
   const cols = SF_STAGES.map(st => {
-    const list = accounts.filter(o => sfStageFor(o) === st.id)
+    const list = shown.filter(o => sfStageFor(o) === st.id)
       .sort((a, b) => fitScore(b) - fitScore(a));
     const gwh = list.reduce((a, o) => a + num(o.annualGwh), 0);
     const stuck = list.filter(isStalled).length;
@@ -365,7 +384,7 @@ function accountBoardHtml() {
       (list.length ? '' : '<div class="fg-hint" style="padding:12px 4px;text-align:center">Drop here</div>') +
     '</div>';
   }).join('');
-  return '<div class="kanban">' + cols + '</div>';
+  return filterBar + '<div class="kanban">' + cols + '</div>';
 }
 
 function accountCardHtml(o) {
