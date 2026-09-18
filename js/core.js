@@ -980,7 +980,7 @@ const IMPORT_HINT_CONTACTS =
   '<b style="color:var(--text2)">first, last</b>, title, department, company, email, phone, linkedin, notes, province.<br><br>' +
   '<b>company</b> matches an offtaker by name, or a municipality by name, id (<i>mun_MP312</i>) or code (<i>MP312</i>). ' +
   'Where a municipality name is not unique — there are two Emalahlenis — <b>province</b> settles it.<br><br>' +
-  '<b>email</b> is required. A row without a work email is skipped — the same rule the Contact finder applies.';
+  '<b>email</b> is required. A row without a work email is skipped — add the address to the file and import again.';
 
 const IMPORT_HINT_OFFTAKERS =
   'Choose a CSV with a header row.<br>Recognised columns: ' +
@@ -1185,11 +1185,13 @@ function previewContactImport(rows, find, firstIdx, lastIdx) {
     };
   }).filter(c => c.first || c.last);
 
-  /* The email gate, as the Contact finder applies it. This screen was
-     the one way into the book that did not ask — 63 phone-only people
-     came in through it in a day and were deleted again by hand. A row
-     without a work email is shown, so the reviewer can see what the
-     file is missing, and skipped. */
+  /* The email gate. A bulk file is where phone-only people slip into
+     the book unnoticed — 63 came in through here in a day and were
+     deleted again by hand — so the importer refuses them, unlike the
+     Contact finder, where each find is reviewed by hand and a missing
+     email is flagged rather than blocking. A row without a work email
+     is shown, so the reviewer can see what the file is missing, and
+     skipped. */
   _importRows.forEach(r => { r.noEmail = !findHasEmail(r); });
   const importable = _importRows.filter(r => !r.noEmail);
   const noEmail = _importRows.length - importable.length;

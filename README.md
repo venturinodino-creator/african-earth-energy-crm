@@ -345,8 +345,10 @@ they happen.
   column to an existing offtaker by name, or to a municipality by name, id
   (`mun_MP312`) or code (`MP312`); a `province` column settles a municipality
   name that is not unique. Anything unmatched is filed as unassigned. A row
-  without a work email is skipped — the same rule the Contact finder applies,
-  so there is no path into the contact book for a person nobody can write to.
+  without a work email is skipped — a bulk file is the one place a person
+  nobody can write to slips in unnoticed, so the importer refuses it. (The
+  Contact finder is looser: a find without an email is accepted and flagged,
+  because each row there is reviewed by hand.)
 
 The URL and publishable key in `js/supabase.js` are meant to be public — they
 identify the project and grant nothing on their own.
