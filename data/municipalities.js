@@ -402,6 +402,56 @@ const MUNI_CATEGORY_LONG = {
   C: 'District municipality',
 };
 
+/* ─── THE MAIN MUNICIPALITIES ─────────────────────────
+   A, B and C above are fixed by the Municipal Structures Act and are not
+   a judgement about anything. This list IS a judgement: the eight metros
+   plus the non-metro municipalities big enough, or industrial enough, to
+   be worth a call before the other two hundred.
+
+   It cuts across the legal categories on purpose — every metro is here,
+   and so are sixteen Category B locals. No district is: a district holds
+   very little load of its own, and the seat it governs from is usually a
+   local municipality already on this list.
+
+   NOT AN OFFICIAL LIST. There is no population or load figure in this
+   file to rank on, so this is a starting set, and it is a starting set
+   chosen for AEE: the larger secondary cities, plus the towns that carry
+   the industrial loads a wheeled PPA is actually aimed at — Middelburg
+   and Secunda in Mpumalanga, Richards Bay in KwaZulu-Natal, Rustenburg
+   on the platinum belt, Lephalale at Medupi. Add and cut freely; the
+   only rule is that a code has to exist, which is checked at load.
+
+   Keyed on CODE, never on name. Emalahleni exists twice — EC136 is Lady
+   Frere in the Eastern Cape and MP312 is Witbank — and it is the second
+   one that carries the coal-belt load. Matching on the name would take
+   whichever came first and be wrong roughly half the time. */
+const MUNI_MAIN_CODES = new Set([
+  /* The eight metros, all of them. */
+  'CPT', 'JHB', 'ETH', 'TSH', 'EKU', 'NMA', 'BUF', 'MAN',
+
+  /* Larger secondary cities — the biggest urban economies outside a metro. */
+  'KZN225',  /* Msunduzi — Pietermaritzburg, the largest non-metro       */
+  'LIM353',  /* Polokwane                                                */
+  'GT421',   /* Emfuleni — Vanderbijlpark and Vereeniging, steel         */
+  'MP326',   /* City of Mbombela — Nelspruit                             */
+  'FS184',   /* Matjhabeng — Welkom, the Free State goldfields           */
+  'NC091',   /* Sol Plaatje — Kimberley                                  */
+  'WC044',   /* George — the Garden Route centre                         */
+  'WC023',   /* Drakenstein — Paarl                                      */
+  'NW403',   /* City of Matlosana — Klerksdorp                           */
+  'KZN252',  /* Newcastle                                                */
+
+  /* Industrial centres. Smaller towns, but the load is the reason this
+     CRM exists — each of these is a smelter, a refinery or a power
+     station's own municipality. */
+  'MP312',   /* Emalahleni — Witbank, the coal belt (NOT EC136)          */
+  'MP313',   /* Steve Tshwete — Middelburg, where AEE's own site sits    */
+  'MP307',   /* Govan Mbeki — Secunda, Sasol                             */
+  'KZN282',  /* uMhlathuze — Richards Bay, the smelters and the port     */
+  'NW373',   /* Rustenburg — the platinum belt                           */
+  'LIM362',  /* Lephalale — Medupi and Matimba                           */
+]);
+
 /* Flattened, one record per municipality. Ids are namespaced with a
    "mun_" prefix so a municipality and an offtaker can never collide in
    the contacts table, which both of them hang off. */
@@ -410,18 +460,18 @@ Object.entries(MUNI_TREE).forEach(([province, block]) => {
   block.metros.forEach(([code, name, seat]) => {
     SA_MUNICIPALITIES.push({
       id: 'mun_' + code, code, name, seat, province,
-      cat: 'A', districtCode: null, districtName: null,
+      cat: 'A', main: MUNI_MAIN_CODES.has(code), districtCode: null, districtName: null,
     });
   });
   block.districts.forEach(d => {
     SA_MUNICIPALITIES.push({
       id: 'mun_' + d.code, code: d.code, name: d.name, seat: d.seat, province,
-      cat: 'C', districtCode: null, districtName: null,
+      cat: 'C', main: MUNI_MAIN_CODES.has(d.code), districtCode: null, districtName: null,
     });
     d.locals.forEach(([code, name, seat]) => {
       SA_MUNICIPALITIES.push({
         id: 'mun_' + code, code, name, seat, province,
-        cat: 'B', districtCode: d.code, districtName: d.name,
+        cat: 'B', main: MUNI_MAIN_CODES.has(code), districtCode: d.code, districtName: d.name,
       });
     });
   });
@@ -443,5 +493,13 @@ const MUNI_PROVINCES = Object.keys(MUNI_TREE);
   }
   if (got.A !== want.A || got.C !== want.C || got.B !== want.B || got.total !== want.total) {
     console.error('Municipality counts are off. Expected', want, 'got', got);
+  }
+  /* A code in MUNI_MAIN_CODES that matches nothing is silent otherwise:
+     the tile just counts one lower than intended and nobody can tell by
+     looking. Name the misses instead. */
+  const codes = new Set(SA_MUNICIPALITIES.map(m => m.code));
+  const missing = [...MUNI_MAIN_CODES].filter(c => !codes.has(c));
+  if (missing.length) {
+    console.error('MUNI_MAIN_CODES names municipalities that do not exist:', missing);
   }
 })();
