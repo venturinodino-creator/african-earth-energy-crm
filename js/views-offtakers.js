@@ -1,6 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Offtakers — the target list, and the detail page a rep works from
-   before and after a call.
+   Off-taker Prospects — the LEAD list, and the record behind it.
+
+   This view holds one half of the book: companies nobody has started
+   working. The other half lives on the Pipeline board, and inPipeline()
+   in core.js is the line between them. A lead has no sales stage, no
+   board position and no dwell clock, so none of those are drawn here.
+   "Work it" is the one control that moves a record across.
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
@@ -11,9 +16,6 @@ function offSortVal(o, field) {
     case 'peak': return num(o.peakMw);
     case 'tariff': return num(o.tariff);
     case 'contacts': return contactsFor(o.id).length;
-    /* Unknown sorts as the longest wait rather than as zero: a record with
-       no evidence at all is not a fresh one. */
-    case 'dwell': { const d = stageDwell(o); return d ? d.days : 99999; }
     case 'sector': return sectorName(o.sector);
     case 'status': return ['prospect', 'engaged', 'qualified', 'negotiating', 'contracted', 'lost'].indexOf(o.status);
     case 'distance': { const np = nearestProject(o); return np ? np.km : 99999; }
@@ -26,28 +28,22 @@ function offSortVal(o, field) {
    the whole book, so landing on a list still narrowed by whatever was
    set last would contradict the number that was just clicked. */
 function openOfftakersFiltered(filters) {
-  state.offSearch = ''; state.offSector = ''; state.offStage = '';
-  state.offStatus = ''; state.offStalled = ''; state.offProvince = '';
+  state.offSearch = ''; state.offSector = '';
+  state.offStatus = ''; state.offProvince = '';
   Object.assign(state, filters);
   state.offPage = 1;
   nav('offtakers');
 }
 
+/* Every company that is still a lead. */
+function prospectRecords() { return state.offtakers.filter(o => !inPipeline(o)); }
+
 function filteredOfftakers() {
   const term = state.offSearch.toLowerCase();
-  let list = state.offtakers.filter(o => {
+  let list = prospectRecords().filter(o => {
     if (term && !(o.name + ' ' + o.short + ' ' + o.city + ' ' + o.province + ' ' + o.description).toLowerCase().includes(term)) return false;
     if (state.offSector && o.sector !== state.offSector) return false;
     if (state.offStatus && o.status !== state.offStatus) return false;
-    /* Filtering by stage has to mean "in the pipeline at this stage".
-       sfStageFor answers for any record, including the hundreds nobody has
-       picked up — so asking for Prospecting without the membership test
-       returns the whole research bench. sfStageFor rather than o.sfStage,
-       though: an account that predates the path reads its position out of
-       its status and should still be found by the stage it is plainly at. */
-    if (state.offStage === 'none') { if (inPipeline(o)) return false; }
-    else if (state.offStage && (!inPipeline(o) || sfStageFor(o) !== state.offStage)) return false;
-    if (state.offStalled === 'stalled' && !isStalled(o)) return false;
     if (state.offProvince && o.province !== state.offProvince) return false;
     return true;
   });
@@ -56,14 +52,22 @@ function filteredOfftakers() {
 
 function renderOfftakers() {
   const list = filteredOfftakers();
+  const leads = prospectRecords();
+  const working = state.offtakers.length - leads.length;
   const totalGwh = list.reduce((s, o) => s + num(o.annualGwh), 0);
-  setPage('Off-taker Prospects', state.offtakers.length + ' companies tracked · ' + fmtNum(totalGwh) + ' GWh/yr addressable',
+  setPage('Off-taker Prospects',
+    leads.length + ' lead' + (leads.length === 1 ? '' : 's') + ' nobody is working yet · ' +
+    fmtNum(totalGwh) + ' GWh/yr in view · ' + working + ' already in the pipeline',
     viewToggle('offView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
 
-  const provinces = [...new Set(state.offtakers.map(o => o.province))].sort();
+  const provinces = [...new Set(leads.map(o => o.province))].filter(Boolean).sort();
+  /* Only the statuses a lead can actually carry. Anything past 'prospect'
+     puts a record in the pipeline by definition, so offering all six here
+     would be five dead options and one live one. */
+  const statuses = [...new Set(leads.map(o => o.status))].filter(Boolean).sort();
   const toolbar =
     '<div class="toolbar">' +
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
@@ -71,23 +75,41 @@ function renderOfftakers() {
       'oninput="state.offSearch=this.value;state.offPage=1;renderOfftakers()"></div>' +
       '<select class="flt" onchange="state.offSector=this.value;state.offPage=1;renderOfftakers()">' +
         '<option value="">All sectors</option>' + sectorOptions(state.offSector) + '</select>' +
-      selectFlt('offStage', 'Any sales stage', SF_STAGES.map(st => [st.id, st.label]).concat([['none', 'Not in the pipeline']])) +
-      selectFlt('offStalled', 'Stalled or not', [['stalled', 'Stalled only']]) +
-      selectFlt('offStatus', 'All statuses', Object.entries(STATUS_LABEL)) +
+      /* No sales-stage or stalled filter here. Neither exists on a lead:
+         a stage is what the Pipeline gives a record, and a clock that
+         measures time-in-stage has nothing to measure without one. */
+      selectFlt('offStatus', 'All statuses', statuses.map(st => [st, STATUS_LABEL[st] || st])) +
       selectFlt('offProvince', 'All provinces', provinces.map(p => [p, p])) +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
 
+  /* Said on the page rather than assumed: a rep who cannot find a company
+     here needs to know it is not missing, it has moved across. */
+  const note = '<div class="fg-hint" style="margin-top:12px">' +
+    'These are leads — researched names nobody has picked up. They carry no sales stage on purpose. ' +
+    'Open one and press <b>Work it</b> to move it into the Pipeline; that is where it becomes an ' +
+    'opportunity and picks up the stages, the board and the stall clock. ' +
+    (working
+      ? working + ' compan' + (working === 1 ? 'y has' : 'ies have') + ' already gone across — ' +
+        '<span class="ext-link" style="cursor:pointer" onclick="nav(&#39;pipeline&#39;)">open the Pipeline</span>.'
+      : 'Nothing has gone across yet.') +
+    '</div>';
+
   if (!list.length) {
     setContent(toolbar + '<div class="empty"><div class="ei">' + icon('search', 30) + '</div>' +
-      '<h3>No offtakers match</h3><p>Loosen the filters, or add a company you are working that is not on the list yet.</p></div>');
+      '<h3>No leads match</h3><p>' +
+      (leads.length
+        ? 'Loosen the filters, or add a company that is not on the list yet.'
+        : 'Every company on file has been moved into the pipeline. Add a new one, or open the ' +
+          'Pipeline to see what is being worked.') +
+      '</p></div>' + note);
     return;
   }
 
   if (state.offView === 'grid') {
-    setContent(toolbar + '<div class="ent-grid">' + list.map(offtakerCardHtml).join('') + '</div>');
+    setContent(toolbar + '<div class="ent-grid">' + list.map(offtakerCardHtml).join('') + '</div>' + note);
   } else {
-    setContent(toolbar + offtakerTableHtml(list));
+    setContent(toolbar + offtakerTableHtml(list) + note);
   }
   growBars();
 }
@@ -122,8 +144,9 @@ function offtakerCardHtml(o) {
     '<div class="fit-bar"><span data-w="' + f + '" style="background:' + fitColor(f) + '"></span></div>' +
     '<div class="ec-footer">' +
       '<span>' + (np ? esc(np.project.town) + ' · ' + distanceLabel(np) : 'no nearby site') + '</span>' +
-      '<div style="display:flex;align-items:center;gap:6px">' + dwellChipHtml(o) +
-      '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></div>' +
+      /* No dwell chip: time-in-stage is a pipeline measurement and these
+         records have no stage to have been sitting at. */
+      '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
     '</div>' +
     '<div class="ec-footer" style="border-top:none;padding-top:0;margin-top:6px">' +
       '<span>' + icon('contacts', 13) + ' ' + cc + ' contact' + (cc === 1 ? '' : 's') + '</span>' +
@@ -136,24 +159,23 @@ function offtakerCardHtml(o) {
   '</div>';
 }
 
-/* Start working a company without opening it.
+/* Move a lead across without opening it.
 
-   A record sits in this list a long time before anybody picks it up, and
-   the move that changes that - putting it on the pipeline board - used to
-   need a trip into the record to find. It is the one action here that
-   changes what the row IS rather than editing its fields, so it leads the
-   actions cell.
+   This is the one action in the list that changes what the row IS rather
+   than editing its fields - it takes the record out of Prospects and puts
+   it in the Pipeline - so it leads the actions cell.
 
-   Shown only while the account is outside the pipeline. Once it is on the
-   board the button has nothing left to do, and leaving it there invites a
-   click that can only answer "already in the pipeline".
+   The membership test stays even though this list only ever holds leads
+   now: the function is the single definition of the button, and a guard
+   that can never fire is cheaper than one that was removed on the
+   assumption it could not.
 
    The card passes stopProp because its whole surface opens the record;
    the table cell already stops propagation for every control in it. */
 function workItButtonHtml(o, stopProp) {
   if (inPipeline(o)) return '';
   return '<button class="btn btn-xs btn-primary" data-admin-only ' +
-    'title="Move into the pipeline at Prospecting - makes this a workable opportunity" ' +
+    'title="Move out of Prospects and into the Pipeline at Prospecting - this is where it becomes an opportunity" ' +
     'onclick="' + (stopProp ? 'event.stopPropagation();' : '') + 'addToPipeline(' + jsStr(o.id) + ')">' +
     icon('target', 12) + ' Work it</button> ';
 }
@@ -165,7 +187,9 @@ function offtakerTableHtml(list) {
     th('name', 'Offtaker') + th('sector', 'Sector') + th('province', 'Province') +
     th('load', 'GWh/yr') + th('peak', 'Peak MW') + th('tariff', 'R/kWh') +
     th('distance', 'Nearest site') + th('fit', 'Fit') + th('status', 'Status') +
-    th('dwell', 'In stage') + th('contacts', 'Contacts') +
+    /* No "In stage" column: a lead has no stage, so every cell in it was
+       reporting a sales process for a company that is not in one. */
+    th('contacts', 'Contacts') +
     '<th>Actions</th></tr></thead><tbody>' +
     list.map(o => {
       const f = fitScore(o), np = nearestProject(o);
@@ -181,7 +205,6 @@ function offtakerTableHtml(list) {
         '<td>' + (np ? esc(np.project.town) + ' <span style="color:var(--muted)">' + distanceLabel(np) + '</span>' : '—') + '</td>' +
         '<td class="num" style="color:' + fitColor(f) + ';font-weight:800">' + f + '</td>' +
         '<td><span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></td>' +
-        '<td>' + dwellChipHtml(o) + '</td>' +
         '<td class="num">' + contactsFor(o.id).length + '</td>' +
         '<td onclick="event.stopPropagation()" style="white-space:nowrap">' +
           workItButtonHtml(o) +
@@ -193,17 +216,23 @@ function offtakerTableHtml(list) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DETAIL — what is known about a company, and where it stands
+   DETAIL — one record, read two ways
 
-   Deliberately three things and no more: who they are, what the desk has
-   researched, and who works there. The pitch, the sector briefing, the
-   supply notes and the outreach templates all used to sit here too, and
-   between them they buried the two cards anybody actually reads.
+   A LEAD (Off-taker Prospects) gets exactly three cards and no more:
 
-   The sales path sits at the top for a company being worked, because the
-   pipeline sends you here to move it. A company nobody has picked up gets
-   the way in instead. Opportunities and activity are still logged from the
-   header buttons; they are just not read here.
+     1  the hero        who they are and the numbers the desk has
+     2  the overview    what was researched and what would make them buy
+     3  who is here     the people on file and the seats still empty
+
+   No sales stage, no path, no dwell clock and no "New opportunity". None
+   of those exist for a company nobody is working, and drawing them claims
+   a process that has not started. What a lead's header has instead is
+   "Work it", the one control that moves it out of Prospects.
+
+   An ACCOUNT IN THE PIPELINE gets the sales path above the overview,
+   because that is the control a rep uses every day and the board sends
+   you here to move it, plus the button to open an opportunity on it.
+   Activity is logged from the header on either reading.
    ═══════════════════════════════════════════════════════════════ */
 function renderDetail() {
   const o = getOfftaker(state.detailId);
@@ -212,12 +241,22 @@ function renderDetail() {
   const f = fitScore(o);
   const np = nearestProject(o);
   const people = contactsFor(o.id);
+  const working = inPipeline(o);
 
   setPage(o.short || o.name, sectorName(o.sector) + ' · ' + esc(o.city) + ', ' + esc(o.province),
     '<button class="btn btn-outline btn-sm" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})" title="Visual org chart: who sits where">' + icon('grid', 14) + ' Org map</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openLogInteraction(\'' + o.id + '\')">' + icon('note', 14) + ' Log activity</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add contact</button>' +
-    '<button class="btn btn-primary btn-sm" onclick="openAddDeal(\'' + o.id + '\')">' + icon('bolt', 14) + ' New opportunity</button>');
+    /* An opportunity is a pipeline object. Offering one on a lead would
+       move the record across as a side effect of a form nobody opened for
+       that reason, so a lead is given the move itself instead. */
+    (working
+      ? '<button class="btn btn-primary btn-sm" onclick="openAddDeal(' + jsStr(o.id) + ')">' +
+        icon('bolt', 14) + ' New opportunity</button>'
+      : '<button class="btn btn-primary btn-sm" data-admin-only ' +
+        'title="Move this lead out of Prospects and into the Pipeline at Prospecting" ' +
+        'onclick="addToPipeline(' + jsStr(o.id) + ')">' +
+        icon('target', 14) + ' Work it</button>'));
 
   const hero =
     '<div class="detail-hero">' +
@@ -276,10 +315,11 @@ function renderDetail() {
 
   setContent(hero +
     /* The path is the control a rep uses every day, so it sits at the top
-       of the record where Salesforce puts it. A company nobody has started
-       working gets the greyed-out version, which carries the move that
-       starts the process rather than claiming one already exists. */
-    (inPipeline(o) ? sfPathCardHtml(o) : sfNotStartedCardHtml(o)) +
+       of the record where Salesforce puts it — for an account in the
+       pipeline. A lead gets nothing here at all: not a greyed-out path,
+       not an empty stage badge. It has no sales stage, and the page says
+       so by not drawing one. */
+    (working ? sfPathCardHtml(o) : '') +
     overview +
     /* No contacts list under it any more, so the panel's segments have
        nothing on this page to narrow — they open the people instead. */

@@ -6,12 +6,17 @@
    ════════════════════════════════════════════════════════════════ */
 'use strict';
 
-/* ─── INTO THE PIPELINE ─────────────────────────
-   The act that turns a researched name into a working opportunity. It is
-   deliberately explicit rather than something that happens by looking at a
-   record: everything downstream — the board, the funnel, the conversion
-   figures, the stall warnings — only means anything if being in the
-   pipeline is a decision somebody made. */
+/* ─── OUT OF PROSPECTS, INTO THE PIPELINE ───────
+   "Work it". The act that turns a researched lead into an opportunity
+   somebody is working, and the only way a record crosses between the two
+   folders. It is deliberately explicit rather than something that happens
+   by looking at a record: everything downstream — the board, the funnel,
+   the conversion figures, the stall warnings — only means anything if
+   being in the pipeline is a decision somebody made.
+
+   Writing the stage is what performs the move: inPipeline() reads it, the
+   Prospects list drops anything it returns true for, and the record has a
+   position on the accounts board from the same render. */
 function addToPipeline(id) {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to move this', 'warn'); return; }
   const rec = state.offtakers.find(o => o.id === id);
@@ -32,8 +37,14 @@ function addToPipeline(id) {
   state.interactions.push(entry);
   pushInteraction(entry);
   save();
-  toast((rec.short || rec.name) + ' is in the pipeline');
-  render();
+  toast((rec.short || rec.name) + ' moved into the pipeline at Prospecting');
+  /* Land on the board it has just joined. The record has left Prospects,
+     so staying put would leave a rep looking at a list its row vanished
+     from, which reads as a delete rather than a move. The accounts board
+     is where it now has a position, so that is where it opens — first
+     card of the Prospecting column. */
+  state.pipeView = 'accounts';
+  nav('pipeline');
 }
 
 /* ─── BACK OUT OF THE PIPELINE ──────────────────
@@ -74,7 +85,8 @@ function removeFromPipeline(id) {
       ' (' + fmtNum(deals.reduce((s, d) => s + num(d.mw), 0)) + ' MW) will be deleted. That cannot be undone.'
     : '';
   if (!confirm('Take ' + name + ' out of the pipeline?\n\n' +
-    'It goes back to Off-taker Prospects as a researched name with no sales stage.' + cost)) return;
+    'It goes back to Off-taker Prospects as a lead: a researched name with no sales stage, ' +
+    'no board position and no stall clock.' + cost)) return;
 
   deals.forEach(d => removeRow('aee_deals', d.id));
   state.deals = state.deals.filter(d => d.offtakerId !== id);

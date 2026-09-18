@@ -30,7 +30,8 @@ function renderDashboard() {
   /* ── Stat row ───────────────────────────────────────────────── */
   const stats = [
     { icon: 'building', cls: 'green', label: 'Companies tracked', value: offtakers.length,
-      sub: offtakers.filter(o => !inPipeline(o)).length + ' not being worked yet', go: "nav('offtakers')" },
+      sub: offtakers.filter(o => !inPipeline(o)).length + ' leads · ' +
+        pipelineAccounts().length + ' being worked', go: "nav('offtakers')" },
     { icon: 'pipeline', cls: 'amber', label: 'Open pipeline', value: fmtNum(pipelineMw()) + ' MW',
       sub: openDeals.length + ' live opportunities', go: "nav('pipeline')" },
     { icon: 'trending', cls: 'blue', label: 'Weighted value', value: fmtR(weighted),
@@ -105,10 +106,11 @@ function renderDashboard() {
       'opportunity open yet, so these do not add up to the deals below.</div>' +
       '<div class="funnel-head"><span></span><span>stalled</span><span>total</span></div>' +
       byAccountStage.map(st =>
-        /* Clicking a stage opens the list already narrowed to it, which is
-           the next thing anybody wants after reading the number. */
-        '<div class="bar-row with-count clickable" title="' + esc(st.hint) + '" ' +
-        'onclick="openOfftakersFiltered({offStage:' + jsStr(st.id) + '})">' +
+        /* Opens the accounts board, where this stage is a column. It used
+           to open the company list narrowed to the stage; that list is the
+           leads now, and a lead has no stage to narrow by. */
+        '<div class="bar-row with-count clickable" title="' + esc(st.hint) + ' — open the board" ' +
+        'onclick="state.pipeView=&#39;accounts&#39;;nav(&#39;pipeline&#39;)">' +
         '<div class="bar-label">' + esc(st.label) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + ((st.count / maxAccounts) * 100) + '" ' +
         'style="background:linear-gradient(90deg,var(--accent),var(--accent2))"></span></div>' +
@@ -132,7 +134,8 @@ function renderDashboard() {
       '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
       stalledCount + ' account' + (stalledCount === 1 ? ' has' : 's have') +
       ' sat longer than the stage allows. ' + fmtNum(contractedMw()) + ' MW signed to date. ' +
-      'The other ' + (state.offtakers.length - working.length) + ' companies are research, not pipeline.</div>' +
+      'The other ' + (state.offtakers.length - working.length) + ' are leads in Off-taker Prospects, ' +
+      'not pipeline — nothing measures them until somebody works one.</div>' +
     '</div>';
 
   /* ── Sector mix ─────────────────────────────────────────────── */

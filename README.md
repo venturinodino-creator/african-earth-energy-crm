@@ -14,9 +14,9 @@ Company site: <https://www.aeeg.co.za/en>
 | Screen | What it is for |
 | --- | --- |
 | **Dashboard** | The morning view — today's call list, funnel by stage, sector mix, capacity allocation, recent activity |
-| **Pipeline** | Two boards over the same records: **Deals**, PPA opportunities across seven stages with weighted contract value, and **Accounts**, every company across the five-stage sales process. Drag to move either |
-| **Offtakers** | The target list. Grid or table, filterable by sector, status and province, sortable by fit score |
-| **Offtaker detail** | Everything needed before a call: load profile, supply authority, wheeling, nearest site, people, indicative saving, pre-filled templates |
+| **Pipeline** | The opportunities somebody is working. Four readings of the same records: **Accounts** on the five-stage sales path, **Deals** for the PPA opportunities with weighted contract value, **Flow** for where they stop, **Table** for the lot. Drag to move a card |
+| **Off-taker Prospects** | The leads: researched companies nobody has picked up. No sales stage, no board position. Grid or table, filterable by sector, status and province, sortable by fit score |
+| **Offtaker detail** | Three cards for a lead — who they are, what the desk researched, who works there — plus the sales path once it is in the pipeline |
 | **Contacts** | People at each offtaker, with role in the decision. CSV import and export |
 | **Activity** | Every logged call, email and meeting, plus target close dates |
 | **Projects** | The AEE generation portfolio and how much of each site is already spoken for |
@@ -24,7 +24,7 @@ Company site: <https://www.aeeg.co.za/en>
 | **Analytics** | Load by province and sector, fit distribution, where the pipeline value actually sits |
 | **Savings calculator** | Model a wheeled PPA against the buyer's current tariff over the contract life |
 | **Sectors** | 30 sectors with tier, PPA fit, load shape, deal structures, sales cycle and who to call. Each opens to its own page with qualifying questions and objections |
-| **Prospects** | The lead list. Capture a lead, work it — sales stage, opportunities, logged calls — and promote it to an offtaker in one click. Filterable by sector, tier, status and sales stage |
+| **Contact finder** | Queue a discovery run for the people missing from an account, and review what comes back before it lands in Contacts |
 | **Regions** | Each generation site against the industrial load in its catchment, ordered by unsold capacity then by distance, with published contacts inline |
 | **Playbook** | Ranked shortlists, market context, cold emails, discovery script, objection handling, qualification checklist |
 
@@ -47,8 +47,10 @@ if the team's experience says something different.
 
 ## The sales path
 
-Every account — an offtaker, or a lead being worked — sits at one of five
-stages, the standard sales process rather than anything PPA-specific:
+Only an account **in the pipeline** has one. A lead has no stage at all — see
+[Leads vs opportunities](#leads-vs-opportunities) below. An account in the
+pipeline sits at one of five stages, the standard sales process rather than
+anything PPA-specific:
 
 | Stage | What it means here |
 | --- | --- |
@@ -186,29 +188,52 @@ Two things it drives that are easy to miss:
   R2.30 against R1.30 — a R1.00/kWh gap, about 43%. Earlier defaults were
   guesses that understated the saving.
 
-## Prospects vs offtakers
+## Leads vs opportunities
 
-| | Prospect | Offtaker |
+Every company is one record type, and it lives in exactly one of two folders.
+Which one is decided by a single predicate, `inPipeline()` in
+[`js/core.js`](js/core.js), and both lists read that same line.
+
+| | Lead | Opportunity |
 | --- | --- | --- |
-| What it is | A named company in a sector | An account being worked |
-| Has load data | No | Yes, even if estimated |
-| Fit scored | No | Yes |
-| Where | `aee_prospects` | `aee_offtakers` |
+| Where | **Off-taker Prospects** | **Pipeline** |
+| What it is | A researched name nobody has picked up | A company somebody is actually working |
+| Sales stage | None. Not an empty one, not a greyed-out path — none | One of the five, on the record |
+| On a board | No | Yes, the accounts board |
+| Days in stage | Not measured | Measured, against the stage's own budget |
+| Opportunities | Cannot have one | Can have any number |
+| Counted in the funnel | No | Yes |
+| Record detail shows | Hero, company overview, who is here | The same three, plus the sales path on top |
 
-A prospect carries a name, a sector and a note. It is not fit-scored, because
-scoring a record with no load data would put 264 zeros at the top of the call
-list. **Promote** moves it across once the load is known, and that is when it
-starts being ranked.
+**A record is never in both.** The moment it crosses it leaves the list it came
+from, so neither list ever answers the other's question.
 
-A lead is still worked before that happens: it has a sales stage, opportunities
-and a call log of its own, and all three follow it across on promotion — along
-with its town, province, website and the stage it had reached. Only the load
-band stays behind, because the offtaker record's figures are the established
-ones a quote is built on, and finding them is the job the promotion creates.
+### Crossing the line
+
+**Work it** is the only way in. It sits on the lead's record header, and on
+every row and card in Off-taker Prospects. Pressing it writes `sfStage =
+'prospecting'`, logs the move, and opens the accounts board where the record
+now has a position — you land on the thing that just changed rather than on a
+list the row has vanished from.
+
+**Take out of the pipeline** is the way back, on the sales-path card. It clears
+the stage, returns the record to Off-taker Prospects as a lead, and deletes the
+speculative opportunities filed against it (counted in the confirm). An
+executed PPA refuses the move outright: voiding a signed contract has to be a
+deliberate act on that opportunity, not a side effect of tidying an account off
+a board.
+
+This is deliberately an act somebody takes, never something that happens by
+looking at a record. Everything downstream — the board, the funnel, the
+conversion rates, the stall warnings — only means anything if being in the
+pipeline was a decision. Filing an opportunity against a lead counts as that
+decision and moves it across too, which is why the record detail offers a lead
+**Work it** where a worked account gets **New opportunity**.
 
 ## Load data: the band and its basis
 
-A prospect's consumption is stored as a **band with its basis attached**, never as a
+The consumption of a company nobody has sized is stored as a **band with its
+basis attached**, never as a
 bare number. A single figure reads as fact and finds its way into a quote; a band
 plus a stated basis stays honest about what is actually known.
 
@@ -321,7 +346,7 @@ js/supabase.js              auth, row mapping, reads and writes
 js/core.js                  state, routing, helpers, fit score, sales path, auth gate, CSV
 js/views-dashboard.js       dashboard
 js/views-pipeline.js        the deal board, the account board, flow and the deal table
-js/views-offtakers.js       offtaker list, detail page, contacts
+js/views-offtakers.js       the lead list, the record detail, contacts
 js/views-orgmap.js          who is at an account, and where they sit
 js/views-contactfinder.js   people at the offtakers, found by an agent
 js/views-sectors.js         sectors and the one-sector page

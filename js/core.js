@@ -46,8 +46,12 @@ let state = {
      account board answers the question the nav item asks: who are we
      working. Deals stays one click away. */
   pipeView: storedView('pipeView', 'accounts'),
+  /* Set by "Stalled only" on the Flow page and read by the accounts board.
+     It narrows the pipeline, so it lives here rather than with the
+     Prospects filters — a lead has no stage and so cannot stall. */
+  pipeStalled: '',
 
-  offSearch: '', offSector: '', offStatus: '', offProvince: '', offStage: '', offStalled: '',
+  offSearch: '', offSector: '', offStatus: '', offProvince: '',
   offSort: { field: 'fit', dir: 'desc' },
   offPage: 1,
 
@@ -477,24 +481,42 @@ function applyAccountStageFromDeals(id, forwardOnly) {
   const rec = state.offtakers.find(o => o.id === id);
   if (!rec) return null;
   const target = accountStageFromDeals(id);
-  if (!target || sfStageFor(rec) === target) return null;
-  if (forwardOnly && sfStageIndex(target) < sfStageIndex(sfStageFor(rec))) return null;
+  if (!target) return null;
   const st = sfStageOf(target);
   if (!st) return null;
+  /* Filing the first opportunity against a lead IS the move into the
+     pipeline, so the stage is written even when it matches the one the
+     record's status already implied. Without this a lead picks up an
+     opportunity at Prospecting, reads as already being there, and keeps an
+     empty stage column - which is the one thing that decides whether it
+     sits in Prospects or in the Pipeline. */
+  const already = sfStageFor(rec) === target;
+  if (already && rec.sfStage) return null;
+  if (!already && forwardOnly && sfStageIndex(target) < sfStageIndex(sfStageFor(rec))) return null;
   rec.sfStage = target;
   rec.status = target === 'closed' ? 'contracted' : st.status;
   pushOfftaker(rec);
-  return st.label;
+  /* Stamped, but nothing actually moved - so the caller logs no move. */
+  return already ? null : st.label;
 }
 
-/* ─── WHO IS ACTUALLY IN THE PIPELINE ──────────────────────────
-   The company list is a research bench of several hundred names, and a
-   name on it is not a sales process. A record joins the pipeline when
-   somebody puts it there, and the stage on the record IS that act — which
-   is why an untouched company carries no stage rather than defaulting to
-   Prospecting. Without the distinction the first column of the board is
-   three hundred cards nobody has called and every conversion figure is
-   measured against a list of strangers. */
+/* ─── THE LINE BETWEEN A LEAD AND AN OPPORTUNITY ───────────────
+   This predicate decides which of two folders a company lives in, and a
+   record is in exactly one of them:
+
+     false  Off-taker Prospects — a lead. Researched, nobody working it.
+            No sales stage, no board position, no dwell clock, nothing
+            that measures a process, because there is no process yet.
+     true   Pipeline — an opportunity somebody is actually working. It
+            picks up the sales path, the stage budgets and the funnel.
+
+   Crossing the line is an act somebody takes ("Work it"), never something
+   that happens by looking at a record, and the stage on the record IS
+   that act — which is why a lead carries no stage rather than defaulting
+   to Prospecting. Without the distinction the first column of the board
+   is three hundred cards nobody has called, every conversion figure is
+   measured against a list of strangers, and both lists show the same
+   companies while answering different questions. */
 function inPipeline(rec) {
   if (!rec) return false;
   if (rec.sfStage && sfStageOf(rec.sfStage)) return true;
@@ -581,12 +603,12 @@ function isStalled(rec) {
    the stage's own patience, with the basis and the date in the tooltip so
    nobody has to trust a bare figure. */
 function dwellChipHtml(rec) {
-  /* Time at a stage only means something once there is a stage. The
-     company list is a research bench of several hundred names that nobody
-     has started working, and stageDwell falls back to the last activity
-     or the record's own timestamp, so every one of them was showing a
-     number in a column headed "In stage" — a sales process reported for
-     companies that are not in one. */
+  /* Time at a stage only means something once there is a stage. Leads
+     have none, and stageDwell falls back to the last activity or the
+     record's own timestamp, so without this guard every lead reports a
+     number for a sales process it is not in. Off-taker Prospects no
+     longer draws this chip at all; the guard stays for the callers that
+     take any account, municipalities included. */
   if (!inPipeline(rec)) return '<span style="color:var(--muted)">—</span>';
   const d = stageDwell(rec);
   if (!d) return '<span style="color:var(--muted)">—</span>';
@@ -627,21 +649,11 @@ function sfPathHtml(rec) {
   }).join('') + '</div>';
 }
 
-/* A company nobody has started working is not partway through anything,
-   and drawing it parked at Prospecting claims a process that does not
-   exist. Show the path greyed out with the move that would start one. */
-function sfNotStartedCardHtml(rec) {
-  return '<div class="card" style="margin-bottom:14px">' +
-    '<div class="card-header"><div><div class="card-title">Not in the pipeline</div>' +
-    '<div class="card-sub">Researched, but nobody is working it. Moving it in starts the sales ' +
-    'process and puts it on the board.</div></div>' +
-    '<button class="btn btn-primary btn-sm" data-admin-only onclick="addToPipeline(' + jsStr(rec.id) + ')">' +
-    icon('target', 14) + ' Move into the pipeline</button></div>' +
-    '<div class="sfpath">' + SF_STAGES.map(st =>
-      '<div class="sfp-step idle" title="' + esc(st.hint) + '">' + esc(st.label) + '</div>').join('') +
-    '</div>' +
-  '</div>';
-}
+/* There is deliberately no card for a company outside the pipeline. A
+   greyed-out path used to sit on every lead, and drawing the five stages
+   at all - even idle - claims a sales process that does not exist. The
+   move that starts one is the "Work it" button in the record's header;
+   the stages appear the moment it lands in the Pipeline. */
 
 /* The card the path sits in, with the stage's own one-line definition
    underneath so nobody has to guess what "Needs Analysis" means here. */
@@ -784,7 +796,10 @@ function setPage(title, sub, actions) {
 function setContent(html) { document.getElementById('content').innerHTML = html; }
 
 function updateNavBadges() {
-  const hot = state.offtakers.filter(o => fitScore(o) >= 70 && o.status === 'prospect').length;
+  /* The badge is a count of what is waiting in Prospects. Anything moved
+     into the pipeline is being worked and is not a lead any more, so it
+     drops out of the badge on the way across. */
+  const hot = state.offtakers.filter(o => !inPipeline(o) && fitScore(o) >= 70).length;
   const el = document.getElementById('nav-offtakers-badge');
   if (el) { el.textContent = hot; el.style.display = hot ? '' : 'none'; }
   const dueEl = document.getElementById('nav-activity-badge');
