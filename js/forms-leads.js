@@ -36,6 +36,52 @@ function addToPipeline(id) {
   render();
 }
 
+/* ─── BACK OUT OF THE PIPELINE ──────────────────
+   The undo for addToPipeline, for the company somebody moved in by
+   mistake. Clearing the stage is not enough on its own: inPipeline()
+   also reads the opportunities filed against the record and the status
+   it was moved to, so all three have to go back or the account is on the
+   board again on the next render.
+
+   The opportunities are the destructive part and are counted in the
+   confirm rather than disappearing quietly. The activity log stays —
+   what was said to a company happened whether or not it turned out to be
+   the wrong company to be saying it to. */
+function removeFromPipeline(id) {
+  if (state.role !== 'admin') { toast('Read-only access — ask an admin to move this', 'warn'); return; }
+  const rec = state.offtakers.find(o => o.id === id);
+  if (!rec) return;
+  if (!inPipeline(rec)) { toast('Not in the pipeline'); return; }
+
+  const deals = dealsFor(id);
+  const name = rec.short || rec.name;
+  const cost = deals.length
+    ? '\n\nIts ' + deals.length + ' opportunit' + (deals.length === 1 ? 'y' : 'ies') +
+      ' (' + fmtNum(deals.reduce((s, d) => s + num(d.mw), 0)) + ' MW) will be deleted. That cannot be undone.'
+    : '';
+  if (!confirm('Take ' + name + ' out of the pipeline?\n\n' +
+    'It goes back to Off-taker Prospects as a researched name with no sales stage.' + cost)) return;
+
+  deals.forEach(d => removeRow('aee_deals', d.id));
+  state.deals = state.deals.filter(d => d.offtakerId !== id);
+
+  rec.sfStage = '';
+  rec.status = 'prospect';
+  pushOfftaker(rec);
+
+  const entry = {
+    id: uid('int'), offtakerId: rec.id,
+    date: todayISO(), type: 'stage change',
+    summary: 'Taken out of the pipeline and back to Off-taker Prospects' +
+      (deals.length ? ', with ' + deals.length + ' opportunit' + (deals.length === 1 ? 'y' : 'ies') + ' deleted' : '') + '.',
+  };
+  state.interactions.push(entry);
+  pushInteraction(entry);
+  save();
+  toast(name + ' is back in Off-taker Prospects');
+  nav('offtakers');
+}
+
 /* ─── SALES PATH ────────────────────────────────
    Moving an offtaker along the Salesforce path. The stage is written on the
    record, the status is kept in step so every existing badge and filter

@@ -639,7 +639,12 @@ function sfPathCardHtml(rec) {
   return '<div class="card" style="margin-bottom:14px">' +
     '<div class="card-header"><div><div class="card-title">Sales stage</div>' +
     '<div class="card-sub">' + esc(st.hint || '') + '</div></div>' +
-    '<div style="display:flex;align-items:center;gap:8px">' + dwellSentenceHtml(rec) + sfStageBadge(rec) + '</div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px">' + dwellSentenceHtml(rec) + sfStageBadge(rec) +
+      '<button class="btn btn-outline btn-xs" data-admin-only ' +
+      'title="Put this back on Off-taker Prospects with no sales stage - for a company moved in by mistake" ' +
+      'onclick="removeFromPipeline(' + jsStr(rec.id) + ')">' +
+      icon('logout', 12) + ' Take out of the pipeline</button>' +
+    '</div></div>' +
     sfPathHtml(rec) +
   '</div>';
 }
