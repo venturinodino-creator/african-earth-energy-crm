@@ -392,9 +392,14 @@ function copyTemplate(templateId, offtakerId) {
    ═══════════════════════════════════════════════════════════════ */
 const ROLE_LABEL = { decision: 'Decision maker', influencer: 'Influencer', technical: 'Technical', gatekeeper: 'Gatekeeper' };
 
+/* The account a contact hangs off, offtaker or municipality alike. The
+   page groups on this, so a municipality resolves to its name and its
+   own page rather than rendering as "unassigned". */
+function contactAccountOf(c) { return finderAccountOf(c.offtakerId); }
+
 function contactSortVal(c, field) {
   switch (field) {
-    case 'offtaker': return getOfftaker(c.offtakerId).name || 'zzz';
+    case 'offtaker': return contactAccountOf(c).name || 'zzz';
     case 'role': return ['decision', 'influencer', 'technical', 'gatekeeper'].indexOf(c.role);
     case 'priority': return ['high', 'medium', 'low'].indexOf(c.priority);
     default: return String(c[field] || '');
@@ -404,7 +409,7 @@ function contactSortVal(c, field) {
 function renderContacts() {
   const term = state.contactSearch.toLowerCase();
   let list = state.contacts.filter(c => {
-    const o = getOfftaker(c.offtakerId);
+    const o = contactAccountOf(c);
     if (term && !((c.first + ' ' + c.last + ' ' + c.title + ' ' + c.dept + ' ' + (o.name || '')).toLowerCase().includes(term))) return false;
     if (state.contactOfftaker && c.offtakerId !== state.contactOfftaker) return false;
     if (state.contactRole && c.role !== state.contactRole) return false;
@@ -412,8 +417,24 @@ function renderContacts() {
   });
   list = sortBy(list, state.contactSort, contactSortVal);
 
+  /* Group by account. A stable re-sort on the account's name keeps the
+     chosen column order intact inside each group, so the page reads as
+     one company after another with its people sorted within. Contacts
+     nobody has filed under an account sink to the bottom together. */
+  const accKey = c => c.offtakerId || '';
+  const accName = c => { const a = contactAccountOf(c); return a.id ? (a.short || a.name) : ''; };
+  list.sort((a, b) => {
+    const an = accName(a), bn = accName(b);
+    if (an === bn) return 0;
+    if (!an) return 1;
+    if (!bn) return -1;
+    return an.localeCompare(bn);
+  });
+  const groupCount = {};
+  list.forEach(c => { groupCount[accKey(c)] = (groupCount[accKey(c)] || 0) + 1; });
+
   setPage('Contacts', state.contacts.length + ' people across ' +
-    new Set(state.contacts.map(c => c.offtakerId).filter(Boolean)).size + ' offtakers',
+    new Set(state.contacts.map(c => c.offtakerId).filter(Boolean)).size + ' companies',
     viewToggle('contactView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'contacts\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportContacts()">' + icon('download', 14) + ' Export</button>' +
@@ -425,8 +446,10 @@ function renderContacts() {
       '<input placeholder="Search name, title or company..." value="' + esc(state.contactSearch) + '" ' +
       'oninput="state.contactSearch=this.value;state.contactPage=1;renderContacts()"></div>' +
       '<select class="flt" onchange="state.contactOfftaker=this.value;state.contactPage=1;renderContacts()">' +
-        '<option value="">All offtakers</option>' +
+        '<option value="">All companies</option>' +
         state.offtakers.map(o => '<option value="' + esc(o.id) + '"' + (state.contactOfftaker === o.id ? ' selected' : '') + '>' + esc(o.short || o.name) + '</option>').join('') +
+        SA_MUNICIPALITIES.filter(m => contactsFor(m.id).length)
+          .map(m => '<option value="' + esc(m.id) + '"' + (state.contactOfftaker === m.id ? ' selected' : '') + '>' + esc(m.name) + ' Municipality</option>').join('') +
       '</select>' +
       '<select class="flt" onchange="state.contactRole=this.value;state.contactPage=1;renderContacts()">' +
         '<option value="">All roles</option>' +
@@ -446,8 +469,8 @@ function renderContacts() {
   const page = list.slice((state.contactPage - 1) * PER_PAGE, state.contactPage * PER_PAGE);
 
   const body = state.contactView === 'grid'
-    ? '<div class="ent-grid">' + page.map(contactCardHtml).join('') + '</div>'
-    : contactTableHtml(page);
+    ? contactGroupedGridHtml(page, groupCount)
+    : contactTableHtml(page, groupCount);
 
   setContent(toolbar + body +
     (pages > 1 ? '<div class="pagination">' +
@@ -457,8 +480,35 @@ function renderContacts() {
     '</div>' : ''));
 }
 
+/* One heading per account, shared by the grid and the table so both
+   views group identically. The count is the group's size across the
+   whole filtered list, not just this page of it. */
+function contactGroupHeadHtml(c, groupCount) {
+  const a = contactAccountOf(c);
+  const n = groupCount[c.offtakerId || ''] || 0;
+  const label = a.id ? esc(a.short || a.name) : 'Not linked to a company';
+  const open = a.id ? ' style="cursor:pointer" onclick="nav(\'' + accountView(a.id) + '\',{id:\'' + a.id + '\'})"' : '';
+  return '<div class="contact-group-head" style="display:flex;align-items:center;gap:7px;' +
+    'margin:16px 2px 8px;padding-bottom:5px;border-bottom:1px solid var(--border)">' +
+    icon(isMunicipalityId(a.id) ? 'pin' : 'building', 14) +
+    '<span class="ext-link"' + open + ' style="font-weight:700;color:var(--text2);cursor:' + (a.id ? 'pointer' : 'default') + '">' + label + '</span>' +
+    '<span style="font-size:11px;color:var(--muted)">' + n + ' ' + (n === 1 ? 'person' : 'people') + '</span>' +
+  '</div>';
+}
+
+function contactGroupedGridHtml(page, groupCount) {
+  let html = '', cur = null, buf = [];
+  const flush = () => { if (buf.length) { html += '<div class="ent-grid">' + buf.join('') + '</div>'; buf = []; } };
+  page.forEach(c => {
+    if ((c.offtakerId || '') !== cur) { flush(); cur = c.offtakerId || ''; html += contactGroupHeadHtml(c, groupCount); }
+    buf.push(contactCardHtml(c));
+  });
+  flush();
+  return html;
+}
+
 function contactCardHtml(c) {
-  const o = getOfftaker(c.offtakerId);
+  const o = contactAccountOf(c);
   return '<div class="ec" style="cursor:default">' +
     '<div class="ec-head">' +
       '<div class="name-cell"><div class="av" style="background:' + avatarColor(c.first + c.last) + '">' +
@@ -469,8 +519,8 @@ function contactCardHtml(c) {
           (c.dept ? ' · ' + esc(c.dept) : '') + '</div></div></div>' +
       '<span class="badge b-' + c.priority + '">' + esc(c.priority) + '</span>' +
     '</div>' +
-    '<div class="meta">' + icon('building', 13) +
-      (o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
+    '<div class="meta">' + icon(isMunicipalityId(o.id) ? 'pin' : 'building', 13) +
+      (o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'' + accountView(o.id) + '\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
         : '<span style="color:var(--muted)">unassigned</span>') + '</div>' +
     '<div class="meta">' + icon('contacts', 13) +
       '<span class="badge ' + (c.role === 'decision' ? 'b-contracted' : 'b-prospect') + '">' +
@@ -481,9 +531,9 @@ function contactCardHtml(c) {
     '<div class="meta">' + icon('phone', 13) +
       (c.phone ? esc(c.phone) : '<span style="color:var(--muted)">no number on file</span>') + '</div>' +
     '<div class="ec-footer">' +
-      '<span>' + (o.id ? 'Org map available' : 'Not linked to an offtaker') + '</span>' +
+      '<span>' + (o.id ? (isMunicipalityId(o.id) ? 'Municipality contact' : 'Org map available') : 'Not linked to a company') + '</span>' +
       '<div style="display:flex;gap:4px">' +
-        (o.id ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 12) + '</button>' : '') +
+        (o.id && !isMunicipalityId(o.id) ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 12) + '</button>' : '') +
         (safeHref(c.linkedin) ? '<a class="btn btn-xs btn-outline" href="' + esc(safeHref(c.linkedin)) + '" target="_blank" rel="noopener">' + icon('link', 12) + '</a>' : '') +
         '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 12) + '</button>' +
         '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 12) + '</button>' +
@@ -492,27 +542,33 @@ function contactCardHtml(c) {
   '</div>';
 }
 
-function contactTableHtml(page) {
+function contactTableHtml(page, groupCount) {
   const s = state.contactSort;
   const th = (field, label) => '<th class="' + thClass(field, s) + '" onclick="toggleSort(state.contactSort,\'' + field + '\',renderContacts)">' + label + sortArrow(field, s) + '</th>';
+  let cur = null;
   return '<div class="table-wrap"><table><thead><tr>' +
-      th('last', 'Name') + th('title', 'Title') + th('offtaker', 'Offtaker') +
+      th('last', 'Name') + th('title', 'Title') + th('offtaker', 'Company') +
       th('role', 'Role') + '<th>Email</th><th>Phone</th>' + th('priority', 'Priority') + '<th>Actions</th>' +
     '</tr></thead><tbody>' +
     page.map(c => {
-      const o = getOfftaker(c.offtakerId);
-      return '<tr>' +
+      const o = contactAccountOf(c);
+      let head = '';
+      if ((c.offtakerId || '') !== cur) {
+        cur = c.offtakerId || '';
+        head = '<tr><td colspan="8" style="padding:0 8px">' + contactGroupHeadHtml(c, groupCount) + '</td></tr>';
+      }
+      return head + '<tr>' +
         '<td><div class="name-cell"><div class="av" style="background:' + avatarColor(c.first + c.last) + '">' +
           esc(initials(c.first, c.last).toUpperCase()) + '</div><div style="font-weight:700">' + esc(c.first + ' ' + c.last) + '</div></div></td>' +
         '<td>' + esc(c.title) + (c.dept ? '<div style="font-size:10.5px;color:var(--muted)">' + esc(c.dept) + '</div>' : '') + '</td>' +
-        '<td>' + (o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
+        '<td>' + (o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'' + accountView(o.id) + '\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
           : '<span class="badge b-low">unassigned</span>') + '</td>' +
         '<td><span class="badge ' + (c.role === 'decision' ? 'b-contracted' : 'b-prospect') + '">' + esc(ROLE_LABEL[c.role] || c.role) + '</span></td>' +
         '<td>' + (c.email ? '<a class="ext-link" href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td>' + (c.phone ? esc(c.phone) : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td><span class="badge b-' + c.priority + '">' + esc(c.priority) + '</span></td>' +
         '<td style="white-space:nowrap">' +
-          (o.id ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 11) + '</button> ' : '') +
+          (o.id && !isMunicipalityId(o.id) ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 11) + '</button> ' : '') +
           (safeHref(c.linkedin) ? '<a class="btn btn-xs btn-outline" href="' + esc(safeHref(c.linkedin)) + '" target="_blank" rel="noopener">' + icon('link', 11) + '</a> ' : '') +
           '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button> ' +
           '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
