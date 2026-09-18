@@ -66,9 +66,12 @@ async function refreshFinderFromServer(announce) {
        still on screen — the user may have navigated away while the
        request was in flight. The dashboard's agents card reads the same
        runs, so it has to be woken too or it sits on the cached copy
-       until something else happens to re-render it. */
+       until something else happens to re-render it. The prospect list
+       carries the pending count in its header for the same reason. */
     if (state.view === 'prospects') renderContactFinder();
     else if (state.view === 'dashboard') renderDashboard();
+    else if (state.view === 'offtakers') renderOfftakers();
+    applyRoleUI();
   }
 }
 
@@ -405,14 +408,30 @@ async function approveFoundContact(id) {
 
 async function acceptAllFound() {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
-  const live = state.foundContacts.filter(f => f.status === 'pending' &&
-    (state.cfIndustry === 'all' || finderIndustryOf(f) === state.cfIndustry));
+  await acceptFinds(state.foundContacts.filter(f => f.status === 'pending' &&
+    (state.cfIndustry === 'all' || finderIndustryOf(f) === state.cfIndustry)));
+}
+
+/* The same acceptance from outside the finder: every pending find,
+   companies and municipalities alike, ignoring whatever chip the finder
+   was last filtered to. The prospect list offers this so the whole
+   review queue can be ingested into the accounts in one press. */
+async function acceptAllFoundEverywhere() {
+  if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
+  if (!state.foundContacts) loadFinderCache();
+  await acceptFinds(state.foundContacts.filter(f => f.status === 'pending'));
+}
+
+async function acceptFinds(live) {
   if (!live.length) return;
 
   const made = live.map(f => { const c = foundToContact(f); state.contacts.push(c); f.status = 'approved'; return c; });
   saveFinderState();
   save();
-  renderContactFinder();
+  /* render(), not renderContactFinder() — this now runs from the
+     prospect list too, and the repaint has to land on whichever screen
+     the press came from. */
+  render();
   toast('Accepted ' + made.length + ' contact' + (made.length === 1 ? '' : 's'));
 
   let failed = 0;

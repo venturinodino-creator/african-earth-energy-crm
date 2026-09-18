@@ -55,9 +55,21 @@ function renderOfftakers() {
   const leads = prospectRecords();
   const working = state.offtakers.length - leads.length;
   const totalGwh = list.reduce((s, o) => s + num(o.annualGwh), 0);
+
+  /* The finder's review queue surfaces here too: one press ingests every
+     pending find into its company or municipality, so the queue can be
+     cleared without walking the finder's filter chips. Loading mirrors
+     renderContactFinder — cache first, server refresh repaints. */
+  if (!state.contactRuns) { loadFinderCache(); refreshFinderFromServer(false); }
+  const pendingFinds = state.foundContacts.filter(f => f.status === 'pending').length;
+
   setPage('Off-taker Prospects',
     leads.length + ' lead' + (leads.length === 1 ? '' : 's') + ' nobody is working yet · ' +
     fmtNum(totalGwh) + ' GWh/yr in view · ' + working + ' already in the pipeline',
+    (pendingFinds
+      ? '<button class="btn btn-primary btn-sm" data-admin-only onclick="acceptAllFoundEverywhere()">' +
+        'Accept all ' + pendingFinds + ' found contact' + (pendingFinds === 1 ? '' : 's') + '</button>'
+      : '') +
     viewToggle('offView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
