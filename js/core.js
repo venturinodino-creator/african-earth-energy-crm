@@ -35,7 +35,13 @@ let state = {
   muniView: storedView('muniView', 'table'),
   projectView: storedView('projectView', 'grid'),
   activityView: storedView('activityView', 'timeline'),
-  pipeView: storedView('pipeView', 'board'),
+  /* Accounts, not Deals. The deal board only holds records that already
+     have an opportunity filed, which is the narrower half of the pipeline —
+     an account moved in with "Work it" has a stage but no deal yet, so it
+     is invisible there and the move reads as having done nothing. The
+     account board answers the question the nav item asks: who are we
+     working. Deals stays one click away. */
+  pipeView: storedView('pipeView', 'accounts'),
 
   offSearch: '', offSector: '', offStatus: '', offProvince: '', offStage: '', offStalled: '',
   offSort: { field: 'fit', dir: 'desc' },
