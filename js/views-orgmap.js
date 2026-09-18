@@ -186,15 +186,17 @@ function contactMixHtml(o, contacts, opts) {
   });
   window.AE_DUPE_KEYS = dupeKeys;
 
-  if (!people.length) {
-    return '<div class="card ia-card">' +
-      '<div class="card-header"><div><div class="card-title">Who is here, and what they hold</div>' +
-      '<div class="card-sub">Nobody on file at ' + esc(o.short || o.name) + ' yet</div></div>' +
-      '<button class="btn btn-primary btn-xs" data-admin-only onclick="openAddContact(\'' + o.id + '\')">Add the first contact</button></div>' +
-      '<div class="fg-hint">Start with whoever owns the electricity bill — a Group Energy Manager or Head of Utilities ' +
-      'takes this call. The person who signs it is the CFO, and you will want both before a PPA gets anywhere.</div>' +
-    '</div>';
-  }
+  /* An account with nobody on file still gets the whole panel. Every band
+     reads zero and all seven ladder seats read empty — which is exactly the
+     finding on an account nobody has worked yet, and the reason this file
+     treats a gap as a result rather than something to hide. A panel that
+     vanished on the accounts with the most to say was the one thing here
+     the reader could not act on.
+
+     What does change is that nothing is a control any more: a filter with
+     no rows to narrow, and an org map with nobody on it, are clicks the
+     panel cannot honour. */
+  const live = people.length > 0;
 
   /* ── seniority ─────────────────────────────────────────────── */
   const tierCounts = {};
@@ -272,25 +274,42 @@ function contactMixHtml(o, contacts, opts) {
       : f.value === 'missing' ? 'contacts with no email or phone' : 'contacts you can reach') +
     ' <span>&times;</span></button>' : '';
 
-  const countLine = contacts.length === people.length
-    ? people.length + (people.length === 1 ? ' person' : ' people')
-    : people.length + ' people in ' + contacts.length + ' records';
+  const countLine = !live
+    ? 'nobody on file yet'
+    : contacts.length === people.length
+      ? people.length + (people.length === 1 ? ' person' : ' people')
+      : people.length + ' people in ' + contacts.length + ' records';
+
+  /* A tile is a control only while there are people behind it. */
+  function reachTile(inner, click, pressed) {
+    return live
+      ? '<button class="ia-tile" onclick="' + click + '" aria-pressed="' + !!pressed + '">' + inner + '</button>'
+      : '<div class="ia-tile is-flat">' + inner + '</div>';
+  }
 
   return '<div class="card ia-card">' +
     '<div class="card-header" style="margin-bottom:14px">' +
       '<div><div class="card-title">Who is here, and what they hold</div>' +
-      '<div class="card-sub">Read off job titles — click any band to ' +
-        (hasList ? 'filter the contacts below' : 'open the people behind it') + '</div></div>' +
-      filterChip +
+      '<div class="card-sub">' + (live
+        ? 'Read off job titles — click any band to ' +
+          (hasList ? 'filter the contacts below' : 'open the people behind it')
+        : 'Nobody on file at ' + esc(o.short || o.name) + ' yet — every band and seat below reads empty') +
+      '</div></div>' +
+      (live ? filterChip
+        : '<button class="btn btn-primary btn-xs" data-admin-only onclick="openAddContact(\'' + o.id + '\')">' +
+          'Add the first contact</button>') +
     '</div>' +
     '<div class="ia-grid">' +
       '<div class="ia-panel">' +
         '<div class="ia-h">Seniority <b>' + countLine + '</b></div>' +
-        '<div class="ia-bar">' + roleBar + '</div>' +
-        '<div class="ia-keys">' + roleKey + '</div>' +
-        '<p class="ia-note">' + (leaders.length
-          ? '<b>' + leaders.length + '</b> of ' + people.length + ' own the tariff, the carbon number or the signature.'
-          : 'Nobody here owns energy, sustainability or the budget yet — you are talking to the wrong floor.') + '</p>' +
+        '<div class="ia-bar">' + (roleBar || '<span class="ia-seg is-empty"></span>') + '</div>' +
+        '<div class="ia-keys">' + (roleKey || '<p class="ia-empty">No job titles on file yet.</p>') + '</div>' +
+        '<p class="ia-note">' + (!live
+          ? 'Start with whoever owns the electricity bill — a Group Energy Manager or Head of Utilities ' +
+            'takes this call. The CFO signs it, and you want both before a PPA gets anywhere.'
+          : leaders.length
+            ? '<b>' + leaders.length + '</b> of ' + people.length + ' own the tariff, the carbon number or the signature.'
+            : 'Nobody here owns energy, sustainability or the budget yet — you are talking to the wrong floor.') + '</p>' +
       '</div>' +
 
       '<div class="ia-panel">' +
@@ -301,17 +320,19 @@ function contactMixHtml(o, contacts, opts) {
       '<div class="ia-panel">' +
         '<div class="ia-h">Reachability</div>' +
         '<div class="ia-mini">' +
-          '<button class="ia-tile" onclick="aeSetFilter(\'lead\',1)" aria-pressed="' + !!(f && f.kind === 'lead') + '">' +
+          reachTile(
             '<span class="ia-tile-n" style="color:' + (leaders.length && leadReach === leaders.length ? '#3ddc84' : leaders.length ? '#fb923c' : 'var(--muted)') + '">' +
             leadReach + '<em>/' + leaders.length + '</em></span>' +
             '<span class="ia-tile-l">Decision makers you can reach</span>' +
-            '<span class="ia-tile-s">' + (leaders.length ? (reachPct === 100 ? 'all reachable' : reachPct + '% of them') : 'none identified yet') + '</span>' +
-          '</button>' +
-          '<button class="ia-tile" onclick="aeSetFilter(\'email\',\'missing\')" aria-pressed="' + !!(f && f.kind === 'email' && f.value === 'missing') + '">' +
-            '<span class="ia-tile-n" style="color:' + (noReach ? '#fb923c' : '#3ddc84') + '">' + noReach + '</span>' +
+            '<span class="ia-tile-s">' + (leaders.length ? (reachPct === 100 ? 'all reachable' : reachPct + '% of them') : 'none identified yet') + '</span>',
+            'aeSetFilter(\'lead\',1)', f && f.kind === 'lead') +
+          reachTile(
+            '<span class="ia-tile-n" style="color:' + (!live ? 'var(--muted)' : noReach ? '#fb923c' : '#3ddc84') + '">' + noReach + '</span>' +
             '<span class="ia-tile-l">No email or phone</span>' +
-            '<span class="ia-tile-s">' + (noReach ? 'cannot be contacted yet' : 'everyone contactable') + '</span>' +
-          '</button>' +
+            /* "everyone contactable" on an empty account would be a true
+               sentence about nobody, read as a clean bill of health. */
+            '<span class="ia-tile-s">' + (!live ? 'nobody on file yet' : noReach ? 'cannot be contacted yet' : 'everyone contactable') + '</span>',
+            'aeSetFilter(\'email\',\'missing\')', f && f.kind === 'email' && f.value === 'missing') +
         '</div>' +
         (dupeKeys.length ? '<button class="ia-flag" onclick="aeSetFilter(\'dupe\',1)" aria-pressed="' + !!(f && f.kind === 'dupe') + '">' +
           '&#9888; ' + dupeKeys.length + ' name' + (dupeKeys.length === 1 ? '' : 's') + ' stored twice — ' +
@@ -319,13 +340,19 @@ function contactMixHtml(o, contacts, opts) {
           '<u>show the records</u></button>' : '') +
       '</div>' +
 
-      '<div class="ia-panel ia-panel-link" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})" role="button" tabindex="0" ' +
-        'onkeydown="if(event.key===\'Enter\')nav(\'org-map\',{id:\'' + o.id + '\'})" ' +
-        'title="Open the visual org chart for ' + esc(o.short || o.name) + '">' +
-        '<div class="ia-h">Org map <b>' + people.length + (people.length === 1 ? ' person' : ' people') + '</b></div>' +
+      (live
+        ? '<div class="ia-panel ia-panel-link" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})" role="button" tabindex="0" ' +
+          'onkeydown="if(event.key===\'Enter\')nav(\'org-map\',{id:\'' + o.id + '\'})" ' +
+          'title="Open the visual org chart for ' + esc(o.short || o.name) + '">'
+        : '<div class="ia-panel">') +
+        '<div class="ia-h">Org map <b>' + (live
+          ? people.length + (people.length === 1 ? ' person' : ' people')
+          : 'nobody to map') + '</b></div>' +
         '<div style="display:flex;align-items:center;gap:12px">' +
-          '<span style="color:var(--accent);display:flex">' + icon('grid', 26) + '</span>' +
-          '<span style="font-size:12px;font-weight:600;color:var(--text2)">Who sits where, by department and seniority &rarr;</span>' +
+          '<span style="color:' + (live ? 'var(--accent)' : 'var(--muted)') + ';display:flex">' + icon('grid', 26) + '</span>' +
+          '<span style="font-size:12px;font-weight:600;color:var(--text2)">' + (live
+            ? 'Who sits where, by department and seniority &rarr;'
+            : 'The chart draws itself once the first contact is added') + '</span>' +
         '</div>' +
       '</div>' +
 
