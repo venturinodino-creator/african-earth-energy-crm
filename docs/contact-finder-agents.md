@@ -66,12 +66,18 @@ goes, and marks the run done with a coverage note.
 
 **4. Review** in the Contact finder. Each row shows the source it was
 read from — open it before accepting. Accept writes the contact;
-discard drops it.
+discard drops it. **Accept all** takes every pending row that has an
+email in one press. A row that arrived without one is held back with an
+*Add email & accept* button — type the address and it goes in.
 
 ## What a good find looks like
 
 Required: `offtakerId` (from `targets`), `first`, `last`, `title`,
-`role`, `source`, and **either** an email or a phone. `title` is
+`role`, `source`, and a **work email**. Phone is optional. A person
+with no email is not written — the desk writes before it phones, so a
+row with only a switchboard number is a contact nobody follows up. Keep
+reading (contact page, annual report, press-release signature) or turn
+to the Apollo source below; never guess an address from a pattern. `title` is
 recorded exactly as published, because the stakeholder ladder reads the
 seat off the title — tidying it is how a Municipal Manager stops being
 the CEO seat.

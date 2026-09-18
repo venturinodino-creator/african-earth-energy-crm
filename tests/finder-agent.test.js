@@ -45,7 +45,7 @@ const good = {
 console.log('\ncheckFind — accepts a well-formed find');
 test('a complete find passes', () => assert.deepStrictEqual(checkFind(good), []));
 test('email alone is enough', () => assert.deepStrictEqual(checkFind({ ...good, phone: undefined }), []));
-test('phone alone is enough', () => assert.deepStrictEqual(checkFind({ ...good, email: undefined }), []));
+test('phone may be omitted', () => assert.deepStrictEqual(checkFind({ ...good, phone: undefined }), []));
 test('confidence may be omitted', () => assert.deepStrictEqual(checkFind({ ...good, confidence: undefined }), []));
 test('a municipality id passes', () =>
   assert.deepStrictEqual(checkFind({ ...good, offtakerId: 'mun_LIM353', title: 'Municipal Manager' }), []));
@@ -56,8 +56,10 @@ test('no surname', () => refuses({ ...good, last: '' }, 'first and last'));
 test('no title', () => refuses({ ...good, title: '' }, 'title'));
 test('no source', () => refuses({ ...good, source: '' }, 'source'));
 test('source that is not a URL', () => refuses({ ...good, source: 'their website' }, 'URL'));
+test('phone alone is not enough — email is required', () =>
+  refuses({ ...good, email: undefined }, 'email is required'));
 test('neither email nor phone', () =>
-  refuses({ ...good, email: undefined, phone: undefined }, 'cannot be contacted'));
+  refuses({ ...good, email: undefined, phone: undefined }, 'email is required'));
 test('an email that is not an address', () => refuses({ ...good, email: 'not-an-address' }, 'address'));
 test('a generic inbox', () => refuses({ ...good, email: 'info@example.co.za' }, 'generic inbox'));
 test('another generic inbox', () => refuses({ ...good, email: 'enquiries@example.co.za' }, 'generic inbox'));
