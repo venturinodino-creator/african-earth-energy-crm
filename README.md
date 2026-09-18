@@ -316,8 +316,11 @@ they happen.
   offtakers, contacts and the pipeline are customer records and are not committed to a
   public repository. Use the CSV exports for a data backup.
 - **Tables:** `aee_offtakers`, `aee_contacts`, `aee_deals`, `aee_interactions`,
-  `aee_prospects`, plus `profiles` for roles. They are namespaced `aee_*` so they sit alongside
-  the pre-existing `mining_leads` table without touching it.
+  `aee_contact_runs`, `aee_found_contacts`, plus `profiles` for roles. They are namespaced
+  `aee_*` so they sit alongside the pre-existing `mining_leads` table without touching it.
+  `aee_prospects` is gone: leads and offtakers are one record type now, and the live table
+  was retired to `aee_prospects_retired` rather than dropped, so the 282 rows it held are
+  still there if anything is ever wanted back off them.
 - **The generation portfolio is not in the database.** It is AEE's own published
   project list, so it ships in `data/seed.js` and needs no sync.
 - **Local cache:** the last successful read is kept in `localStorage` purely so a
