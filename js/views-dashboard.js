@@ -215,10 +215,16 @@ function renderDashboard() {
    a green light next to these would have somebody wondering for a week
    why no contacts arrived. The state shown is the queue's own.
 
-   The roster grows with the evidence. The offtaker finder is always
-   listed because the Contact finder targets companies. A municipality
-   finder appears once there is a municipality run to show - which is
-   how this card picks up a second worker without being edited.
+   BOTH ARE ALWAYS LISTED. This used to show the municipality finder
+   only once a municipality run existed, on the reasoning that a worker
+   with nothing to its name was not worth a row. That was right when
+   only one of them was written. Both are real now -
+   .claude/agents/offtaker-contact-finder.md and
+   .claude/agents/municipality-contact-finder.md - and a roster that
+   hides one until it has already run answers the wrong question: you
+   look here to see WHAT COULD BE WORKING, and "never run" is the most
+   useful thing this card can tell you about an agent nobody has
+   pointed at anything yet.
    ====================================================================== */
 
 /* A run aimed at municipalities, read off the ids it carries rather than
@@ -229,15 +235,14 @@ function dashRunIsMuni(r) {
   return (r.offtakerIds || []).some(id => String(id || '').startsWith('mun_'));
 }
 
-function dashAgentRoster(runs) {
-  const roster = [{ key: 'offtakers', name: 'Offtaker contact finder', icon: 'building',
-    cls: 'green', muni: false, what: 'People at the companies' }];
-  if (runs.some(dashRunIsMuni)) {
-    roster.push({ key: 'municipal', name: 'Municipality contact finder', icon: 'pin',
-      cls: 'blue', muni: true, what: 'People at the main municipalities' });
-  }
-  return roster;
-}
+const DASH_AGENTS = [
+  { key: 'offtakers', name: 'Offtaker contact finder', icon: 'building',
+    cls: 'green', muni: false,
+    what: 'Mines, smelters and the rest — the seven ladder seats' },
+  { key: 'municipal', name: 'Municipality contact finder', icon: 'pin',
+    cls: 'blue', muni: true,
+    what: 'The 20 main municipalities — manager, CFO, electricity, SCM' },
+];
 
 function dashAgentRowHtml(a, runs) {
   const mine = runs.filter(r => dashRunIsMuni(r) === a.muni);
@@ -285,7 +290,7 @@ function agentsCardHtml() {
     '<div class="card-header"><div><div class="card-title">Agents working for you</div>' +
     '<div class="card-sub">Who is researching what, and whether it has actually run</div></div>' +
     '<button class="btn btn-ghost btn-xs" onclick="nav(&#39;prospects&#39;)">Contact finder</button></div>' +
-    dashAgentRoster(runs).map(a => dashAgentRowHtml(a, runs)).join('') +
+    DASH_AGENTS.map(a => dashAgentRowHtml(a, runs)).join('') +
     '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
       (pending
         ? '<b>' + pending + ' found ' + (pending === 1 ? 'person needs' : 'people need') +
