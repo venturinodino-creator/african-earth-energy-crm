@@ -246,12 +246,37 @@ Nothing in this repo should be sent to a customer as a quote.
 It is static HTML, CSS and JavaScript with no build step and no backend.
 
 ```bash
-python -m http.server 8000
+python scripts/serve.py
 ```
 
-Then open <http://localhost:8000/landing.html>. Opening `index.html` straight from
-the filesystem also works — the seed data is loaded as a plain script rather than
-fetched, precisely so that it does.
+Then open <http://127.0.0.1:8140/landing.html>. Pass a port as an argument to use a
+different one. Opening `index.html` straight from the filesystem also works — the
+seed data is loaded as a plain script rather than fetched, precisely so that it does.
+
+Use `scripts/serve.py` rather than `python -m http.server`: the latter lets the
+browser reuse a copy it already holds, so editing a file and reloading can quietly
+run the previous version. Worse, a cached `index.html` keeps asking for script files
+that have since been renamed, and the app boots missing whole modules. The script
+serves everything `no-store`.
+
+### Checking the code
+
+```bash
+node scripts/check-refs.js
+```
+
+Reports identifiers that resolve to nothing — the failure this codebase is most
+exposed to. There is no build step and no module graph, which is what makes it
+deployable by pushing a folder and also what makes a rename silent: delete a
+variable, miss one call site, and nothing complains until somebody opens the page
+that reads it, at which point a `ReferenceError` takes down the whole render. Three
+had been sitting in the tree at once, each blanking a different page.
+
+It reads each page the way the browser does — the scripts it loads, in order, as one
+global scope — then resolves every reference against the scopes enclosing it, and
+every function named in an inline `onclick`. Exits non-zero on a finding, so it can
+gate a commit. It fetches a parser into a temp directory on first run; nothing is
+added to the repo.
 
 ## Data and storage
 
@@ -283,23 +308,31 @@ identify the project and grant nothing on their own.
 ## Layout
 
 ```
-index.html              app shell, sidebar, modals
-landing.html            public-facing entry page
-styles.css              design system
-animations.css/.js      motion layer (decorative, honours prefers-reduced-motion)
-data/seed.js            generation portfolio, pipeline stages, outreach templates
-data/sectors.js         sector taxonomy, questions, objections, roles, market context
-js/icons.js             inline SVG icon set
-js/supabase.js          auth, row mapping, reads and writes
-js/core.js              state, routing, helpers, fit score, auth gate, CSV
-js/views-dashboard.js   dashboard + pipeline board
-js/views-offtakers.js   offtaker list, detail page, contacts
-js/views-sectors.js     sectors, one-sector page, prospects list
-js/views-prospect.js    one lead on one page
-js/views-regions.js     per-site catchment and the regional target list
-js/views-tools.js       projects, map, analytics, calculator, playbook, activity
-js/forms.js             create / edit / delete
-js/forms-leads.js       lead capture and the sales path
+index.html                  app shell, sidebar, modals
+landing.html                public-facing entry page
+styles.css                  design system
+animations.css/.js          motion layer (decorative, honours prefers-reduced-motion)
+data/seed.js                generation portfolio, sales stages, outreach templates
+data/sectors.js             sector taxonomy, questions, objections, roles, market context
+data/municipalities.js      all 257 municipalities, as consumer and as distributor
+data/news.js                mining-industry stories, and the topics the desk watches
+js/icons.js                 inline SVG icon set
+js/supabase.js              auth, row mapping, reads and writes
+js/core.js                  state, routing, helpers, fit score, sales path, auth gate, CSV
+js/views-dashboard.js       dashboard
+js/views-pipeline.js        the deal board, the account board, flow and the deal table
+js/views-offtakers.js       offtaker list, detail page, contacts
+js/views-orgmap.js          who is at an account, and where they sit
+js/views-contactfinder.js   people at the offtakers, found by an agent
+js/views-sectors.js         sectors and the one-sector page
+js/views-regions.js         per-site catchment and the regional target list
+js/views-municipalities.js  the 257 as their own target list
+js/views-news.js            the news feed the desk reads before it dials
+js/views-tools.js           projects, map, analytics, calculator, playbook, activity
+js/forms.js                 create / edit / delete
+js/forms-leads.js           into and back out of the pipeline, and the sales path
+scripts/serve.py            preview server with caching off
+scripts/check-refs.js       finds identifiers that resolve to nothing
 ```
 
 ## Deploying
