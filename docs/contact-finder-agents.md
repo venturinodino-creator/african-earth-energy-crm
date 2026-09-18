@@ -66,9 +66,11 @@ goes, and marks the run done with a coverage note.
 
 **4. Review** in the Contact finder. Each row shows the source it was
 read from — open it before accepting. Accept writes the contact;
-discard drops it. **Accept all** takes every pending row that has an
-email in one press. A row that arrived without one is held back with an
-*Add email & accept* button — type the address and it goes in.
+discard drops it. **Accept all** takes every pending row in one press
+and files each contact under its municipality or company. A row that
+arrived without an email is flagged *No email* but still goes in; the
+*Add email & accept* button on the row lets a reviewer type the address
+first, or it can be added on the contact later.
 
 ## What a good find looks like
 
