@@ -63,6 +63,14 @@ test('neither email nor phone', () =>
 test('an email that is not an address', () => refuses({ ...good, email: 'not-an-address' }, 'address'));
 test('a generic inbox', () => refuses({ ...good, email: 'info@example.co.za' }, 'generic inbox'));
 test('another generic inbox', () => refuses({ ...good, email: 'enquiries@example.co.za' }, 'generic inbox'));
+test('a privacy-office inbox is not a CEO\'s address', () => refuses({ ...good, email: 'ssaprivacyoffice@example.com' }, 'generic inbox'));
+test('the company secretary inbox', () => refuses({ ...good, email: 'cosec@example.co.za' }, 'generic inbox'));
+test('a suffixed office inbox', () => refuses({ ...good, email: 'cosec.admin@example.co.za' }, 'generic inbox'));
+test('investor relations inbox', () => refuses({ ...good, email: 'ir.admin@example.co.za' }, 'generic inbox'));
+test('a person whose surname starts like an office word still passes', () =>
+  assert.deepStrictEqual(checkFind({ ...good, email: 'sally.irwin@example.co.za' }), []));
+test('an initial-plus-surname address passes', () =>
+  assert.deepStrictEqual(checkFind({ ...good, email: 'tmokoena@example.co.za' }), []));
 test('a role outside the four', () => refuses({ ...good, role: 'boss' }, 'role must be one of'));
 test('a seat outside the seven', () => refuses({ ...good, seat: 'legal' }, 'seat must be one of'));
 test('confidence above 1', () => refuses({ ...good, confidence: 5 }, 'between 0 and 1'));

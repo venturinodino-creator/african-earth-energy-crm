@@ -62,6 +62,22 @@ const AUTH_DOMAIN = 'aeeg.co.za';
 const ROLES = ['decision', 'influencer', 'technical', 'gatekeeper'];
 const SEATS = ['energy', 'sustain', 'finance', 'exec', 'ops', 'eng', 'proc'];
 
+/* Local parts that name an office rather than a person. The whole local
+   part must match (with optional .admin / .office / .za style suffixes),
+   so a real person called Sally Irwin is not caught by "ir". */
+const SHARED_INBOX = new RegExp('^(?:' + [
+  'info', 'admin', 'enquir\\w*', 'inquir\\w*', 'contact\\w*', 'sales', 'reception', 'office', 'help', 'support',
+  'cosec', 'companysec\\w*', 'company\\.?secretar\\w*', 'secretar\\w*', 'ir', 'investor\\w*',
+  'privacy', '\\w*privacy\\w*', 'popia', 'paia', 'informationofficer', 'legal', 'compliance', 'governance',
+  'media', 'press', 'comms', 'communications', 'marketing', 'pr',
+  'procurement', 'tenders?', 'vendors?', 'suppliers?', 'supplychain',
+  'hr', 'careers', 'jobs', 'recruit\\w*', 'payroll',
+  'accounts', 'finance', 'billing', 'creditors', 'debtors',
+  'whistle\\w*', 'ethics', 'tipoffs?', 'hotline', 'fraud', 'speakup',
+  'webmaster', 'noreply', 'no-reply', 'donotreply', 'newsletter', 'news', 'feedback', 'complaints?',
+  'shareholders?', 'sens', 'sustainability', 'esg', 'csi', 'sed',
+].join('|') + ')(?:[._-]?(?:office|admin|team|desk|za|sa|group|department|dept|\\d+))*@', 'i');
+
 function out(obj) { console.log(JSON.stringify(obj, null, 2)); }
 
 /* Thrown by die() once the failure has been printed. Carries no message
@@ -237,9 +253,12 @@ function checkFind(f) {
   else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) problems.push('email does not look like an address');
   /* A shared inbox belongs to no named person, and this table is about
      named people. The reviewer cannot tell from the row, so it is
-     refused here. */
-  if (f.email && /^(?:info|admin|enquir\w*|contact|sales|reception|office|help|support)@/i.test(f.email)) {
-    problems.push('that is a generic inbox, not a person — find the individual or skip them');
+     refused here. The list grew after an agent filed a CEO under the
+     group's privacy-office address and a company secretary under
+     cosec@: an office inbox is the office's even when a page names who
+     answers it, and the desk would be writing to a queue, not a person. */
+  if (f.email && SHARED_INBOX.test(f.email)) {
+    problems.push('that is a generic inbox, not a person — find the individual\'s own address or skip them');
   }
   const conf = f.confidence == null ? null : Number(f.confidence);
   if (conf !== null && !(conf >= 0 && conf <= 1)) problems.push('confidence must be a number between 0 and 1');
