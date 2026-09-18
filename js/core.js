@@ -1140,7 +1140,7 @@ function previewOfftakerImport(rows, head, find) {
     description: find('description', 'notes', 'note'),
   };
   if (idx.name < 0) {
-    importMsg('No company name column found. Add a <b>name</b> column and try again.<br><br>' + IMPORT_HINT, true);
+    importMsg('No company name column found. Add a <b>name</b> column and try again.<br><br>' + IMPORT_HINT_OFFTAKERS, true);
     return;
   }
 
