@@ -421,6 +421,10 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .bar-row.with-count{grid-template-columns:132px 1fr 34px 56px}
 .bar-row.clickable{cursor:pointer;border-radius:6px;transition:background .15s}
 .bar-row.clickable:hover{background:rgba(255,255,255,.03)}
+/* The focus highlight that answers "which one did I click" is applied
+   inline by focusProjectCard, not here: the site card already carries an
+   entrance animation and a transition of its own, and a class would have
+   to win a specificity argument with both on every future edit. */
 .bar-sub{font-size:11px;font-weight:700;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 .bar-sub.warn{color:var(--warn)}
 /* Pipeline flow: the carry-through note sitting between two stage bars,

@@ -25,7 +25,38 @@ function renderProjects() {
       ? projectTableHtml(state.projects)
       : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>'));
   growBars();
+  focusProjectCard();
 }
+
+/* Arriving from a bar on the dashboard, the site that was clicked is one
+   card in a grid of nine or one row in a table. Scroll to it and mark it
+   rather than leaving it to be found by eye, then let the mark go: it is
+   the answer to "which one", not a selection to be carried around.
+
+   Inline, and not a class: the card has an entrance animation and a
+   transition of its own, and a ring drawn in the stylesheet would have to
+   keep winning that argument. A table row gets a tint instead, because
+   the tables collapse their borders and a shadow on a row is not drawn
+   reliably. */
+function focusProjectCard() {
+  const id = state.focusProjectId;
+  state.focusProjectId = null;
+  if (!id) return;
+  const el = document.querySelector('[data-project-id="' + CSS.escape(id) + '"]');
+  if (!el) return;
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'center' });
+  const row = el.tagName === 'TR';
+  if (!still) el.style.transition = row ? 'background .5s ease-out' : 'box-shadow .5s ease-out';
+  if (row) el.style.background = 'rgba(61,220,132,.16)';
+  else el.style.boxShadow = '0 0 0 3px rgba(61,220,132,.55)';
+  setTimeout(() => {
+    if (row) el.style.background = 'transparent'; else el.style.boxShadow = '0 0 0 3px rgba(61,220,132,0)';
+    setTimeout(() => { el.style.transition = ''; el.style.background = ''; el.style.boxShadow = ''; }, 600);
+  }, 1600);
+}
+
+function openProject(id) { state.focusProjectId = id; nav('projects'); }
 
 /* Committed MW on a site, ignoring deals that have been lost. */
 function projectCommitted(p) {
@@ -43,7 +74,7 @@ function projectCardHtml(p) {
     const signed = projectSigned(p);
     const pct = Math.min(100, (committed / Math.max(1, p.mw)) * 100);
     const buyers = state.deals.filter(d => d.projectId === p.id).map(d => getOfftaker(d.offtakerId).short).filter(Boolean);
-    return '<div class="ec" style="cursor:default">' +
+    return '<div class="ec" style="cursor:default" data-project-id="' + esc(p.id) + '">' +
       '<div class="ec-head">' +
         '<div class="ec-icon">' + icon('sun', 18) + '</div>' +
         '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">' +
@@ -74,7 +105,7 @@ function projectTableHtml(list) {
       const committed = projectCommitted(p);
       const pct = Math.min(100, (committed / Math.max(1, num(p.mw))) * 100);
       const buyers = state.deals.filter(d => d.projectId === p.id).map(d => getOfftaker(d.offtakerId).short).filter(Boolean);
-      return '<tr>' +
+      return '<tr data-project-id="' + esc(p.id) + '">' +
         '<td><div class="name-cell"><span style="opacity:.6;display:flex">' + icon('sun', 15) + '</span>' +
           '<div><div style="font-weight:700">' + esc(p.name) + '</div>' +
           '<div style="font-size:10.5px;color:var(--muted)">' + esc(p.town) + '</div></div></div></td>' +

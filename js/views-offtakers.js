@@ -21,6 +21,18 @@ function offSortVal(o, field) {
   }
 }
 
+/* Open the company list showing exactly the rows a number was made of.
+   Every other filter is cleared first: a figure on the dashboard counts
+   the whole book, so landing on a list still narrowed by whatever was
+   set last would contradict the number that was just clicked. */
+function openOfftakersFiltered(filters) {
+  state.offSearch = ''; state.offSector = ''; state.offStage = '';
+  state.offStatus = ''; state.offStalled = ''; state.offProvince = '';
+  Object.assign(state, filters);
+  state.offPage = 1;
+  nav('offtakers');
+}
+
 function filteredOfftakers() {
   const term = state.offSearch.toLowerCase();
   let list = state.offtakers.filter(o => {

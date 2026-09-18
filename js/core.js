@@ -21,6 +21,10 @@ let state = {
 
   view: 'dashboard',
   detailId: null,
+  /* Set by a dashboard bar on the way to the generation portfolio, read
+     once on arrival and cleared. Not a selection — just "this is the one
+     you clicked", said out loud in a grid of nine. */
+  focusProjectId: null,
   editOfftakerId: null,
   editContactId: null,
   editDealId: null,

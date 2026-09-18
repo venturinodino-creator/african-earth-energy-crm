@@ -108,7 +108,7 @@ function renderDashboard() {
         /* Clicking a stage opens the list already narrowed to it, which is
            the next thing anybody wants after reading the number. */
         '<div class="bar-row with-count clickable" title="' + esc(st.hint) + '" ' +
-        'onclick="state.offStage=' + jsStr(st.id) + ';state.offStalled=\'\';state.offPage=1;nav(\'offtakers\')">' +
+        'onclick="openOfftakersFiltered({offStage:' + jsStr(st.id) + '})">' +
         '<div class="bar-label">' + esc(st.label) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + ((st.count / maxAccounts) * 100) + '" ' +
         'style="background:linear-gradient(90deg,var(--accent),var(--accent2))"></span></div>' +
@@ -121,7 +121,9 @@ function renderDashboard() {
       '. These are the cards on the board.</div>' +
       '<div class="funnel-head"><span></span><span>deals</span><span>MW</span></div>' +
       byStage.map(s =>
-        '<div class="bar-row with-count"><div class="bar-label" title="' + esc(s.hint) + '">' + esc(s.label) + '</div>' +
+        '<div class="bar-row with-count clickable" title="' + esc(s.hint) + ' — open the board" ' +
+        'onclick="state.pipeView=&#39;board&#39;;nav(&#39;pipeline&#39;)">' +
+        '<div class="bar-label">' + esc(s.label) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + ((s.mw / maxMw) * 100) + '" ' +
         'style="background:linear-gradient(90deg,var(--accent),var(--accent2))"></span></div>' +
         '<div class="bar-sub">' + (s.count || '') + '</div>' +
@@ -141,11 +143,15 @@ function renderDashboard() {
   const sectorHtml =
     '<div class="card">' +
       '<div class="card-header"><div class="card-title">Addressable load by sector</div></div>' +
+      /* The figure is a sum over company records, so the click opens the
+         company list narrowed to that sector — the rows that were added up. */
       sectorRows.map(([k, v]) =>
-        '<div class="bar-row"><div class="bar-label">' + esc(sectorName(k)) + '</div>' +
+        '<div class="bar-row clickable" title="Open the ' + esc(sectorName(k)) + ' companies this adds up" ' +
+        'onclick="openOfftakersFiltered({offSector:' + jsStr(k) + '})">' +
+        '<div class="bar-label">' + esc(sectorName(k)) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + ((v / sectorMax) * 100) + '" style="background:var(--accent2)"></span></div>' +
         '<div class="bar-num">' + fmtNum(v) + '</div></div>').join('') +
-      '<div class="fg-hint" style="margin-top:8px">GWh a year across tracked offtakers.</div>' +
+      '<div class="fg-hint" style="margin-top:8px">GWh a year across tracked offtakers. Open a sector to see the companies behind it.</div>' +
     '</div>';
 
   /* ── Capacity allocation per project ────────────────────────── */
@@ -158,12 +164,18 @@ function renderDashboard() {
       '<div class="card-header"><div><div class="card-title">Capacity allocation</div>' +
       '<div class="card-sub">How much of each site is spoken for</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="nav(\'projects\')">Projects</button></div>' +
+      /* The percentage is committed MW over the site's own capacity, and
+         both live on the site's card in the portfolio, along with who is
+         in discussion for it. */
       projRows.map(({ p, committed, pct }) =>
-        '<div class="bar-row"><div class="bar-label" title="' + esc(p.name) + '">' + esc(p.town) + '</div>' +
+        '<div class="bar-row clickable" title="' + esc(p.name) + ' — open the site: ' +
+        fmtNum(committed) + ' of ' + fmtNum(p.mw) + ' MW committed" ' +
+        'onclick="openProject(' + jsStr(p.id) + ')">' +
+        '<div class="bar-label">' + esc(p.town) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + pct + '" style="background:' +
         (pct >= 90 ? 'var(--danger)' : pct >= 50 ? 'var(--accent2)' : 'var(--accent)') + '"></span></div>' +
         '<div class="bar-num">' + Math.round(pct) + '%</div></div>').join('') +
-      '<div class="fg-hint" style="margin-top:8px">Committed MW across all live opportunities against site capacity. Over 100% means the site is oversubscribed — good problem, but worth triaging.</div>' +
+      '<div class="fg-hint" style="margin-top:8px">Committed MW across all live opportunities against site capacity. Over 100% means the site is oversubscribed — good problem, but worth triaging. Open a site to see what is on it.</div>' +
     '</div>';
 
   /* ── Recent activity ────────────────────────────────────────── */
