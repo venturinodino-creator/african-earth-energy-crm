@@ -90,13 +90,20 @@ function renderDashboard() {
     return { ...s, count: list.length, mw: list.reduce((a, d) => a + num(d.mw), 0) };
   });
   const maxMw = Math.max(1, ...byStage.map(s => s.mw));
+  /* Named because the note has to say so: a signed deal still has a row
+     here while the board's "open opportunities" tile has stopped counting
+     it, and that difference is the next thing to be misread. */
+  const closedDeals = state.deals.filter(d => d.stage === 'closed').length;
   const funnelHtml =
     '<div class="card">' +
       '<div class="card-header"><div><div class="card-title">Pipeline by stage</div>' +
-      '<div class="card-sub">' + working.length + ' account' + (working.length === 1 ? '' : 's') + ' being worked, capacity through the deal stages</div></div>' +
+      '<div class="card-sub">Two counts, not one: the companies, then the opportunities open on them</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="nav(\'pipeline\')">Open board</button></div>' +
 
-      '<div class="funnel-head"><span>Accounts</span><span>stalled</span><span>total</span></div>' +
+      '<div class="funnel-block-title">Companies on the sales path</div>' +
+      '<div class="funnel-block-note">' + working.length + ' being worked. One row per company — most have no ' +
+      'opportunity open yet, so these do not add up to the deals below.</div>' +
+      '<div class="funnel-head"><span></span><span>stalled</span><span>total</span></div>' +
       byAccountStage.map(st =>
         /* Clicking a stage opens the list already narrowed to it, which is
            the next thing anybody wants after reading the number. */
@@ -108,8 +115,11 @@ function renderDashboard() {
         '<div class="bar-sub' + (st.stalled ? ' warn' : '') + '">' + (st.stalled || '') + '</div>' +
         '<div class="bar-num">' + st.count + '</div></div>').join('') +
 
-      '<div class="funnel-head" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">' +
-        '<span>Opportunities</span><span>deals</span><span>MW</span></div>' +
+      '<div class="funnel-block-title divided">Opportunities open on them</div>' +
+      '<div class="funnel-block-note">' + liveDeals().length + ' live · ' + fmtNum(pipelineMw()) + ' MW under discussion' +
+      (closedDeals ? ', plus ' + closedDeals + ' closed, counted in the Closed row' : '') +
+      '. These are the cards on the board.</div>' +
+      '<div class="funnel-head"><span></span><span>deals</span><span>MW</span></div>' +
       byStage.map(s =>
         '<div class="bar-row with-count"><div class="bar-label" title="' + esc(s.hint) + '">' + esc(s.label) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + ((s.mw / maxMw) * 100) + '" ' +

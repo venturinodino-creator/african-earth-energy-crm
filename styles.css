@@ -432,6 +432,13 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
   font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding-bottom:2px}
 .funnel-head span:nth-child(2){grid-column:3;text-align:right}
 .funnel-head span:nth-child(3){grid-column:4;text-align:right}
+/* Two funnels live in one card and they read as one table: five rows
+   each, the same stage names, numbers of a similar size. The column
+   labels alone did not carry the difference, so each block now says in
+   plain text what a row is and how many there are. */
+.funnel-block-title{font-size:11.5px;font-weight:800;color:var(--text2);letter-spacing:.2px}
+.funnel-block-title.divided{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.funnel-block-note{font-size:10.5px;color:var(--muted);line-height:1.45;margin:2px 0 7px}
 @media(max-width:560px){
   .bar-row.with-count,.funnel-head{grid-template-columns:96px 1fr 28px 48px}
   .flow-step{grid-template-columns:96px 1fr}
