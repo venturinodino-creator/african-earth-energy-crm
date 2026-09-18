@@ -62,9 +62,13 @@ async function refreshFinderFromServer(announce) {
     if (announce) toast('Could not reach the server — showing the cached copy', 'warn');
   } finally {
     _finderLoading = false;
-    /* Only repaint if the user is still here; they may have navigated
-       away while the request was in flight. */
+    /* Repaint whichever screen is reading this data, and only if it is
+       still on screen — the user may have navigated away while the
+       request was in flight. The dashboard's agents card reads the same
+       runs, so it has to be woken too or it sits on the cached copy
+       until something else happens to re-render it. */
     if (state.view === 'prospects') renderContactFinder();
+    else if (state.view === 'dashboard') renderDashboard();
   }
 }
 

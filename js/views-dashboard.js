@@ -196,8 +196,110 @@ function renderDashboard() {
 
   setContent(statsHtml +
     '<div class="cols-2">' + callHtml + funnelHtml + '</div>' +
+    '<div style="margin-top:14px">' + agentsCardHtml() + '</div>' +
     '<div class="grid-3" style="margin-top:14px">' + sectorHtml + projHtml + actHtml + '</div>');
   growBars();
+}
+
+/* === AGENTS ==========================================================
+   What is being researched for you, and whether it has actually run.
+
+   Read entirely off the real queue - aee_contact_runs and the finds
+   hanging off it. Nothing on this card is a placeholder or a schedule
+   somebody hopes to build.
+
+   NO "ACTIVE" PILL, and that is the point of the card rather than an
+   omission from it. Nothing here runs on a timer. Queueing a run from
+   the Contact finder writes a row and stops; the row waits until the
+   finder picks it up from outside the browser. A dashboard that showed
+   a green light next to these would have somebody wondering for a week
+   why no contacts arrived. The state shown is the queue's own.
+
+   The roster grows with the evidence. The offtaker finder is always
+   listed because the Contact finder targets companies. A municipality
+   finder appears once there is a municipality run to show - which is
+   how this card picks up a second worker without being edited.
+   ====================================================================== */
+
+/* A run aimed at municipalities, read off the ids it carries rather than
+   off its industry string: the ids are what the finder was pointed at.
+   Municipality ids are namespaced 'mun_' in data/municipalities.js
+   precisely so they cannot be mistaken for an offtaker's. */
+function dashRunIsMuni(r) {
+  return (r.offtakerIds || []).some(id => String(id || '').startsWith('mun_'));
+}
+
+function dashAgentRoster(runs) {
+  const roster = [{ key: 'offtakers', name: 'Offtaker contact finder', icon: 'building',
+    cls: 'green', muni: false, what: 'People at the companies' }];
+  if (runs.some(dashRunIsMuni)) {
+    roster.push({ key: 'municipal', name: 'Municipality contact finder', icon: 'pin',
+      cls: 'blue', muni: true, what: 'People at the main municipalities' });
+  }
+  return roster;
+}
+
+function dashAgentRowHtml(a, runs) {
+  const mine = runs.filter(r => dashRunIsMuni(r) === a.muni);
+  const last = mine[0];
+  const queued = mine.filter(r => r.status === 'queued').length;
+  const running = mine.filter(r => r.status === 'running').length;
+
+  /* Whatever the queue says, in the order a reader cares about: in
+     flight beats waiting, waiting beats whatever happened last. */
+  let badge, cls;
+  if (running) { badge = 'Running now'; cls = 'b-engaged'; }
+  else if (queued) { badge = queued + ' queued'; cls = 'b-medium'; }
+  else if (!last) { badge = 'Never run'; cls = 'b-low'; }
+  else if (last.status === 'failed') { badge = 'Last run failed'; cls = 'b-high'; }
+  else { badge = 'Idle'; cls = 'b-prospect'; }
+
+  const found = mine.reduce((t, r) => t + num(r.found), 0);
+  const detail = last
+    ? 'last queued ' + relTime(last.created) + ' \u00b7 ' + fmtNum(found) + ' found across ' +
+      mine.length + ' run' + (mine.length === 1 ? '' : 's')
+    : 'no run has been queued for it yet';
+
+  return '<div class="person-row" style="cursor:pointer" onclick="nav(&#39;prospects&#39;)">' +
+    '<div class="stat-icon-box ' + a.cls + '" style="width:32px;height:32px;border-radius:8px">' +
+      icon(a.icon, 15) + '</div>' +
+    '<div style="min-width:0;flex:1">' +
+      '<div class="person-name">' + esc(a.name) + '</div>' +
+      '<div class="person-title">' + esc(a.what) + ' \u00b7 ' + esc(detail) + '</div>' +
+    '</div>' +
+    '<div class="person-actions"><span class="badge ' + cls + '">' + esc(badge) + '</span></div>' +
+  '</div>';
+}
+
+function agentsCardHtml() {
+  /* The dashboard is often the first screen of a session and the finder
+     data belongs to another view, so paint from its cache and let the
+     server copy replace it when it lands. */
+  if (!state.contactRuns) { loadFinderCache(); refreshFinderFromServer(false); }
+  const runs = state.contactRuns || [];
+  const finds = state.foundContacts || [];
+  const pending = finds.filter(f => f.status === 'pending').length;
+  const queued = runs.filter(r => r.status === 'queued').length;
+
+  return '<div class="card">' +
+    '<div class="card-header"><div><div class="card-title">Agents working for you</div>' +
+    '<div class="card-sub">Who is researching what, and whether it has actually run</div></div>' +
+    '<button class="btn btn-ghost btn-xs" onclick="nav(&#39;prospects&#39;)">Contact finder</button></div>' +
+    dashAgentRoster(runs).map(a => dashAgentRowHtml(a, runs)).join('') +
+    '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
+      (pending
+        ? '<b>' + pending + ' found ' + (pending === 1 ? 'person needs' : 'people need') +
+          ' review.</b> Nothing a finder turns up becomes a contact on its own \u2014 somebody ' +
+          'accepts each row, and accepting is what writes the record. '
+        : '') +
+      (queued
+        ? '<b>' + queued + ' run' + (queued === 1 ? ' is' : 's are') + ' waiting.</b> '
+        : '') +
+      'Nothing here is on a schedule. Queueing a run records it and stops; it sits in the ' +
+      'queue until the finder is run from outside the browser, so an empty day means nobody ' +
+      'ran it rather than nobody being out there.' +
+    '</div>' +
+  '</div>';
 }
 
 function growBars() {
