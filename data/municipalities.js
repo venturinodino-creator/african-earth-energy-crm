@@ -405,51 +405,60 @@ const MUNI_CATEGORY_LONG = {
 /* ─── THE MAIN MUNICIPALITIES ─────────────────────────
    A, B and C above are fixed by the Municipal Structures Act and are not
    a judgement about anything. This list IS a judgement: the eight metros
-   plus the non-metro municipalities big enough, or industrial enough, to
-   be worth a call before the other two hundred.
+   plus the twelve largest urban economies outside them.
+
+   SIZE ONLY, and size is the whole of it. An earlier version also
+   carried towns that were on it for the load plugged in there rather
+   than for how big they are; Middelburg, Secunda, Richards Bay and
+   Lephalale were cut on that basis. Load is not a property of a
+   municipality anyway — the smelter at Richards Bay and the refinery at
+   Secunda are offtaker records, tracked and fit-scored as offtakers. A
+   municipality is on this list because of its own size as a consumer and
+   as the distributor a wheeled PPA has to cross.
+
+   Rustenburg and Witbank were cut with them and then put back, because
+   cutting them was the wrong call: both are large municipalities in
+   their own right and by population sit above several others here. They
+   are on this list on size, the same as the rest — that they also
+   happen to sit on the platinum belt and the coal belt is not the
+   reason, and is not a reason to remove them either.
 
    It cuts across the legal categories on purpose — every metro is here,
-   and so are sixteen Category B locals. No district is: a district holds
+   and so are twelve Category B locals. No district is: a district holds
    very little load of its own, and the seat it governs from is usually a
    local municipality already on this list.
 
-   NOT AN OFFICIAL LIST. There is no population or load figure in this
-   file to rank on, so this is a starting set, and it is a starting set
-   chosen for AEE: the larger secondary cities, plus the towns that carry
-   the industrial loads a wheeled PPA is actually aimed at — Middelburg
-   and Secunda in Mpumalanga, Richards Bay in KwaZulu-Natal, Rustenburg
-   on the platinum belt, Lephalale at Medupi. Add and cut freely; the
-   only rule is that a code has to exist, which is checked at load.
+   NOT AN OFFICIAL LIST. There is no population figure in this file to
+   rank on, so nothing here can be checked against anything — it is a
+   reading of which non-metro centres are the largest, not a computed
+   ranking. Add and cut freely; the only rule is that a code has to
+   exist, which is checked at load.
 
-   Keyed on CODE, never on name. Emalahleni exists twice — EC136 is Lady
-   Frere in the Eastern Cape and MP312 is Witbank — and it is the second
-   one that carries the coal-belt load. Matching on the name would take
-   whichever came first and be wrong roughly half the time. */
+   Keyed on CODE, never on name, and this list is the reason the rule
+   matters rather than an illustration of it: Emalahleni exists twice.
+   EC136 is Lady Frere in the Eastern Cape, a small rural municipality;
+   MP312 is Witbank on the coal belt, and MP312 is the one below. A name
+   match would take whichever came first and be wrong about half the
+   time. */
 const MUNI_MAIN_CODES = new Set([
   /* The eight metros, all of them. */
   'CPT', 'JHB', 'ETH', 'TSH', 'EKU', 'NMA', 'BUF', 'MAN',
 
-  /* Larger secondary cities — the biggest urban economies outside a metro. */
-  'KZN225',  /* Msunduzi — Pietermaritzburg, the largest non-metro       */
+  /* The twelve largest urban economies outside a metro, roughly in that
+     order. Roughly, because the order is a reading rather than a sum —
+     see the note above about there being no figure here to rank on. */
+  'GT421',   /* Emfuleni — Vanderbijlpark and Vereeniging                */
   'LIM353',  /* Polokwane                                                */
-  'GT421',   /* Emfuleni — Vanderbijlpark and Vereeniging, steel         */
+  'KZN225',  /* Msunduzi — Pietermaritzburg                              */
   'MP326',   /* City of Mbombela — Nelspruit                             */
-  'FS184',   /* Matjhabeng — Welkom, the Free State goldfields           */
+  'NW373',   /* Rustenburg                                               */
+  'FS184',   /* Matjhabeng — Welkom                                      */
+  'NW403',   /* City of Matlosana — Klerksdorp                           */
+  'MP312',   /* Emalahleni — Witbank. NOT EC136, which is Lady Frere     */
+  'KZN252',  /* Newcastle                                                */
+  'WC023',   /* Drakenstein — Paarl                                      */
   'NC091',   /* Sol Plaatje — Kimberley                                  */
   'WC044',   /* George — the Garden Route centre                         */
-  'WC023',   /* Drakenstein — Paarl                                      */
-  'NW403',   /* City of Matlosana — Klerksdorp                           */
-  'KZN252',  /* Newcastle                                                */
-
-  /* Industrial centres. Smaller towns, but the load is the reason this
-     CRM exists — each of these is a smelter, a refinery or a power
-     station's own municipality. */
-  'MP312',   /* Emalahleni — Witbank, the coal belt (NOT EC136)          */
-  'MP313',   /* Steve Tshwete — Middelburg, where AEE's own site sits    */
-  'MP307',   /* Govan Mbeki — Secunda, Sasol                             */
-  'KZN282',  /* uMhlathuze — Richards Bay, the smelters and the port     */
-  'NW373',   /* Rustenburg — the platinum belt                           */
-  'LIM362',  /* Lephalale — Medupi and Matimba                           */
 ]);
 
 /* Flattened, one record per municipality. Ids are namespaced with a
