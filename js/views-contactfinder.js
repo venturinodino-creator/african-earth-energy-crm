@@ -408,15 +408,45 @@ function foundToContact(f) {
   };
 }
 
+/* The person a find describes, if they are already in the book on the
+   same account. Matched on name rather than email: the imports that
+   put most of the book there carried no email, and supplying one is
+   the whole point of the find. */
+function contactOnFileFor(f) {
+  const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return state.contacts.find(c => c.offtakerId === f.offtakerId &&
+    key(c.first) === key(f.first) && key(c.last) === key(f.last)) || null;
+}
+
+/* What accepting a find does to the book: a new contact, or — when the
+   person is already on file — the existing one with its blanks filled
+   from the find. It used to always be the former, which is how one
+   review pass left every Bauba, Blyvoor and Copper 360 name in the book
+   twice: once from the CSV import, once from the finder. */
+function acceptFindInto(f) {
+  const existing = contactOnFileFor(f);
+  if (!existing) {
+    const c = foundToContact(f);
+    state.contacts.push(c);
+    f.status = 'approved';
+    return { contact: c, reused: false };
+  }
+  if (!existing.email && f.email) existing.email = f.email;
+  if (!existing.phone && f.phone) existing.phone = f.phone;
+  if (!existing.title && f.title) existing.title = f.title;
+  existing.notes = ((existing.notes || '').trim() + ' Confirmed by the contact finder' +
+    (f.source ? ' — ' + f.source : '') + '.').trim();
+  f.status = 'approved';
+  return { contact: existing, reused: true };
+}
+
 async function approveFoundContact(id) {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
   const f = state.foundContacts.find(x => x.id === id);
   if (!f || f.status !== 'pending') return;
   if (!findHasEmail(f)) { addEmailAndAccept(id); return; }
 
-  const contact = foundToContact(f);
-  state.contacts.push(contact);
-  f.status = 'approved';
+  const { contact, reused } = acceptFindInto(f);
   saveFinderState();
   save();
 
@@ -424,7 +454,9 @@ async function approveFoundContact(id) {
      rejected out of here and skipped the re-render, leaving the screen
      contradicting local state that had already changed. */
   renderContactFinder();
-  toast('Accepted ' + f.first + ' ' + f.last);
+  toast(reused
+    ? f.first + ' ' + f.last + ' was already on file — details filled in'
+    : 'Accepted ' + f.first + ' ' + f.last);
 
   try {
     await pushContact(contact);
@@ -481,7 +513,9 @@ async function acceptFinds(all) {
     return;
   }
 
-  const made = live.map(f => { const c = foundToContact(f); state.contacts.push(c); f.status = 'approved'; return c; });
+  const results = live.map(acceptFindInto);
+  const made = results.map(r => r.contact);
+  const reused = results.filter(r => r.reused).length;
   saveFinderState();
   save();
   /* render(), not renderContactFinder() — this now runs from the
@@ -489,6 +523,7 @@ async function acceptFinds(all) {
      the press came from. */
   render();
   toast('Accepted ' + made.length + ' contact' + (made.length === 1 ? '' : 's') +
+    (reused ? ' · ' + reused + ' already on file, details filled in' : '') +
     (held ? ' · ' + held + ' held back without an email' : ''));
 
   let failed = 0;
