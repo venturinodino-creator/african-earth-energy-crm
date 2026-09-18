@@ -1,0 +1,51 @@
+# One target per line: "Company name | domain" (domain optional but
+# sharply improves Apollo's matching — a name search can land on the
+# wrong group entity, a domain cannot).
+#
+# The desk's mining and smelting priority list. Extend freely; # lines
+# and blank lines are skipped by scripts/finder-apollo.js batch.
+
+# ── Majors: PGM & gold ─────────────────────────────────────────────
+Valterra Platinum | valterraplatinum.com
+Impala Platinum | implats.co.za
+Sibanye-Stillwater | sibanyestillwater.com
+Northam Platinum | northam.co.za
+Harmony Gold | harmony.co.za
+Gold Fields | goldfields.com
+AngloGold Ashanti | anglogoldashanti.com
+African Rainbow Minerals | arm.co.za
+Tharisa | tharisa.com
+
+# ── Majors: coal, iron ore, chrome, manganese ──────────────────────
+Exxaro Resources | exxaro.com
+Thungela Resources | thungela.com
+Seriti Resources | seritiza.com
+Kumba Iron Ore | angloamericankumba.com
+Glencore Operations South Africa | glencore.co.za
+South32 | south32.net
+Sasol | sasol.com
+Assore | assore.com
+Merafe Resources | meraferesources.co.za
+Samancor Chrome | samancorcr.com
+
+# ── Smelting, refining, beneficiation ──────────────────────────────
+ArcelorMittal South Africa | arcelormittalsa.com
+Columbus Stainless | columbus.co.za
+Hulamin | hulamin.com
+Richards Bay Minerals | riotinto.com
+Rand Refinery | randrefinery.com
+Foskor | foskor.co.za
+PPC | ppc.africa
+AfriSam | afrisam.co.za
+Sephaku Cement | sephakucement.co.za
+
+# ── Mid-tier & junior ──────────────────────────────────────────────
+Afrimat | afrimat.co.za
+Salungano Group | salungano.com
+Menar | menar.com
+Jubilee Metals Group | jubileemetalsgroup.com
+Sylvania Platinum | sylvaniaplatinum.com
+Bushveld Minerals | bushveldminerals.com
+Orion Minerals | orionminerals.com.au
+Pan African Resources | panafricanresources.com
+Renergen | renergen.co.za

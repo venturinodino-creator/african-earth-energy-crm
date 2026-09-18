@@ -115,6 +115,35 @@ A run that honestly found nobody is `finish` with a note saying so.
 required, because a failure nobody can read is a run someone re-queues
 blindly.
 
+## The Apollo source
+
+`scripts/finder-apollo.js` is the paid source, for the thing public
+research rarely yields: the direct work email of the person who owns
+the tariff. It sits behind the same gate as everything else — its
+output is a CSV for the Import contacts screen (or JSON), reviewed by
+a person before anything becomes a contact.
+
+Setup: put `AEE_APOLLO_KEY=...` in `.env` (from app.apollo.io →
+Settings → Integrations → API; search endpoints need a paid plan and a
+master key).
+
+```
+test                                   key check, spends nothing
+search "<company>" [--domain d]        who Apollo has, spends nothing
+pull "<company>" [--reveal] [--max 5]  fetch, optionally buy emails
+batch data/mining-companies.txt --out finds.csv --reveal --budget 50
+```
+
+Credits are real money, so the spending rules are mechanical rather
+than good intentions: `search` never spends; `pull` spends only behind
+`--reveal`, capped per company by `--max`; `batch --reveal` refuses to
+run without an explicit `--budget` for total reveals. Personal emails
+are never requested and personal mobiles are dropped at the boundary —
+POPIA applies to bought data exactly as it does to scraped data.
+
+`data/mining-companies.txt` is the desk's mining and smelting batch
+list, ready to run.
+
 ## Notes
 
 - **Never match a municipality by name.** Emalahleni exists twice:
