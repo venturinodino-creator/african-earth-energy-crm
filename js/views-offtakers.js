@@ -61,7 +61,10 @@ function renderOfftakers() {
      cleared without walking the finder's filter chips. Loading mirrors
      renderContactFinder — cache first, server refresh repaints. */
   if (!state.contactRuns) { loadFinderCache(); refreshFinderFromServer(false); }
-  const pendingFinds = state.foundContacts.filter(f => f.status === 'pending').length;
+  /* Only finds with a work email count — the finder holds the rest
+     back until someone adds one, so the number here is what one press
+     will actually ingest. */
+  const pendingFinds = state.foundContacts.filter(f => f.status === 'pending' && findHasEmail(f)).length;
 
   setPage('Off-taker Prospects',
     leads.length + ' lead' + (leads.length === 1 ? '' : 's') + ' nobody is working yet · ' +
