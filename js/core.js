@@ -977,7 +977,9 @@ let _importKind = 'contacts';
 
 const IMPORT_HINT_CONTACTS =
   'Choose a CSV with a header row.<br>Recognised columns: ' +
-  '<b style="color:var(--text2)">first, last</b>, title, department, company, email, phone, linkedin, notes.';
+  '<b style="color:var(--text2)">first, last</b>, title, department, company, email, phone, linkedin, notes, province.<br><br>' +
+  '<b>company</b> matches an offtaker by name, or a municipality by name, id (<i>mun_MP312</i>) or code (<i>MP312</i>). ' +
+  'Where a municipality name is not unique — there are two Emalahlenis — <b>province</b> settles it.';
 
 const IMPORT_HINT_OFFTAKERS =
   'Choose a CSV with a header row.<br>Recognised columns: ' +
@@ -1022,6 +1024,48 @@ function provinceFromText(text) {
   const v = String(text || '').trim();
   if (!v) return '';
   return PROVINCE_ALIASES[v.toLowerCase().replace(/\s+/g, ' ')] || v;
+}
+
+/* A municipality named in a contact file's company column. Accepts what
+   people actually write — "Polokwane", "Polokwane Local Municipality",
+   "City of Cape Town Metro" — and what an agent writes, the id
+   "mun_MP312" or the bare code "MP312", which is the form the finder
+   docs insist on.
+
+   Names are NOT unique: Emalahleni is MP312 (Witbank) in Mpumalanga and
+   EC136 (Lady Frere) in the Eastern Cape. So a name that fits more than
+   one comes back as every candidate rather than the first, and the
+   caller narrows by province or leaves the row unassigned. Picking one
+   here would file a Witbank official under Lady Frere and nobody would
+   notice until a letter went to the wrong council. */
+function municipalitiesFromText(text, province) {
+  const raw = String(text || '').trim();
+  if (!raw || typeof SA_MUNICIPALITIES === 'undefined') return [];
+
+  /* An id or code anywhere in the cell wins outright — it is exact. Only
+     a token that LOOKS like a code counts (WC023, MP312, or a metro's
+     three capitals), so a name word is never mistaken for one. */
+  for (const tok of raw.split(/[^A-Za-z0-9_]+/)) {
+    if (MUNI_BY_ID[tok]) return [MUNI_BY_ID[tok]];
+    if (/^[A-Z]{2,3}\d{3}$/.test(tok) || /^[A-Z]{3}$/.test(tok)) {
+      if (MUNI_BY_ID['mun_' + tok]) return [MUNI_BY_ID['mun_' + tok]];
+    }
+  }
+
+  const key = t => String(t || '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\b(city of|metropolitan|metro|local|district|municipality)\b/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+  const want = key(raw);
+  if (!want) return [];
+
+  let hits = SA_MUNICIPALITIES.filter(m => key(m.name) === want);
+  if (hits.length > 1 && province) {
+    const p = provinceFromText(province);
+    const narrowed = hits.filter(m => m.province === p);
+    if (narrowed.length) hits = narrowed;
+  }
+  return hits;
 }
 
 /* Accepts a sector by id ("mining") or by the name shown in the app
@@ -1115,30 +1159,61 @@ function previewContactImport(rows, find, firstIdx, lastIdx) {
     phone: find('phone', 'mobile', 'telephone', 'cell'),
     linkedin: find('linkedin', 'linkedin url', 'profile'),
     notes: find('notes', 'note', 'comment'),
+    province: find('province', 'region'),
   };
   _importRows = rows.slice(1).map(r => {
     const v = i => (i >= 0 ? String(r[i] || '').trim() : '');
     const companyName = v(idx.company);
+    /* Offtakers first, municipalities second. The company column is one
+       column for both because the contacts table is one table for both;
+       an offtaker match wins so a mine in a town is never mistaken for
+       the council of that town. */
     const match = state.offtakers.find(o =>
       companyName && (o.name.toLowerCase().includes(companyName.toLowerCase()) ||
         (o.short || '').toLowerCase() === companyName.toLowerCase()));
+    const munis = match ? [] : municipalitiesFromText(companyName, v(idx.province));
     return {
       first: v(firstIdx), last: v(lastIdx), title: v(idx.title), dept: v(idx.dept),
       email: v(idx.email), phone: v(idx.phone), linkedin: v(idx.linkedin), notes: v(idx.notes),
-      companyName, offtakerId: match ? match.id : '',
+      companyName,
+      offtakerId: match ? match.id : munis.length === 1 ? munis[0].id : '',
+      /* More than one municipality fits the name and no province settled
+         it. Kept, so the preview can say which — the fix is a column in
+         the file, not a guess in here. */
+      ambiguous: munis.length > 1 ? munis : null,
     };
   }).filter(c => c.first || c.last);
 
-  const matched = _importRows.filter(r => r.offtakerId).length;
+  const toOff = _importRows.filter(r => r.offtakerId && !isMunicipalityId(r.offtakerId)).length;
+  const toMuni = _importRows.filter(r => isMunicipalityId(r.offtakerId)).length;
+  const ambiguous = _importRows.filter(r => r.ambiguous).length;
+  const unassigned = _importRows.length - toOff - toMuni;
+  const matchedCell = r => {
+    if (r.ambiguous) {
+      return '<span class="badge b-medium" title="' +
+        esc(r.ambiguous.map(m => m.name + ' (' + m.code + ', ' + m.province + ')').join(' · ')) + '">' +
+        r.ambiguous.length + ' municipalities fit — add a province column</span>';
+    }
+    if (!r.offtakerId) return '<span class="badge b-low">unassigned</span>';
+    if (isMunicipalityId(r.offtakerId)) {
+      const m = MUNI_BY_ID[r.offtakerId];
+      return '<span class="badge b-prospect">' + esc(m.name) + '</span> ' +
+        '<span style="font-size:10.5px;color:var(--muted)">municipality · ' + esc(m.code) + '</span>';
+    }
+    return '<span class="badge b-contracted">' + esc(getOfftaker(r.offtakerId).short || '') + '</span>';
+  };
   document.getElementById('imp-preview').innerHTML =
     '<div class="fg-hint"><b style="color:var(--text2)">' + _importRows.length + ' contacts</b> found. ' +
-    matched + ' matched to an existing offtaker; ' + (_importRows.length - matched) +
-    ' will be filed as unassigned and can be linked later.</div>' +
+    toOff + ' matched to an offtaker, ' + toMuni + ' to a municipality; ' + unassigned +
+    ' will be filed as unassigned and can be linked later.' +
+    (ambiguous
+      ? ' <span style="color:var(--warn)">' + ambiguous + ' name' + (ambiguous === 1 ? ' fits' : 's fit') +
+        ' more than one municipality — add a <b>province</b> column, or write the code (MP312) instead.</span>'
+      : '') +
+    '</div>' +
     '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Matched</th></tr></thead><tbody>' +
     _importRows.slice(0, 8).map(r => '<tr><td>' + esc(r.first + ' ' + r.last) + '</td><td>' + esc(r.title) +
-      '</td><td>' + esc(r.companyName) + '</td><td>' + (r.offtakerId
-        ? '<span class="badge b-contracted">' + esc(getOfftaker(r.offtakerId).short || '') + '</span>'
-        : '<span class="badge b-low">unassigned</span>') + '</td></tr>').join('') +
+      '</td><td>' + esc(r.companyName) + '</td><td>' + matchedCell(r) + '</td></tr>').join('') +
     '</tbody></table></div>';
   document.getElementById('imp-go').disabled = false;
 }
@@ -1237,25 +1312,35 @@ function previewOfftakerImport(rows, head, find) {
   document.getElementById('imp-go').disabled = fresh.length === 0;
 }
 
-function runImport() {
+async function runImport() {
   if (_importKind === 'offtakers') return runOfftakerImport();
-  let added = 0;
+  const made = [];
   _importRows.forEach(r => {
     const dup = state.contacts.some(c =>
       (r.email && c.email && c.email.toLowerCase() === r.email.toLowerCase()) ||
       (c.first.toLowerCase() === r.first.toLowerCase() && c.last.toLowerCase() === r.last.toLowerCase() && c.offtakerId === r.offtakerId));
     if (dup) return;
-    state.contacts.push({
+    const contact = {
       id: uid('c'), offtakerId: r.offtakerId, first: r.first, last: r.last, title: r.title,
       dept: r.dept, email: r.email, phone: r.phone, linkedin: r.linkedin,
       role: 'influencer', priority: 'medium', status: 'active', notes: r.notes,
-    });
-    added++;
+    };
+    state.contacts.push(contact);
+    made.push(contact);
   });
   save();
   closeModal('modal-import');
-  toast('Imported ' + added + ' new contact' + (added === 1 ? '' : 's'));
+  toast('Imported ' + made.length + ' new contact' + (made.length === 1 ? '' : 's'));
   nav('contacts');
+
+  /* save() is the local cache only. The offtaker importer has always
+     pushed each record to the server; contacts were not, so an import
+     looked done and then was gone on the next sign-in. */
+  let failed = 0;
+  for (const c of made) {
+    try { await pushContact(c); } catch (e) { failed++; }
+  }
+  if (failed) toast(failed + ' of ' + made.length + ' saved locally only — they will need a re-sync', 'warn');
 }
 
 function runOfftakerImport() {
