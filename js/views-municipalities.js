@@ -37,6 +37,11 @@ function muniAsAccount(m) {
 function muniContacts(m) { return contactsFor(m.id); }
 function muniIsWorked(m) { return contactsFor(m.id).length > 0; }
 
+/* The ones worth a call first. Unlike A/B/C this is a judgement rather
+   than a legal category, it cuts across all three, and the list behind
+   it is in data/municipalities.js with the reasoning attached. */
+function muniIsMain(m) { return !!(m && m.main); }
+
 function muniSortVal(m, field) {
   switch (field) {
     case 'contacts': return contactsFor(m.id).length;
@@ -52,7 +57,11 @@ function filteredMunicipalities() {
     if (term && !(m.name + ' ' + m.code + ' ' + m.seat + ' ' + m.province + ' ' +
       (m.districtName || '')).toLowerCase().includes(term)) return false;
     if (state.muniProvince && m.province !== state.muniProvince) return false;
-    if (state.muniCat && m.cat !== state.muniCat) return false;
+    /* 'main' shares the category dropdown but is not a category: it is
+       eight metros and sixteen locals, so it is answered before the
+       A/B/C comparison rather than through it. */
+    if (state.muniCat === 'main') { if (!muniIsMain(m)) return false; }
+    else if (state.muniCat && m.cat !== state.muniCat) return false;
     if (state.muniWorked === 'yes' && !muniIsWorked(m)) return false;
     if (state.muniWorked === 'no' && muniIsWorked(m)) return false;
     return true;
@@ -75,6 +84,7 @@ function renderMunicipalities() {
 
   const counts = { A: 0, B: 0, C: 0 };
   SA_MUNICIPALITIES.forEach(m => { counts[m.cat]++; });
+  const mainList = SA_MUNICIPALITIES.filter(muniIsMain);
 
   const stats =
     '<div class="stats-grid">' +
@@ -84,6 +94,8 @@ function renderMunicipalities() {
         'sit above the locals', "muniSetCat('C')") +
       statTile('pin', 'amber', 'Local municipalities', counts.B,
         'the distributor for most of the country', "muniSetCat('B')") +
+      statTile('target', 'green', 'Main municipalities', mainList.length,
+        'metros and the big secondary cities', "muniSetCat('main')") +
       statTile('contacts', 'purple', 'People on file', people,
         worked + ' of ' + SA_MUNICIPALITIES.length + ' municipalities covered',
         "muniSetWorked('yes')") +
@@ -95,7 +107,8 @@ function renderMunicipalities() {
       '<input placeholder="Search municipality, code, seat or district..." value="' + esc(state.muniSearch) + '" ' +
       'oninput="state.muniSearch=this.value;state.muniPage=1;renderMunicipalities()"></div>' +
       muniFlt('muniProvince', 'All provinces', MUNI_PROVINCES.map(p => [p, p])) +
-      muniFlt('muniCat', 'All categories', Object.entries(MUNI_CATEGORY_LONG)) +
+      muniFlt('muniCat', 'All categories',
+        Object.entries(MUNI_CATEGORY_LONG).concat([['main', 'Main municipalities']])) +
       muniFlt('muniWorked', 'Worked or not', [['yes', 'Has contacts'], ['no', 'Nobody on file yet']]) +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
