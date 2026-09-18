@@ -297,6 +297,9 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .pipeline-card:hover .pc-edit{opacity:1}
 .pc-edit:hover{background:var(--bg3);border-color:var(--border2);color:var(--text)}
 .pc-edit:focus-visible{opacity:1}
+/* The one on the card that undoes rather than edits, so it reads as the
+   destructive one the moment the pointer is on it. */
+.pc-remove:hover{color:var(--danger);border-color:var(--danger)}
 /* No hover on a touch screen, so it would never appear at all. */
 @media(hover:none){.pc-edit{opacity:.65}}
 .pc-sub{font-size:10.5px;color:var(--muted);margin-bottom:8px;overflow-wrap:anywhere}
