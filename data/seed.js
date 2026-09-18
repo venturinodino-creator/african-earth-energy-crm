@@ -72,6 +72,15 @@ const LEGACY_DEAL_STAGES = {
   identified: 'prospecting', contacted: 'needs-analysis', qualified: 'needs-analysis',
   proposal: 'proposal', diligence: 'negotiation', negotiation: 'negotiation', signed: 'closed',
 };
+/* The same for stage names quoted in logged sentences: a move written
+   before the rename says "moved from Identified to Term Sheet", and
+   without this the whole history reads as directionless. */
+const LEGACY_STAGE_LABELS = {
+  'identified': 'prospecting', 'contacted': 'needs-analysis', 'qualified': 'needs-analysis',
+  'term sheet': 'proposal', 'due diligence': 'negotiation', 'ppa negotiation': 'negotiation',
+  'signed': 'closed',
+};
+
 function normalizeDealStage(stage) {
   const s = String(stage || '');
   if (s === 'lost' || PIPELINE_STAGES.some(x => x.id === s)) return s;

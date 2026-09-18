@@ -395,9 +395,9 @@ function weightedValue(d) {
 
 /* ─── SALESFORCE SALES PATH ───────────────────────────────────────
    One stage per ACCOUNT — an offtaker, or a prospect that is being worked
-   before it has been promoted. Deals keep their own, finer PPA stages on
-   the pipeline board; this is the process question a manager asks about
-   the company itself. */
+   before it has been promoted. The deal board runs the same five stages
+   on one opportunity at a time; this is the same question asked of the
+   company itself, and the two are kept in step (see below). */
 function sfStageOf(id) { return SF_STAGES.find(s => s.id === id) || null; }
 function sfStageIndex(id) { return SF_STAGES.findIndex(s => s.id === id); }
 
@@ -409,6 +409,55 @@ function sfStageFor(rec) {
   return STATUS_TO_SF_STAGE[rec.status] || 'prospecting';
 }
 function sfStageLabel(rec) { return (sfStageOf(sfStageFor(rec)) || {}).label || '—'; }
+
+/* ─── ONE STAGE, TWO BOARDS ──────────────────────────────────────
+   The deal board and the account path run the same five stages, so they
+   are held together rather than left to drift apart: an account sits
+   where its furthest-along opportunity sits, and moving the account
+   brings its opportunities with it.
+
+   Lost opportunities are ignored on the way up. A deal that died says
+   nothing about where the company is now, and counting it would drag an
+   account backwards every time one was written off. An account whose
+   opportunities are all lost keeps whatever stage somebody put it at —
+   closing it is a decision, not an arithmetic result. */
+/* Probability that goes with a stage. SF_STAGES already carries one per
+   stage, so the board reads that rather than keeping a second table that
+   would quietly disagree with it. */
+function stageProbability(stage) { return (sfStageOf(stage) || {}).prob; }
+
+function accountStageFromDeals(id) {
+  const live = dealsFor(id).filter(d => d.stage !== 'lost').map(d => normalizeDealStage(d.stage));
+  if (!live.length) return null;
+  return live.reduce((best, st) => sfStageIndex(st) > sfStageIndex(best) ? st : best, live[0]);
+}
+
+/* Write that stage onto the account. Returns the label it moved to, or
+   null if it was already there — the caller uses that to say so in the
+   log rather than filing a second entry nobody asked for.
+
+   Only real accounts: a deal can be filed against a municipality, which
+   is assembled from the reference data and has no record to write to.
+   Closed reached this way is always won — an opportunity only gets to
+   Closed by being signed, and losing one sets 'lost' instead.
+
+   forwardOnly is for opening a NEW opportunity: a fresh one starts early
+   by definition, and a company already in negotiation should not be sent
+   back to Prospecting for having a second deal opened on it. Moving an
+   existing opportunity back IS a step back and is allowed to say so. */
+function applyAccountStageFromDeals(id, forwardOnly) {
+  const rec = state.offtakers.find(o => o.id === id);
+  if (!rec) return null;
+  const target = accountStageFromDeals(id);
+  if (!target || sfStageFor(rec) === target) return null;
+  if (forwardOnly && sfStageIndex(target) < sfStageIndex(sfStageFor(rec))) return null;
+  const st = sfStageOf(target);
+  if (!st) return null;
+  rec.sfStage = target;
+  rec.status = target === 'closed' ? 'contracted' : st.status;
+  pushOfftaker(rec);
+  return st.label;
+}
 
 /* ─── WHO IS ACTUALLY IN THE PIPELINE ──────────────────────────
    The company list is a research bench of several hundred names, and a

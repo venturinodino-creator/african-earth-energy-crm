@@ -100,13 +100,20 @@ function medianOf(values) {
 /* A stage move is logged as a sentence of our own making, so the direction
    is read back by matching the stage names it quotes. Anything that does
    not parse still counts as a move — it just gets no direction, which is
-   better than inventing one. */
+   better than inventing one.
+
+   The move is the FIRST sentence; a knock-on ("the account moved with it")
+   can follow it, so the destination is read up to the full stop rather
+   than to the end of the string. Entries written under the older seven
+   stages name stages that no longer exist, and LEGACY_STAGE_LABELS reads
+   those onto the five so the history keeps its direction. */
 function stageMoveDirection(summary) {
-  const m = /from (.+?) to (.+?)\.?\s*$/.exec(String(summary || ''));
+  const m = /from (.+?) to ([^.]+?)\s*(?:\.|$)/.exec(String(summary || ''));
   if (!m) return 0;
   const idx = label => {
     const t = String(label).trim().replace(/\s+(won|lost)$/i, '').toLowerCase();
-    return SF_STAGES.findIndex(s => s.label.toLowerCase() === t);
+    const hit = SF_STAGES.findIndex(s => s.label.toLowerCase() === t);
+    return hit >= 0 ? hit : sfStageIndex(LEGACY_STAGE_LABELS[t] || '');
   };
   const a = idx(m[1]), b = idx(m[2]);
   if (a < 0 || b < 0) return 0;
@@ -409,21 +416,24 @@ function pipeDrop(e) {
   if (!d || d.stage === stage) return;
   const from = PIPELINE_STAGES.find(s => s.id === d.stage);
   d.stage = stage;
-  /* Keep probability roughly in step with the stage so the weighted number
-     stays honest without the rep having to remember to update it. */
-  const defaults = { prospecting: 10, 'needs-analysis': 25, proposal: 50, negotiation: 75, closed: 100 };
-  d.probability = defaults[stage] ?? d.probability;
+  /* Keep probability in step with the stage so the weighted number stays
+     honest without the rep having to remember to update it. */
+  d.probability = stageProbability(stage) ?? d.probability;
   const acc = dealAccount(d);
+  const to = (PIPELINE_STAGES.find(s => s.id === stage) || {}).label;
+  /* The account follows its furthest-along opportunity, so the sales path
+     on the company page never contradicts the board. */
+  const accountMovedTo = applyAccountStageFromDeals(d.offtakerId);
   const entry = {
     id: uid('int'), offtakerId: d.offtakerId,
     date: todayISO(), type: 'stage change',
-    summary: (acc.name || 'Deal') + ' moved from ' + (from ? from.label : d.stage) + ' to ' +
-      (PIPELINE_STAGES.find(s => s.id === stage) || {}).label,
+    summary: (acc.name || 'Deal') + ' moved from ' + (from ? from.label : d.stage) + ' to ' + to + '.' +
+      (accountMovedTo ? ' The account moved to ' + accountMovedTo + ' with it.' : ''),
   };
   state.interactions.push(entry);
   pushDeal(d);
   pushInteraction(entry);
   save();
   renderPipeline();
-  toast('Moved to ' + (PIPELINE_STAGES.find(s => s.id === stage) || {}).label);
+  toast('Moved to ' + to + (accountMovedTo ? ' — account now ' + accountMovedTo : ''));
 }

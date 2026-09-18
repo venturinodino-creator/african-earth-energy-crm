@@ -67,16 +67,41 @@ function setSfStage(id, stage) {
   rec.status = stage === 'closed' ? (won ? 'contracted' : 'lost') : st.status;
   pushOfftaker(rec);
 
+  const moved = moveDealsWithAccount(rec.id, stage, won);
+
   const to = st.label + (stage === 'closed' ? (won ? ' won' : ' lost') : '');
   const entry = {
     id: uid('int'),
     offtakerId: rec.id,
     date: todayISO(), type: 'stage change',
-    summary: 'Sales stage moved from ' + from + ' to ' + to + '.',
+    summary: 'Sales stage moved from ' + from + ' to ' + to + '.' +
+      (moved ? ' ' + moved + ' opportunit' + (moved === 1 ? 'y' : 'ies') + ' moved with it.' : ''),
   };
   state.interactions.push(entry);
   pushInteraction(entry);
   save();
-  toast('Moved to ' + to);
+  toast('Moved to ' + to + (moved ? ' — ' + moved + ' opportunit' + (moved === 1 ? 'y' : 'ies') + ' with it' : ''));
   render();
+}
+
+/* The other half of holding the two boards together: the account has just
+   moved, so its opportunities move to the same stage. Every live one goes,
+   forwards or back, because the whole point is that the two readings agree
+   — leaving a deal at Negotiation under an account at Proposal is exactly
+   the drift this is here to stop.
+
+   Opportunities already written off stay written off: 'lost' is an outcome,
+   not a position on the path, and closing an account lost writes it onto
+   the rest rather than parking them at Closed as though they were signed. */
+function moveDealsWithAccount(id, stage, won) {
+  const target = stage === 'closed' && !won ? 'lost' : stage;
+  let n = 0;
+  dealsFor(id).forEach(d => {
+    if (d.stage === 'lost' || d.stage === target) return;
+    d.stage = target;
+    if (target !== 'lost') d.probability = stageProbability(target) ?? d.probability;
+    pushDeal(d);
+    n++;
+  });
+  return n;
 }

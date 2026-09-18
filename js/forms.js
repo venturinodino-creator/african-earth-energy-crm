@@ -152,18 +152,21 @@ function openAddDeal(offtakerId) {
   document.getElementById('md-title').textContent = 'New opportunity';
   document.getElementById('md-offtaker').innerHTML = accountOptions(accountKey(offtakerId));
   const o = offtakerId ? getOfftaker(offtakerId) : {};
-  /* A prospect has no verified load and was filed against a site by hand,
-     so that site is the sensible default rather than the nearest one to a
-     coordinate nobody has confirmed. */
+  /* Nearest site to the account, when there is an account with coordinates
+     to measure from. Otherwise no default — the rep picks one. */
   const np = o.id ? nearestProject(o) : null;
-  const siteId = np ? np.project.id : (p && p.nearSite) || '';
-  document.getElementById('md-project').innerHTML = projectOptions(siteId);
-  const peak = o.id ? num(o.peakMw) : (p ? num(p.peakMwEst) : 0);
+  document.getElementById('md-project').innerHTML = projectOptions(np ? np.project.id : '');
+  const peak = num(o.peakMw);
   setVal('md-mw', peak ? Math.round(peak * 0.35) : 20);
   setVal('md-tariff', DEFAULT_PPA_TARIFF.toFixed(2));
   setVal('md-tenor', 20);
-  setVal('md-stage', 'prospecting');
-  setVal('md-probability', 10);
+  /* Open it where the account already is: a second opportunity on a
+     company in negotiation does not start from scratch. A closed account
+     is the exception — new work on it is new work, not a signed PPA. */
+  const at = o.id ? sfStageFor(o) : 'prospecting';
+  const startStage = at === 'closed' ? 'prospecting' : at;
+  setVal('md-stage', startStage);
+  setVal('md-probability', stageProbability(startStage) ?? 10);
   setVal('md-close', '');
   setVal('md-notes', '');
   document.getElementById('md-delete').style.display = 'none';
@@ -227,10 +230,15 @@ function saveDeal() {
     saved = { id: uid('deal'), createdAt: todayISO(), ...rec };
     state.deals.push(saved);
   }
+  /* An opportunity's stage is the account's stage, so saving one here
+     moves the company the same way dragging its card would. A brand new
+     opportunity only ever pushes the account forward — see forwardOnly. */
+  const accountMovedTo = applyAccountStageFromDeals(saved.offtakerId, !state.editDealId);
   save();
   pushDeal(saved);
   closeModal('modal-deal');
-  toast(state.editDealId ? 'Opportunity updated' : 'Opportunity created');
+  toast((state.editDealId ? 'Opportunity updated' : 'Opportunity created') +
+    (accountMovedTo ? ' — account now ' + accountMovedTo : ''));
   state.editDealId = null;
   render();
 }
