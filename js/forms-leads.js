@@ -45,6 +45,32 @@ function addToPipeline(id) {
    Only for accounts already in the pipeline. Dropping a card onto the
    board from elsewhere is not possible, because a company that is not
    being worked has no path to move along. */
+/* Take the stage an account's opportunities imply. Used by the drift
+   card, which is the only place that offers it — it exists to close a
+   disagreement the app did not create, so it logs what it did and why
+   rather than moving a company silently. */
+function reconcileAccountStage(id) {
+  if (state.role !== 'admin') { toast('Read-only access — ask an admin to move this', 'warn'); return; }
+  const rec = state.offtakers.find(o => o.id === id);
+  if (!rec) return;
+  const from = sfStageLabel(rec);
+  const to = applyAccountStageFromDeals(id);
+  if (!to) { toast('Already in step with its opportunities'); return; }
+
+  const entry = {
+    id: uid('int'),
+    offtakerId: rec.id,
+    date: todayISO(), type: 'stage change',
+    summary: 'Sales stage moved from ' + from + ' to ' + to +
+      ' to match its opportunities.',
+  };
+  state.interactions.push(entry);
+  pushInteraction(entry);
+  save();
+  toast((rec.short || rec.name) + ' moved to ' + to);
+  render();
+}
+
 function setSfStage(id, stage) {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to move this', 'warn'); return; }
   const st = sfStageOf(stage);

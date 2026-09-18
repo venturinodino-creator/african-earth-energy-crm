@@ -426,6 +426,30 @@ function sfStageLabel(rec) { return (sfStageOf(sfStageFor(rec)) || {}).label || 
    would quietly disagree with it. */
 function stageProbability(stage) { return (sfStageOf(stage) || {}).prob; }
 
+/* Accounts whose stored stage disagrees with their opportunities.
+
+   Everything inside the app now writes both together, so a disagreement
+   means something arrived from outside it — a CSV import, an edit made
+   straight against the database, a stage rename that back-filled deals
+   but not accounts. That is how four accounts sat at Prospecting while
+   their opportunities were as far along as Negotiation, and nothing
+   said so until somebody happened to open one.
+
+   Reported, never corrected on the quiet. A stage is a claim about a
+   conversation somebody had, so the repair is a decision to take rather
+   than a number to recompute — the board shows the disagreement and
+   offers the move. */
+function stageMismatches() {
+  return state.offtakers.reduce((out, rec) => {
+    const fromDeals = accountStageFromDeals(rec.id);
+    if (!fromDeals) return out;
+    const current = sfStageFor(rec);
+    if (current === fromDeals) return out;
+    out.push({ rec, current, fromDeals, behind: sfStageIndex(current) < sfStageIndex(fromDeals) });
+    return out;
+  }, []);
+}
+
 function accountStageFromDeals(id) {
   const live = dealsFor(id).filter(d => d.stage !== 'lost').map(d => normalizeDealStage(d.stage));
   if (!live.length) return null;

@@ -25,7 +25,7 @@ function renderPipeline() {
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
   if (state.pipeView === 'accounts') {
-    setContent(accountStageStats() + accountBoardHtml() +
+    setContent(stageDriftCardHtml() + accountStageStats() + accountBoardHtml() +
       '<div class="fg-hint" style="margin-top:12px">Drag a company between columns to move it along the sales ' +
       'process. Moving it writes the matching status on the record and logs the change against the account. ' +
       'A company only appears here once it has been moved into the pipeline from its own page.</div>');
@@ -286,6 +286,44 @@ function dealTableHtml() {
    The deal board answers "what is in the pipeline"; this answers "where is
    each company in the process". Same records, coarser question — and the
    one a sales manager asks first. */
+/* A company sitting at a different stage from its own opportunities.
+   Nothing in the app can produce this any more, so when it shows up the
+   data came from somewhere else and the board has been quietly lying
+   about where an account is. Named rather than corrected: taking the
+   move is a decision, and the button only ever offers the stage the
+   opportunities already imply. */
+function stageDriftCardHtml() {
+  const drift = stageMismatches();
+  if (!drift.length) return '';
+
+  return '<div class="card" style="margin-bottom:14px;border-left:3px solid var(--warn)">' +
+    '<div class="card-header"><div>' +
+      '<div class="card-title">' + icon('alert', 13) + ' ' +
+        (drift.length === 1 ? 'One account is' : drift.length + ' accounts are') +
+        ' out of step with their opportunities</div>' +
+      '<div class="card-sub">The sales path on the company page says one thing and the deal board ' +
+        'another. Nothing inside the CRM writes them apart, so this came in from an import or a ' +
+        'direct edit. Moving an account here sets it to the stage its opportunities are already at.' +
+      '</div></div></div>' +
+    drift.map(d =>
+      '<div class="person-row">' +
+        '<div style="min-width:0;flex:1;cursor:pointer" onclick="nav(' + jsStr(accountView(d.rec.id)) +
+          ',{id:' + jsStr(d.rec.id) + '})">' +
+          '<div class="person-name">' + esc(d.rec.short || d.rec.name) + '</div>' +
+          '<div class="person-title">Company page says <b>' +
+            esc((sfStageOf(d.current) || {}).label || d.current) + '</b> · ' +
+            'opportunities are at <b>' + esc((sfStageOf(d.fromDeals) || {}).label || d.fromDeals) + '</b>' +
+            (d.behind ? '' : ' — the account is ahead of them') +
+          '</div>' +
+        '</div>' +
+        '<button class="btn btn-xs btn-outline" data-admin-only ' +
+          'title="Set the account to the stage its opportunities are at" ' +
+          'onclick="reconcileAccountStage(' + jsStr(d.rec.id) + ')">Move to ' +
+          esc((sfStageOf(d.fromDeals) || {}).label || d.fromDeals) + '</button>' +
+      '</div>').join('') +
+  '</div>';
+}
+
 function accountStageStats() {
   const accounts = pipelineAccounts();
   const open = accounts.filter(o => sfStageFor(o) !== 'closed');
