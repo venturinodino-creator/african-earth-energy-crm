@@ -81,16 +81,40 @@ const FINDER_INDUSTRIES = [
   'logistics', 'commercial', 'utilities-public', 'emerging',
 ];
 
+/* Municipalities are a target here as much as the industries are, but
+   they are not an industry: they come from reference data rather than
+   the offtaker list, and only the main ones are worth a run today. The
+   chip row carries them as one more key so both agents' output is
+   reviewed in the same table — municipalities already hang off the same
+   contacts machinery, so nothing below this line had to be duplicated. */
+const FINDER_MUNI = 'municipal';
+
+function finderIsMuni(key) { return key === FINDER_MUNI; }
+function finderAccountIsMuni(id) { return String(id || '').startsWith('mun_'); }
+
 function industryColor(key) {
+  if (finderIsMuni(key)) return '#38bdf8';
   return (typeof GROUP_COLOR !== 'undefined' && GROUP_COLOR[key]) || '#7a90a8';
 }
 function industryLabel(key) {
-  return key === 'all' ? 'All industries' : (SECTOR_GROUPS[key] || key);
+  if (key === 'all') return 'All industries';
+  if (finderIsMuni(key)) return 'Main municipalities';
+  return SECTOR_GROUPS[key] || key;
 }
 
-/* Offtakers a run would cover. The industry chip is the primary cut; the
-   two selects narrow it further. */
+/* The accounts a run would cover. The chip is the primary cut; the two
+   selects narrow it further. Municipalities and offtakers are different
+   record types, so this returns the shape they have in common — an id,
+   a name and a province — which is all a run or this page needs. */
 function finderScopeOfftakers() {
+  if (finderIsMuni(state.cfIndustry)) {
+    return SA_MUNICIPALITIES.filter(m => {
+      if (!muniIsMain(m)) return false;
+      if (state.cfProvince && m.province !== state.cfProvince) return false;
+      if (state.cfOnlyEmpty && contactsFor(m.id).length) return false;
+      return true;
+    }).map(muniAsAccount);
+  }
   return state.offtakers.filter(o => {
     if (state.cfIndustry !== 'all' && sectorGroup(o.sector) !== state.cfIndustry) return false;
     if (state.cfProvince && o.province !== state.cfProvince) return false;
@@ -99,9 +123,27 @@ function finderScopeOfftakers() {
   });
 }
 
+/* Whether a run's scope is municipalities, read off the ids it carries
+   rather than off the industry string — the ids are what the agent was
+   actually pointed at. */
+function finderRunIsMuni(r) {
+  return finderIsMuni(r.industry) || (r.offtakerIds || []).some(finderAccountIsMuni);
+}
+
 function finderIndustryOf(find) {
+  if (finderAccountIsMuni(find.offtakerId)) return FINDER_MUNI;
   const o = getOfftaker(find.offtakerId);
   return o.id ? sectorGroup(o.sector) : null;
+}
+
+/* The account a find belongs to, whichever list it came from. */
+function finderAccountOf(id) {
+  if (finderAccountIsMuni(id)) {
+    const m = muniOf(id);
+    return m ? muniAsAccount(m) : {};
+  }
+  const o = getOfftaker(id);
+  return o.id ? o : {};
 }
 
 function renderContactFinder() {
@@ -109,7 +151,7 @@ function renderContactFinder() {
 
   const live = state.foundContacts.filter(f => f.status !== 'discarded');
   const counts = { all: live.length };
-  FINDER_INDUSTRIES.forEach(k => { counts[k] = 0; });
+  FINDER_INDUSTRIES.concat([FINDER_MUNI]).forEach(k => { counts[k] = 0; });
   live.forEach(f => { const k = finderIndustryOf(f); if (counts[k] != null) counts[k]++; });
 
   const filtered = state.cfIndustry === 'all'
@@ -163,6 +205,7 @@ function finderTargetBar(counts) {
   return '<div class="cf-bar">' +
     '<span class="cf-bar-label">Filter / next scrape target:</span>' +
     ['all'].concat(FINDER_INDUSTRIES).map(chip).join('') +
+    '<span class="cf-bar-sep"></span>' + chip(FINDER_MUNI) +
   '</div>';
 }
 
@@ -173,7 +216,11 @@ function setFinderIndustry(key) {
 
 /* Roles use the same chip language, plus the two narrowing selects. */
 function finderRoleBar(scoped) {
-  const provinces = [...new Set(state.offtakers.map(o => o.province).filter(Boolean))].sort();
+  const muni = finderIsMuni(state.cfIndustry);
+  const noun = muni ? 'municipalit' : 'offtaker';
+  const provinces = muni
+    ? MUNI_PROVINCES.slice()
+    : [...new Set(state.offtakers.map(o => o.province).filter(Boolean))].sort();
   const roleChips = FINDER_ROLES.map(r => {
     const on = state.cfRoles.includes(r);
     return '<button class="cf-chip" onclick="toggleFinderRole(\'' + r + '\')" style="' +
@@ -193,7 +240,7 @@ function finderRoleBar(scoped) {
     '<label class="cf-chip cf-check' + (state.cfOnlyEmpty ? ' on' : '') + '">' +
       '<input type="checkbox" ' + (state.cfOnlyEmpty ? 'checked' : '') +
       ' onchange="state.cfOnlyEmpty=this.checked;renderContactFinder()">Only where we have nobody</label>' +
-    '<span class="cf-scope">' + scoped.length + ' offtaker' + (scoped.length === 1 ? '' : 's') +
+    '<span class="cf-scope">' + scoped.length + ' ' + noun + (scoped.length === 1 ? (muni ? 'y' : '') : (muni ? 'ies' : 's')) +
       ' in scope' + (state.cfRoles.length ? '' : ' · pick a role') + '</span>' +
   '</div>';
 }
@@ -204,12 +251,16 @@ function toggleFinderRole(r) {
   renderContactFinder();
 }
 
+/* The run does not start itself. Queuing writes the request; an operator
+   then points an agent at it from a terminal. Saying so plainly is the
+   whole job of this banner — a queue that looks self-serving is how a
+   run sits untouched for a week. */
 function finderNoticeHtml() {
   return '<div class="news-sample-banner">' + icon('alert', 14) +
-    '<span><strong>No agent connected yet.</strong> "Find contacts now" records a run against the ' +
-    'selected industry and leaves it <em>Queued</em> — nothing is searching. This page is the surface ' +
-    'the agent plugs into: it claims a queued run, appends what it finds, and a person accepts each ' +
-    'row before it becomes a contact.</span></div>';
+    '<span><strong>Queuing a run does not start it.</strong> "Find contacts now" records the request ' +
+    'and leaves it <em>Queued</em>. An operator runs the agent against it — see ' +
+    '<code>docs/contact-finder-agents.md</code> — and it appends what it finds here. ' +
+    'Nothing becomes a contact until someone accepts the row.</span></div>';
 }
 
 /* One line per run rather than a table — a run is a request, and the
@@ -222,7 +273,8 @@ function finderRunStrip() {
         '<span class="badge ' + (r.status === 'done' ? 'b-contracted' : r.status === 'failed' ? 'b-high' : 'b-medium') + '">' +
           esc(RUN_STATUS_LABEL[r.status] || r.status) + '</span>' +
         '<span class="cf-run-t">' + esc(industryLabel(r.industry || 'all')) + '</span>' +
-        '<span class="cf-run-m">' + (r.offtakerIds || []).length + ' offtakers · ' +
+        '<span class="cf-run-m">' + (r.offtakerIds || []).length +
+          (finderRunIsMuni(r) ? ' municipalities · ' : ' offtakers · ') +
           (r.roles || []).map(x => esc(ROLE_LABEL[x] || x)).join(', ') + '</span>' +
         '<span class="cf-run-m">' + num(r.found) + ' found</span>' +
         '<span class="cf-run-m">' + esc(r.created) + '</span>' +
@@ -235,7 +287,7 @@ function finderRunStrip() {
 function queueContactRun() {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to queue a run', 'warn'); return; }
   const scoped = finderScopeOfftakers();
-  if (!scoped.length) { toast('No offtakers match this target', 'warn'); return; }
+  if (!scoped.length) { toast('Nothing matches this target', 'warn'); return; }
   if (!state.cfRoles.length) { toast('Pick at least one role to find', 'warn'); return; }
 
   const run = {
@@ -247,7 +299,8 @@ function queueContactRun() {
   };
   state.contactRuns.unshift(run);
   saveFinderState();
-  toast('Queued · ' + industryLabel(state.cfIndustry) + ' · ' + scoped.length + ' offtakers');
+  toast('Queued · ' + industryLabel(state.cfIndustry) + ' · ' + scoped.length +
+    (finderIsMuni(state.cfIndustry) ? ' municipalities' : ' offtakers'));
   renderContactFinder();
   /* The run only means anything once it is on the server — that is where
      the agent looks for work. */
@@ -281,7 +334,8 @@ function finderTableHtml(list) {
     '<th>Phone</th><th>Email</th><th>Source</th><th>Status</th><th>Action</th>' +
     '</tr></thead><tbody>' +
     list.map(f => {
-      const o = getOfftaker(f.offtakerId);
+      const o = finderAccountOf(f.offtakerId);
+      const isMuni = finderAccountIsMuni(f.offtakerId);
       const href = safeHref(f.source);
       return '<tr>' +
         '<td><div class="name-cell"><div class="av" style="background:' + avatarColor(f.first + f.last) + '">' +
@@ -290,9 +344,11 @@ function finderTableHtml(list) {
         '<td>' + esc(f.title || '—') + '</td>' +
         '<td><span class="badge ' + (f.role === 'decision' ? 'b-contracted' : 'b-prospect') + '">' +
           esc(ROLE_LABEL[f.role] || f.role || '—') + '</span></td>' +
-        '<td>' + (o.id
-          ? '<span class="badge b-grp-' + sectorGroup(o.sector) + '">' + esc(o.short || o.name) + '</span>'
-          : '<span class="badge b-low">unknown</span>') + '</td>' +
+        '<td>' + (!o.id
+          ? '<span class="badge b-low">unknown</span>'
+          : isMuni
+            ? '<span class="badge b-prospect">' + esc(o.short || o.name) + '</span>'
+            : '<span class="badge b-grp-' + sectorGroup(o.sector) + '">' + esc(o.short || o.name) + '</span>') + '</td>' +
         '<td>' + (f.phone ? esc(f.phone) : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td>' + (f.email ? '<a class="ext-link" href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a>'
           : '<span style="color:var(--muted)">—</span>') + '</td>' +

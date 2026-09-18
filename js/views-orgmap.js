@@ -38,8 +38,15 @@ const AE_PROC_RE    = /\bprocure\w*\b|\bsupply\s+chain\b|\bcategory\s+manager\b|
 const AE_ENERGY_RE  = /\b(?:energy|utilit\w*|electricity|power)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|executive)\b|\b(?:director|head|chief|manager|lead|executive)\b[^,;|]{0,32}\b(?:energy|utilit\w*|electricity|power)\b/i;
 const AE_SUSTAIN_RE = /\bchief\s+sustainability\s+officer\b|\b(?:sustainab\w*|esg|carbon|decarbonis\w*|decarboniz\w*|climate|environment\w*|net[-\s]?zero|energy\s+transition)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|officer)\b|\b(?:director|head|chief|manager|lead|officer)\b[^,;|]{0,32}\b(?:sustainab\w*|esg|carbon|decarbonis\w*|climate|environment\w*|energy\s+transition)\b/i;
 const AE_FINANCE_RE = /\bchief\s+financial\s+officer\b|\bcfo\b|\bfinanc\w*\s+director\b|\bhead\s+of\s+financ\w*\b|\bfinancial\s+manager\b|\bgroup\s+financ\w*\b|\btreasur\w*\b/i;
-const AE_EXEC_RE    = /\bchief\s+executive(?:\s+officer)?\b|\bceo\b|\bmanaging\s+director\b|\bexecutive\s+chairman\b|\bchairman\b|\bstrategy\s+director\b|\bdirector\s+of\s+strategy\b/i;
-const AE_OPS_RE     = /\bchief\s+operating\s+officer\b|\bcoo\b|\boperations?\b[^,;|]{0,28}\b(?:director|head|manager|executive)\b|\b(?:director|head|manager|executive)\b[^,;|]{0,28}\boperations?\b|\bgeneral\s+manager\b|\b(?:plant|mine|mill|works|site|production)\s+manager\b/i;
+/* The municipal alternatives are not decoration. A municipality's
+   accounting officer is its Municipal Manager — the CEO seat in all but
+   name, and the single most important person on the list — and without
+   the pattern the title reads as "Other staff" and the CEO / MD seat
+   shows empty with them sitting right there in the contact book. Same
+   for Technical or Infrastructure Services, which is where a
+   municipality keeps the distribution network. */
+const AE_EXEC_RE    = /\bchief\s+executive(?:\s+officer)?\b|\bceo\b|\bmanaging\s+director\b|\bexecutive\s+chairman\b|\bchairman\b|\bstrategy\s+director\b|\bdirector\s+of\s+strategy\b|\b(?:municipal|city)\s+manager\b|\bexecutive\s+mayor\b|\baccounting\s+officer\b/i;
+const AE_OPS_RE     = /\bchief\s+operating\s+officer\b|\bcoo\b|\boperations?\b[^,;|]{0,28}\b(?:director|head|manager|executive)\b|\b(?:director|head|manager|executive)\b[^,;|]{0,28}\boperations?\b|\bgeneral\s+manager\b|\b(?:plant|mine|mill|works|site|production)\s+manager\b|\b(?:technical|infrastructure)\s+services\b/i;
 const AE_ENG_RE     = /\bengineer\w*\b|\btechnical\b[^,;|]{0,28}\b(?:director|head|manager|lead)\b|\bmaintenance\b|\bprojects?\s+manager\b|\basset\s+manager\b|\breticulation\b/i;
 
 /* The bands the seniority bar is drawn from. Colours are the app's own

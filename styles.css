@@ -818,6 +818,9 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
    targets — one control, because it is one decision. */
 .cf-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:11px}
 .cf-bar-label{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px}
+/* municipalities sit on the same row as the industries but are not one
+   of them — the rule says so without needing a second bar */
+.cf-bar-sep{width:1px;align-self:stretch;margin:0 4px;background:var(--border2)}
 .cf-chip{border:1.5px solid var(--border2);background:transparent;color:var(--muted);
   border-radius:16px;padding:4px 12px;cursor:pointer;font-size:11px;font-weight:700;
   white-space:nowrap;font-family:inherit;transition:all .15s}
