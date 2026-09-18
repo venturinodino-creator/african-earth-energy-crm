@@ -143,7 +143,7 @@ function rowToDeal(r) {
     id: r.id, offtakerId: r.offtaker_id || '',
     projectId: r.project_id || '', name: r.name || '',
     mw: Number(r.mw) || 0, tariff: Number(r.tariff) || 0, tenor: Number(r.tenor) || 20,
-    stage: r.stage || 'identified', probability: Number(r.probability) || 0,
+    stage: normalizeDealStage(r.stage), probability: Number(r.probability) || 0,
     closeDate: r.close_date || '', notes: r.notes || '', createdAt: r.created_at || '',
   };
 }

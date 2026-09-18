@@ -350,7 +350,7 @@ async function load() {
     if (cache) {
       state.offtakers = cache.offtakers || [];
       state.contacts = cache.contacts || [];
-      state.deals = cache.deals || [];
+      state.deals = (cache.deals || []).map(d => ({ ...d, stage: normalizeDealStage(d.stage) }));
       state.interactions = cache.interactions || [];
       toast('Working from a cached copy — changes will not be saved', 'warn');
     } else {
@@ -693,7 +693,7 @@ function updateNavBadges() {
   const el = document.getElementById('nav-offtakers-badge');
   if (el) { el.textContent = hot; el.style.display = hot ? '' : 'none'; }
   const dueEl = document.getElementById('nav-activity-badge');
-  const due = state.deals.filter(d => d.closeDate && d.closeDate <= todayISO() && d.stage !== 'signed').length;
+  const due = state.deals.filter(d => d.closeDate && d.closeDate <= todayISO() && d.stage !== 'closed').length;
   if (dueEl) { dueEl.textContent = due; dueEl.style.display = due ? '' : 'none'; }
 }
 

@@ -52,22 +52,37 @@ const PROVINCE_COORDS = {
   'North West':[-25.86,25.64], 'Free State':[-29.12,26.21], 'Northern Cape':[-28.74,24.76], 'Multiple':[-28.50,24.70],
 };
 
-/* Stages the sales team moves a PPA opportunity through. */
+/* Stages the sales team moves an opportunity through. These are the same
+   five stages the account sales path runs on (SF_STAGES below), deliberately
+   so: the stage on the board reads the same as the stage on the account, and
+   the pipeline page gives the position of every opportunity at a glance
+   without opening each one. */
 const PIPELINE_STAGES = [
-  { id:'identified', label:'Identified',      hint:'Load and site confirmed as a fit' },
-  { id:'contacted',  label:'Contacted',       hint:'First meeting booked or held' },
-  { id:'qualified',  label:'Qualified',       hint:'Load data shared, wheeling route understood' },
-  { id:'proposal',   label:'Term Sheet',      hint:'Indicative tariff and volume on the table' },
-  { id:'diligence',  label:'Due Diligence',   hint:'Technical, legal and credit review' },
-  { id:'negotiation',label:'PPA Negotiation', hint:'Drafting and negotiating the agreement' },
-  { id:'signed',     label:'Signed',          hint:'PPA executed' },
+  { id:'prospecting',    label:'Prospecting',    hint:'Load and site identified as a fit. No conversation yet.' },
+  { id:'needs-analysis', label:'Needs Analysis', hint:'Talking to them. Establishing load, wheeling route and who decides.' },
+  { id:'proposal',       label:'Proposal',       hint:'Indicative tariff and volume on the table.' },
+  { id:'negotiation',    label:'Negotiation',    hint:'Diligence under way and the PPA being drafted.' },
+  { id:'closed',         label:'Closed',         hint:'PPA executed.' },
 ];
+
+/* Opportunities saved under the older seven-stage PPA board still carry its
+   ids. Read those onto the five stages above so nothing sits off the board.
+   'lost' has never had a column and is left as it is. */
+const LEGACY_DEAL_STAGES = {
+  identified: 'prospecting', contacted: 'needs-analysis', qualified: 'needs-analysis',
+  proposal: 'proposal', diligence: 'negotiation', negotiation: 'negotiation', signed: 'closed',
+};
+function normalizeDealStage(stage) {
+  const s = String(stage || '');
+  if (s === 'lost' || PIPELINE_STAGES.some(x => x.id === s)) return s;
+  return LEGACY_DEAL_STAGES[s] || 'prospecting';
+}
 
 
 /* The Salesforce sales process, run on the ACCOUNT rather than on a single
-   opportunity. PIPELINE_STAGES above is the PPA-specific deal board and is
-   unchanged — this is the coarser, familiar question a sales manager asks
-   about a company: where is this one in the process?
+   opportunity. PIPELINE_STAGES above carries the same five stages for the
+   deal board, so the two read alike — this is the same question asked of a
+   company rather than of one opportunity: where is this one in the process?
 
    `status` is the same idea in this app's own words, so the two are kept in
    step: moving an account along the path writes the matching status, which

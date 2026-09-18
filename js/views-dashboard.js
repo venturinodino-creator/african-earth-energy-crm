@@ -6,12 +6,12 @@
 'use strict';
 
 function portfolioMw() { return state.projects.filter(p => p.status !== 'pipeline').reduce((s, p) => s + num(p.mw), 0); }
-function contractedMw() { return state.deals.filter(d => d.stage === 'signed').reduce((s, d) => s + num(d.mw), 0); }
+function contractedMw() { return state.deals.filter(d => d.stage === 'closed').reduce((s, d) => s + num(d.mw), 0); }
 
-/* A deal is live until it is signed or lost. 'lost' has no column on the
+/* A deal is live until it closes, either way. 'lost' has no column on the
    board, so without excluding it here a closed opportunity would keep
    inflating the open pipeline for ever. */
-function isLiveDeal(d) { return d.stage !== 'signed' && d.stage !== 'lost'; }
+function isLiveDeal(d) { return d.stage !== 'closed' && d.stage !== 'lost'; }
 function liveDeals() { return state.deals.filter(isLiveDeal); }
 function lostDeals() { return state.deals.filter(d => d.stage === 'lost'); }
 function pipelineMw() { return liveDeals().reduce((s, d) => s + num(d.mw), 0); }

@@ -4,7 +4,7 @@
    between them answers a different question rather than showing the same
    thing twice:
 
-     Deals     the PPA opportunities, on their own finer stages
+     Deals     the PPA opportunities, on the sales-path stages
      Accounts  the companies being worked, on the sales path
      Flow      where those companies are, and where they stop
      Table     the whole deal list in stage order
@@ -44,7 +44,7 @@ function renderPipeline() {
       statTile('pipeline', 'amber', 'Open opportunities', open.length, fmtNum(pipelineMw()) + ' MW') +
       statTile('trending', 'blue', 'Weighted pipeline', fmtR(totalWeighted), 'across contract life') +
       statTile('bolt', 'green', 'Signed', fmtNum(contractedMw()) + ' MW',
-        state.deals.filter(d => d.stage === 'signed').length + ' executed PPAs') +
+        state.deals.filter(d => d.stage === 'closed').length + ' executed PPAs') +
       statTile('clock', 'purple', 'Average tenor',
         open.length ? Math.round(open.reduce((s, d) => s + num(d.tenor), 0) / open.length) + ' yrs' : '—',
         'across live opportunities') +
@@ -261,7 +261,7 @@ function dealTableHtml() {
             esc(acc.name) + '</span>'
           : '<span style="color:var(--muted)">Unknown account</span>') + '</td>' +
         '<td>' + esc(p.town || p.name || '—') + '</td>' +
-        '<td><span class="badge ' + (d.stage === 'signed' ? 'b-contracted' : 'b-prospect') + '">' +
+        '<td><span class="badge ' + (d.stage === 'closed' ? 'b-contracted' : 'b-prospect') + '">' +
           esc(stage ? stage.label : d.stage) + '</span></td>' +
         '<td class="num">' + fmtNum(d.mw) + '</td>' +
         '<td class="num">' + num(d.tariff).toFixed(2) + '</td>' +
@@ -411,7 +411,7 @@ function pipeDrop(e) {
   d.stage = stage;
   /* Keep probability roughly in step with the stage so the weighted number
      stays honest without the rep having to remember to update it. */
-  const defaults = { identified: 10, contacted: 20, qualified: 35, proposal: 45, diligence: 60, negotiation: 75, signed: 100 };
+  const defaults = { prospecting: 10, 'needs-analysis': 25, proposal: 50, negotiation: 75, closed: 100 };
   d.probability = defaults[stage] ?? d.probability;
   const acc = dealAccount(d);
   const entry = {

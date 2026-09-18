@@ -162,7 +162,7 @@ function openAddDeal(offtakerId) {
   setVal('md-mw', peak ? Math.round(peak * 0.35) : 20);
   setVal('md-tariff', DEFAULT_PPA_TARIFF.toFixed(2));
   setVal('md-tenor', 20);
-  setVal('md-stage', 'identified');
+  setVal('md-stage', 'prospecting');
   setVal('md-probability', 10);
   setVal('md-close', '');
   setVal('md-notes', '');

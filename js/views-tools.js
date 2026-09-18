@@ -32,7 +32,7 @@ function projectCommitted(p) {
   return state.deals.filter(d => d.projectId === p.id && d.stage !== 'lost').reduce((s, d) => s + num(d.mw), 0);
 }
 function projectSigned(p) {
-  return state.deals.filter(d => d.projectId === p.id && d.stage === 'signed').reduce((s, d) => s + num(d.mw), 0);
+  return state.deals.filter(d => d.projectId === p.id && d.stage === 'closed').reduce((s, d) => s + num(d.mw), 0);
 }
 function allocationColor(pct) {
   return pct >= 90 ? 'var(--danger)' : pct >= 50 ? 'var(--accent2)' : 'var(--accent)';
@@ -513,7 +513,7 @@ function marketContextHtml() {
    ═══════════════════════════════════════════════════════════════ */
 function renderActivity() {
   const logs = state.interactions.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const dueDeals = state.deals.filter(d => d.closeDate && d.stage !== 'signed')
+  const dueDeals = state.deals.filter(d => d.closeDate && d.stage !== 'closed')
     .sort((a, b) => (a.closeDate || '').localeCompare(b.closeDate || ''));
 
   setPage('Activity', logs.length + ' logged interactions',
