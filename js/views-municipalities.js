@@ -42,9 +42,26 @@ function muniIsWorked(m) { return contactsFor(m.id).length > 0; }
    it is in data/municipalities.js with the reasoning attached. */
 function muniIsMain(m) { return !!(m && m.main); }
 
+/* Population as a cell: the figure, and for a metro or a local the
+   position it holds. Districts get the figure without a rank — theirs is
+   the sum of the locals inside them, so ranking it against a local would
+   compare a container with the things it contains. */
+function muniPopulationHtml(m) {
+  if (m.population === null) return '<span style="color:var(--muted)">—</span>';
+  const rank = m.populationRank
+    ? '<div style="font-size:10.5px;color:var(--muted)">#' + m.populationRank +
+      ' of ' + MUNI_RANKED_TOTAL + '</div>'
+    : '<div style="font-size:10.5px;color:var(--muted)" title="A district is the sum of ' +
+      'the locals inside it, so it is left out of the ranking">sum of its locals</div>';
+  return '<div style="font-weight:700">' + fmtNum(m.population) + '</div>' + rank;
+}
+
 function muniSortVal(m, field) {
   switch (field) {
     case 'contacts': return contactsFor(m.id).length;
+    /* Unknown sorts to the bottom rather than to zero, which would put it
+       above every real figure on a descending sort. */
+    case 'population': return m.population === null ? -1 : m.population;
     case 'cat': return ['A', 'C', 'B'].indexOf(m.cat);
     case 'district': return m.districtName || '';
     default: return String(m[field] || '');
@@ -160,6 +177,9 @@ function muniCardHtml(m) {
     '<div class="short">' + esc(m.code) + '</div>' +
     '<div class="meta">' + icon('pin', 13) + esc(m.seat) + ', ' + esc(m.province) + '</div>' +
     (m.districtName ? '<div class="meta">' + icon('grid', 13) + esc(m.districtName) + ' District</div>' : '') +
+    (m.population === null ? '' :
+      '<div class="meta">' + icon('contacts', 13) + fmtNum(m.population) + ' people' +
+      (m.populationRank ? ' · #' + m.populationRank + ' of ' + MUNI_RANKED_TOTAL : '') + '</div>') +
     '<div class="ec-footer" style="margin-top:12px">' +
       '<span>' + icon('contacts', 13) + ' ' + cc + ' contact' + (cc === 1 ? '' : 's') + '</span>' +
       (logs ? '<span>' + logs + ' logged</span>'
@@ -174,7 +194,7 @@ function muniTableHtml(list) {
   return '<div class="table-wrap"><table><thead><tr>' +
     th('name', 'Municipality') + th('code', 'Code') + th('cat', 'Category') +
     th('province', 'Province') + th('seat', 'Seat') + th('district', 'District') +
-    th('contacts', 'Contacts') + '</tr></thead><tbody>' +
+    th('population', 'Population') + th('contacts', 'Contacts') + '</tr></thead><tbody>' +
     list.map(m => {
       const cc = contactsFor(m.id).length;
       return '<tr class="clickable" onclick="nav(\'municipality\',{id:\'' + m.id + '\'})">' +
@@ -185,6 +205,7 @@ function muniTableHtml(list) {
         '<td>' + esc(m.province) + '</td>' +
         '<td>' + esc(m.seat) + '</td>' +
         '<td>' + (m.districtName ? esc(m.districtName) : '<span style="color:var(--muted)">—</span>') + '</td>' +
+        '<td class="num">' + muniPopulationHtml(m) + '</td>' +
         '<td class="num">' + (cc || '<span style="color:var(--muted)">—</span>') + '</td>' +
       '</tr>';
     }).join('') + '</tbody></table></div>';

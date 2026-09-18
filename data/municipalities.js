@@ -402,6 +402,300 @@ const MUNI_CATEGORY_LONG = {
   C: 'District municipality',
 };
 
+/* ─── POPULATION ───────────────────────────────────────
+   Census 2022, from Statistics South Africa's "Census 2022: Provinces at
+   a Glance" (2023, ISBN 978-0-621-51559-6), transcribed via the
+   consolidated table on Wikipedia's List of municipalities in South
+   Africa rather than read off the PDF by hand.
+
+   All 257 carry a figure. Districts are included, and a district's number
+   is the sum of the locals inside it — so adding up a column that mixes
+   the two double-counts. Anything ranking PLACES has to pick one tier;
+   muniPopulationRank() below uses metros and locals and leaves districts
+   out for exactly this reason.
+
+   What it is for: a municipality is a large electricity consumer in its
+   own right, and how many people live there is the roughest possible
+   proxy for that load. Rough, and worth saying how rough. Bushbuckridge
+   has three quarters of a million people and almost no industrial
+   demand; Steve Tshwete has a quarter of that and a ferrochrome complex.
+   Population sizes the municipal load — pumping, street lighting, civic
+   buildings — and says next to nothing about what else is in the
+   boundary. For that, look at the offtakers.
+
+   Keyed on the CODE THIS FILE USES, which for five municipalities is not
+   the official one — see the note above MUNI_MAIN_CODES. The figures were
+   matched to municipalities by name and province, not by code, so each
+   number belongs to the place named beside it regardless. */
+const MUNI_POPULATION = {
+  /* Western Cape */
+  'CPT':      4772846,  /* City of Cape Town */
+  'DC1':       497394,  /* West Coast */
+  'DC2':       862703,  /* Cape Winelands */
+  'DC3':       359446,  /* Overberg */
+  'DC4':       838457,  /* Garden Route */
+  'DC5':       102173,  /* Central Karoo */
+  'WC011':      69043,  /* Matzikama */
+  'WC012':      55108,  /* Cederberg */
+  'WC013':      70276,  /* Bergrivier */
+  'WC014':     154635,  /* Saldanha Bay */
+  'WC015':     148331,  /* Swartland */
+  'WC022':     103765,  /* Witzenberg */
+  'WC023':     276800,  /* Drakenstein */
+  'WC024':     175411,  /* Stellenbosch */
+  'WC025':     212682,  /* Breede Valley */
+  'WC026':      94045,  /* Langeberg */
+  'WC031':     139563,  /* Theewaterskloof */
+  'WC032':     132495,  /* Overstrand */
+  'WC033':      40274,  /* Cape Agulhas */
+  'WC034':      47114,  /* Swellendam */
+  'WC041':      31986,  /* Kannaland */
+  'WC042':      71918,  /* Hessequa */
+  'WC043':     140075,  /* Mossel Bay */
+  'WC044':     294929,  /* George */
+  'WC045':     138257,  /* Oudtshoorn */
+  'WC047':      65240,  /* Bitou */
+  'WC048':      96055,  /* Knysna */
+  'WC051':      11366,  /* Laingsburg */
+  'WC052':      17836,  /* Prince Albert */
+  'WC053':      72972,  /* Beaufort West */
+  /* Eastern Cape */
+  'BUF':       975255,  /* Buffalo City */
+  'DC10':      533253,  /* Sarah Baartman */
+  'DC12':      871601,  /* Amathole */
+  'DC13':      828387,  /* Chris Hani */
+  'DC14':      393048,  /* Joe Gqabi */
+  'DC15':     1501702,  /* OR Tambo */
+  'DC44':      936462,  /* Alfred Nzo */
+  'EC101':     101001,  /* Dr Beyers Naudé */
+  'EC102':      49883,  /* Blue Crane Route */
+  'EC104':      97815,  /* Makana */
+  'EC105':      87797,  /* Ndlambe */
+  'EC106':      53256,  /* Sundays River Valley */
+  'EC107':     107014,  /* Kouga */
+  'EC108':      36487,  /* Kou-Kamma */
+  'EC121':     240020,  /* Mbhashe */
+  'EC122':     232993,  /* Mnquma */
+  'EC123':      35990,  /* Great Kei */
+  'EC124':     115703,  /* Amahlathi */
+  'EC126':      68300,  /* Ngqushwa */
+  'EC129':     178594,  /* Raymond Mhlaba */
+  'EC131':      77578,  /* Inxuba Yethemba */
+  'EC135':     128101,  /* Intsika Yethu */
+  'EC136':     128873,  /* Emalahleni */
+  'EC137':     132799,  /* Engcobo */
+  'EC138':      63981,  /* Sakhisizwe */
+  'EC139':     297055,  /* Enoch Mgijima */
+  'EC141':     141762,  /* Elundini */
+  'EC142':     147073,  /* Senqu */
+  'EC145':     104213,  /* Walter Sisulu */
+  'EC153':     354573,  /* Ngquza Hill */
+  'EC154':     179325,  /* Port St Johns */
+  'EC155':     304856,  /* Nyandeni */
+  'EC156':     186391,  /* Mhlontlo */
+  'EC157':     476558,  /* King Sabata Dalindyebo */
+  'EC441':     225562,  /* Matatiele */
+  'EC442':     214477,  /* Umzimvubu */
+  'EC443':     350000,  /* Winnie Madikizela-Mandela */
+  'EC444':     146423,  /* Ntabankulu */
+  'NMA':      1190496,  /* Nelson Mandela Bay */
+  /* Northern Cape */
+  'DC45':      272454,  /* John Taolo Gaetsewe */
+  'DC6':       148935,  /* Namakwa */
+  'DC7':       216589,  /* Pixley ka Seme */
+  'DC8':       283624,  /* ZF Mgcawu */
+  'DC9':       434343,  /* Frances Baard */
+  'NC061':      24235,  /* Richtersveld */
+  'NC062':      67089,  /* Nama Khoi */
+  'NC064':      15130,  /* Kamiesberg */
+  'NC065':      22281,  /* Hantam */
+  'NC066':      11691,  /* Karoo Hoogland */
+  'NC067':       8510,  /* Khâi-Ma */
+  'NC071':      15836,  /* Ubuntu */
+  'NC072':      29555,  /* Umsobomvu */
+  'NC073':      46587,  /* Emthanjeni */
+  'NC074':      10961,  /* Kareeberg */
+  'NC075':      10843,  /* Renosterberg */
+  'NC076':      22542,  /* Thembelihle */
+  'NC077':      27102,  /* Siyathemba */
+  'NC078':      53165,  /* Siyancuma */
+  'NC082':      85104,  /* !Kai! Garib */
+  'NC084':      21954,  /* !Kheis */
+  'NC085':      30969,  /* Tsantsabane */
+  'NC086':      19854,  /* Kgatelopele */
+  'NC087':     125744,  /* Dawid Kruiper */
+  'NC091':     270078,  /* Sol Plaatje */
+  'NC092':      56967,  /* Dikgatlong */
+  'NC093':      26816,  /* Magareng */
+  'NC094':      80481,  /* Phokwane */
+  'NC451':     125420,  /* Joe Morolong */
+  'NC452':     117454,  /* Ga-Segonyana */
+  'NC453':      29580,  /* Gamagara */
+  /* Free State */
+  'DC16':      131901,  /* Xhariep */
+  'DC18':      679746,  /* Lejweleputswa */
+  'DC19':      831421,  /* Thabo Mofutsanyana */
+  'DC20':      509912,  /* Fezile Dabi */
+  'FS161':      43101,  /* Letsemeng */
+  'FS162':      51832,  /* Kopanong */
+  'FS163':      36968,  /* Mohokare */
+  'FS181':      63800,  /* Masilonyana */
+  'FS182':      29455,  /* Tokologo */
+  'FS183':      56896,  /* Tswelopele */
+  'FS184':     439034,  /* Matjhabeng */
+  'FS185':      90561,  /* Nala */
+  'FS191':     127918,  /* Setsoto */
+  'FS192':     130434,  /* Dihlabeng */
+  'FS193':      66488,  /* Nketoana */
+  'FS194':     398459,  /* Maluti-a-Phofung */
+  'FS195':      52224,  /* Phumelela */
+  'FS196':      55897,  /* Mantsopa */
+  'FS201':     155410,  /* Moqhaka */
+  'FS203':     134962,  /* Ngwathe */
+  'FS204':     158391,  /* Metsimaholo */
+  'FS205':      61150,  /* Mafube */
+  'MAN':       811431,  /* Mangaung */
+  /* KwaZulu-Natal */
+  'DC21':      773402,  /* Ugu */
+  'DC22':     1235715,  /* uMgungundlovu */
+  'DC23':      789092,  /* uThukela */
+  'DC24':      649261,  /* uMzinyathi */
+  'DC25':      687408,  /* Amajuba */
+  'DC26':      942794,  /* Zululand */
+  'DC27':      738437,  /* uMkhanyakude */
+  'DC28':     1021344,  /* King Cetshwayo */
+  'DC29':      782661,  /* iLembe */
+  'DC43':      563893,  /* Harry Gwala */
+  'ETH':      4239901,  /* eThekwini */
+  'KZN212':    156443,  /* uMdoni */
+  'KZN213':    139045,  /* uMzumbe */
+  'KZN214':    115780,  /* uMuziwabantu */
+  'KZN216':    362134,  /* Ray Nkonyeni */
+  'KZN221':    118478,  /* uMshwathi */
+  'KZN222':    105069,  /* uMngeni */
+  'KZN223':     33382,  /* Mpofana */
+  'KZN224':     36648,  /* Impendle */
+  'KZN225':    817725,  /* Msunduzi */
+  'KZN226':     61660,  /* Mkhambathini */
+  'KZN227':     62754,  /* Richmond */
+  'KZN235':    143132,  /* Okhahlamba */
+  'KZN237':    230924,  /* Inkosi Langalibalele */
+  'KZN238':    415036,  /* Alfred Duma */
+  'KZN241':    100085,  /* Endumeni */
+  'KZN242':    201133,  /* Nquthu */
+  'KZN244':    206001,  /* Msinga */
+  'KZN245':    142042,  /* uMvoti */
+  'KZN252':    507710,  /* Newcastle */
+  'KZN253':     36948,  /* eMadlangeni */
+  'KZN254':    142750,  /* Dannhauser */
+  'KZN261':     96735,  /* eDumbe */
+  'KZN262':    151541,  /* uPhongolo */
+  'KZN263':    247263,  /* AbaQulusi */
+  'KZN265':    225278,  /* Nongoma */
+  'KZN266':    221977,  /* Ulundi */
+  'KZN271':    191660,  /* uMhlabuyalingana */
+  'KZN272':    199153,  /* Jozini */
+  'KZN275':    215869,  /* Mtubatuba */
+  'KZN276':    131755,  /* Big 5 Hlabisa */
+  'KZN281':    159668,  /* uMfolozi */
+  'KZN282':    412075,  /* uMhlathuze */
+  'KZN284':    241416,  /* uMlalazi */
+  'KZN285':     99289,  /* Mthonjaneni */
+  'KZN286':    108896,  /* Nkandla */
+  'KZN291':    180939,  /* Mandeni */
+  'KZN292':    324912,  /* KwaDukuza */
+  'KZN293':    165826,  /* Ndwedwe */
+  'KZN294':    110983,  /* Maphumulo */
+  'KZN433':     81676,  /* Greater Kokstad */
+  'KZN434':    133032,  /* Ubuhlebezwe */
+  'KZN435':    220620,  /* Umzimkhulu */
+  'KZN436':    128565,  /* Dr Nkosazana Dlamini Zuma */
+  /* North West */
+  'DC37':     1624428,  /* Bojanala Platinum */
+  'DC38':      937723,  /* Ngaka Modiri Molema */
+  'DC39':      508192,  /* Dr Ruth Segomotsi Mompati */
+  'DC40':      734203,  /* Dr Kenneth Kaunda */
+  'NW371':     219120,  /* Moretele */
+  'NW372':     522566,  /* Madibeng */
+  'NW373':     562315,  /* Rustenburg */
+  'NW374':      54759,  /* Kgetlengrivier */
+  'NW375':     265668,  /* Moses Kotane */
+  'NW381':     128766,  /* Ratlou */
+  'NW382':     128672,  /* Tswaing */
+  'NW383':     354504,  /* Mahikeng */
+  'NW384':     164176,  /* Ditsobotla */
+  'NW385':     161605,  /* Ramotshere Moiloa */
+  'NW392':      63755,  /* Naledi */
+  'NW393':      70483,  /* Mamusa */
+  'NW394':     202009,  /* Greater Taung */
+  'NW396':      59815,  /* Lekwa-Teemane */
+  'NW397':     112130,  /* Kagisano-Molopo */
+  'NW403':     431231,  /* City of Matlosana */
+  'NW404':      90302,  /* Maquassi Hills */
+  'NW405':     212670,  /* JB Marks */
+  /* Gauteng */
+  'DC42':     1190688,  /* Sedibeng */
+  'DC48':      998466,  /* West Rand */
+  'EKU':      4066691,  /* City of Ekurhuleni */
+  'GT421':     945650,  /* Emfuleni */
+  'GT422':     112254,  /* Midvaal */
+  'GT423':     132783,  /* Lesedi */
+  'GT481':     438217,  /* Mogale City */
+  'GT484':     225476,  /* Merafong City */
+  'GT485':     334773,  /* Rand West City */
+  'JHB':      4803262,  /* City of Johannesburg */
+  'TSH':      4040315,  /* City of Tshwane */
+  /* Mpumalanga */
+  'DC30':     1283459,  /* Gert Sibande */
+  'DC31':     1588968,  /* Nkangala */
+  'DC32':     2270897,  /* Ehlanzeni */
+  'MP301':     247664,  /* Chief Albert Luthuli */
+  'MP302':     199314,  /* Msukaligwa */
+  'MP303':     255411,  /* Mkhondo */
+  'MP304':     115304,  /* Dr Pixley Ka Isaka Seme */
+  'MP305':     119669,  /* Lekwa */
+  'MP306':      35980,  /* Dipaleseng */
+  'MP307':     310117,  /* Govan Mbeki */
+  'MP311':     106149,  /* Victor Khanye */
+  'MP312':     434522,  /* Emalahleni */
+  'MP313':     242031,  /* Steve Tshwete */
+  'MP314':      50165,  /* Emakhazeni */
+  'MP315':     431248,  /* Thembisile Hani */
+  'MP316':     324855,  /* Dr JS Moroka */
+  'MP321':     118474,  /* Thaba Chweu */
+  'MP324':     591928,  /* Nkomazi */
+  'MP325':     750821,  /* Bushbuckridge */
+  'MP326':     809674,  /* City of Mbombela */
+  /* Limpopo */
+  'DC33':     1372873,  /* Mopani */
+  'DC34':     1653077,  /* Vhembe */
+  'DC35':     1447103,  /* Capricorn */
+  'DC36':      762862,  /* Waterberg */
+  'DC47':     1336805,  /* Sekhukhune */
+  'LIM331':    316841,  /* Greater Giyani */
+  'LIM332':    261038,  /* Greater Letaba */
+  'LIM333':    478254,  /* Greater Tzaneen */
+  'LIM334':    188603,  /* Ba-Phalaborwa */
+  'LIM335':    128137,  /* Maruleng */
+  'LIM341':    130899,  /* Musina */
+  'LIM343':    575929,  /* Thulamela */
+  'LIM344':    502452,  /* Makhado */
+  'LIM345':    443798,  /* Collins Chabane */
+  'LIM351':    192109,  /* Blouberg */
+  'LIM352':    127130,  /* Molemole */
+  'LIM353':    843459,  /* Polokwane */
+  'LIM354':    284404,  /* Lepelle-Nkumpi */
+  'LIM361':     65047,  /* Thabazimbi */
+  'LIM362':    125198,  /* Lephalale */
+  'LIM366':     64306,  /* Bela-Bela */
+  'LIM367':    378198,  /* Mogalakwena */
+  'LIM368':    130113,  /* Modimolle-Mookgophong */
+  'LIM471':    132468,  /* Ephraim Mogale */
+  'LIM472':    288049,  /* Elias Motsoaledi */
+  'LIM473':    340328,  /* Makhuduthamaga */
+  'LIM476':    575960,  /* Fetakgomo Tubatse */
+};
+
 /* ─── THE MAIN MUNICIPALITIES ─────────────────────────
    A, B and C above are fixed by the Municipal Structures Act and are not
    a judgement about anything. This list IS a judgement: the eight metros
@@ -428,11 +722,40 @@ const MUNI_CATEGORY_LONG = {
    very little load of its own, and the seat it governs from is usually a
    local municipality already on this list.
 
-   NOT AN OFFICIAL LIST. There is no population figure in this file to
-   rank on, so nothing here can be checked against anything — it is a
-   reading of which non-metro centres are the largest, not a computed
-   ranking. Add and cut freely; the only rule is that a code has to
-   exist, which is checked at load.
+   NOT A POPULATION RANKING, and now that MUNI_POPULATION exists that
+   has to be said out loud rather than left to be assumed. Twenty-nine
+   municipalities that are NOT on this list have more people in them than
+   Sol Plaatje, which is. Bushbuckridge has 750,821 and is the thirteenth
+   most populous place in the country; it is not on this list and should
+   not be, because it is rural, low-income and has no industrial demand
+   worth wheeling to. Thulamela, Makhado, Collins Chabane and Greater
+   Tzaneen are the same story.
+
+   The word doing the work is ECONOMY. These are the commercial and
+   industrial centres outside the metros — the places with a CBD, a rate
+   base, an industrial area and a municipal distribution network with
+   real load on it. Population is one input to that judgement and a weak
+   one, which is why this list is hand-kept and not computed.
+
+   NOT AN OFFICIAL LIST either. Add and cut freely; the only rule is that
+   a code has to exist, which is checked at load.
+
+   CODE WARNING. Five entries in this file carry a code that is not the
+   official one, because two sequences were compressed when a dissolved
+   municipality was dropped instead of leaving its code retired:
+
+     Kouga           here EC107,  officially EC108
+     Kou-Kamma       here EC108,  officially EC109
+     Molemole        here LIM352, officially LIM353
+     Polokwane       here LIM353, officially LIM354
+     Lepelle-Nkumpi  here LIM354, officially LIM355
+
+   'LIM353' below means Polokwane because that is what LIM353 is IN THIS
+   FILE. Correcting the codes without correcting this list at the same
+   time would silently re-point it at Molemole, a small rural
+   municipality, and the tile would go on looking right. The codes are
+   also record ids — contacts hang off 'mun_' + code — so fixing them is
+   a migration rather than an edit.
 
    Keyed on CODE, never on name, and this list is the reason the rule
    matters rather than an illustration of it: Emalahleni exists twice.
@@ -469,18 +792,24 @@ Object.entries(MUNI_TREE).forEach(([province, block]) => {
   block.metros.forEach(([code, name, seat]) => {
     SA_MUNICIPALITIES.push({
       id: 'mun_' + code, code, name, seat, province,
-      cat: 'A', main: MUNI_MAIN_CODES.has(code), districtCode: null, districtName: null,
+      cat: 'A', main: MUNI_MAIN_CODES.has(code),
+      population: MUNI_POPULATION[code] ?? null,
+      districtCode: null, districtName: null,
     });
   });
   block.districts.forEach(d => {
     SA_MUNICIPALITIES.push({
       id: 'mun_' + d.code, code: d.code, name: d.name, seat: d.seat, province,
-      cat: 'C', main: MUNI_MAIN_CODES.has(d.code), districtCode: null, districtName: null,
+      cat: 'C', main: MUNI_MAIN_CODES.has(d.code),
+      population: MUNI_POPULATION[d.code] ?? null,
+      districtCode: null, districtName: null,
     });
     d.locals.forEach(([code, name, seat]) => {
       SA_MUNICIPALITIES.push({
         id: 'mun_' + code, code, name, seat, province,
-        cat: 'B', main: MUNI_MAIN_CODES.has(code), districtCode: d.code, districtName: d.name,
+        cat: 'B', main: MUNI_MAIN_CODES.has(code),
+        population: MUNI_POPULATION[code] ?? null,
+        districtCode: d.code, districtName: d.name,
       });
     });
   });
@@ -511,4 +840,24 @@ const MUNI_PROVINCES = Object.keys(MUNI_TREE);
   if (missing.length) {
     console.error('MUNI_MAIN_CODES names municipalities that do not exist:', missing);
   }
+  /* Every municipality carries a figure today. A new one arriving without
+     is not an error, but it silently drops out of every ranking and every
+     sort, so it gets named. */
+  const noPop = SA_MUNICIPALITIES.filter(m => m.population === null);
+  if (noPop.length) {
+    console.warn('No population on file for:', noPop.map(m => m.code + ' ' + m.name));
+  }
 })();
+
+/* Rank by population, as a position out of the places ranked.
+
+   Metros and locals only. A district's population is the sum of the
+   locals inside it, so ranking all three tiers together puts a district
+   above every local it contains and compares a place with a container of
+   places. Districts get null rather than a rank they would win by
+   double-counting. */
+const MUNI_RANKED = SA_MUNICIPALITIES
+  .filter(m => m.cat !== 'C' && m.population !== null)
+  .sort((a, b) => b.population - a.population);
+MUNI_RANKED.forEach((m, i) => { m.populationRank = i + 1; });
+const MUNI_RANKED_TOTAL = MUNI_RANKED.length;
