@@ -62,11 +62,33 @@ const AUTH_DOMAIN = 'aeeg.co.za';
 const ROLES = ['decision', 'influencer', 'technical', 'gatekeeper'];
 const SEATS = ['energy', 'sustain', 'finance', 'exec', 'ops', 'eng', 'proc'];
 
-function die(msg, extra) {
-  console.log(JSON.stringify({ ok: false, error: msg, ...(extra || {}) }, null, 2));
-  process.exit(1);
-}
 function out(obj) { console.log(JSON.stringify(obj, null, 2)); }
+
+/* Thrown by die() once the failure has been printed. Carries no message
+   anybody reads — it exists so the top level can tell "already
+   reported, stop here" apart from a genuine crash. */
+class Bail extends Error {}
+
+/* End the command with a reported failure.
+
+   This used to call process.exit(1), which is the bug that made every
+   failure exit 127. fetch keeps undici sockets open, and on Windows
+   exiting while libuv is still closing those handles trips an assertion
+   in async.c: the process aborts, stderr gets a C-level assertion line,
+   and the exit code die() was trying to set is replaced by the abort's
+   own. A caller checking for 1 saw 127, which conventionally means the
+   command was not found at all.
+
+   Setting process.exitCode instead states the intent and lets Node
+   finish its own teardown, which it does in less time than the abort
+   took. The throw is what stops the command — process.exit() used to do
+   that part, and several call sites here run on past die() if it
+   returns. */
+function die(msg, extra) {
+  out({ ok: false, error: msg, ...(extra || {}) });
+  process.exitCode = 1;
+  throw new Bail(msg);
+}
 
 /* ─── .env ─────────────────────────────────────────────────────────
    A deliberately small reader: KEY=value, # comments, optional quotes.
@@ -331,7 +353,15 @@ async function main() {
 /* Only run when invoked directly, so the validator above can be
    required and tested. */
 if (require.main === module) {
-  main().catch(e => die(e && e.message ? e.message : String(e)));
+  main().catch(e => {
+    /* die() has already printed and set the code; re-reporting here
+       would print the failure twice. Anything else is a real crash and
+       gets the same JSON shape as every other error, because the model
+       reading stdout never has to parse prose. */
+    if (e instanceof Bail) return;
+    out({ ok: false, error: e && e.message ? e.message : String(e) });
+    process.exitCode = 1;
+  });
 }
 
 module.exports = { checkFind, municipalities, toAuthEmail, ROLES, SEATS };

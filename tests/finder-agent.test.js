@@ -12,7 +12,14 @@
 'use strict';
 
 const assert = require('assert');
+const path = require('path');
+const { spawn, spawnSync } = require('child_process');
 const { checkFind, municipalities, toAuthEmail } = require('../scripts/finder-agent.js');
+
+const AGENT = path.join(__dirname, '..', 'scripts', 'finder-agent.js');
+function runAgent(...args) {
+  return spawnSync(process.execPath, [AGENT, ...args], { encoding: 'utf8' });
+}
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -80,5 +87,103 @@ test('a plain username is completed', () => assert.strictEqual(toAuthEmail('dino
 test('a full address is left alone', () =>
   assert.strictEqual(toAuthEmail('Someone@Example.com'), 'someone@example.com'));
 
-console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
-process.exit(fail ? 1 : 0);
+/* The command line, spawned for real.
+
+   Everything above imports pure functions, so none of it could see that
+   every failure after a request used to exit with a Windows abort code
+   instead of 1. die() called process.exit() while undici still had
+   sockets closing, libuv asserted in async.c, and the process aborted.
+
+   THESE TESTS DO NOT REPRODUCE THAT, and that is worth knowing before
+   trusting them as a guard. The abort needs the TLS path. Measured
+   against the unfixed script:
+
+     local HTTP stub        exit 1,          stderr empty
+     real HTTPS Supabase    exit 3221226505, stderr the assertion
+
+   So an offline test cannot trip it, and one that claimed to would be
+   worse than none. Reproducing it means pointing the unfixed script at
+   a real https:// endpoint that refuses the sign-in.
+
+   What these DO lock down is the contract every such failure has to
+   meet, which is the part that actually broke: exit 1, the reason as
+   JSON on stdout, nothing on stderr, reported exactly once. A future
+   change that reaches for process.exit() again fails the stderr and
+   exit-code assertions the moment it runs anywhere with TLS, and fails
+   the "exactly once" assertion here immediately if the throw and the
+   top-level catch ever both report. */
+function startStub() {
+  /* A separate process, deliberately: the tests below drive the agent
+     with spawnSync, which blocks this process's event loop until the
+     child exits. A server running here could never answer the request,
+     and the two would wait on each other until something timed out. */
+  const child = spawn(process.execPath, [path.join(__dirname, 'stub-auth-server.js')],
+    { stdio: ['ignore', 'pipe', 'inherit'] });
+  return new Promise((resolve, reject) => {
+    let buf = '';
+    child.stdout.on('data', d => {
+      buf += d;
+      const nl = buf.indexOf('\n');
+      if (nl < 0) return;
+      const { port } = JSON.parse(buf.slice(0, nl));
+      resolve({ url: 'http://127.0.0.1:' + port, close: () => child.kill() });
+    });
+    child.on('error', reject);
+    child.on('exit', c => reject(new Error('stub server exited early (' + c + ')')));
+  });
+}
+
+function runAgainstStub(stub, ...args) {
+  return spawnSync(process.execPath, [AGENT, ...args], {
+    encoding: 'utf8',
+    env: { ...process.env,
+      AEE_SUPABASE_URL: stub.url,
+      AEE_EMAIL: 'stub@example.invalid',
+      AEE_PASSWORD: 'not-a-real-password' },
+  });
+}
+
+(async () => {
+  const stub = await startStub();
+
+  console.log('\nthe command line, once a request has been made');
+  test('a failed sign-in exits 1', () => {
+    /* Against the stub this passed before the fix too — see the note
+       above. It is here as the contract, not as the reproduction. */
+    assert.strictEqual(runAgainstStub(stub, 'runs').status, 1);
+  });
+  test('nothing is written to stderr', () => {
+    /* The assertion arrived here as a C-level line no JSON reader could
+       parse. A quiet stderr is the signal that the process ended rather
+       than aborted, and it is the assertion that would catch a
+       returning process.exit() on any machine that uses TLS. */
+    assert.strictEqual(runAgainstStub(stub, 'runs').stderr, '');
+  });
+  test('the reason is on stdout as JSON', () => {
+    const r = JSON.parse(runAgainstStub(stub, 'runs').stdout);
+    assert.strictEqual(r.ok, false);
+    assert.match(r.error, /Sign-in failed \(400\)/);
+  });
+  test('the failure is reported exactly once', () => {
+    /* die() throws now, so the command stops. If the top level treated
+       that throw as a fresh crash it would print a second object. */
+    const out = runAgainstStub(stub, 'runs').stdout.trim();
+    assert.strictEqual(out.split(/\}\s*\{/).length, 1);
+  });
+
+  console.log('\nthe command line, before any request');
+  test('a usage error exits 1 and says why', () => {
+    const r = spawnSync(process.execPath, [AGENT, 'targets'], { encoding: 'utf8' });
+    assert.strictEqual(r.status, 1);
+    assert.match(JSON.parse(r.stdout).error, /Usage: targets/);
+  });
+  test('an unknown command lists the real ones', () => {
+    const r = spawnSync(process.execPath, [AGENT, 'no-such-command'], { encoding: 'utf8' });
+    assert.ok(JSON.parse(r.stdout).commands.includes('runs'));
+  });
+
+  stub.close();
+  console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
+  process.exit(fail ? 1 : 0);
+})();
+
