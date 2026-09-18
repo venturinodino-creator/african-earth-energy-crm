@@ -20,7 +20,7 @@ function renderPipeline() {
   setPage('Pipeline',
     working.length + ' account' + (working.length === 1 ? '' : 's') + ' being worked · ' +
     open.length + ' live opportunities · ' + fmtNum(pipelineMw()) + ' MW under discussion',
-    viewToggle('pipeView', [['board', 'Deals'], ['accounts', 'Accounts'], ['flow', 'Flow'], ['table', 'Table']]) +
+    viewToggle('pipeView', [['accounts', 'Accounts'], ['board', 'Deals'], ['flow', 'Flow'], ['table', 'Table']]) +
     '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
