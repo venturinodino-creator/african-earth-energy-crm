@@ -640,6 +640,9 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
   transition:opacity .15s,transform .15s;transform-origin:bottom}
 .ia-seg:hover{transform:scaleY(1.45)}
 .ia-seg[aria-pressed="true"]{outline:1px solid #fff6;outline-offset:1px}
+/* the bar on an account with nobody on it — a track, not a band */
+.ia-seg.is-empty{flex:1;background:rgba(255,255,255,.055);cursor:default}
+.ia-seg.is-empty:hover{transform:none}
 .ia-keys{display:flex;flex-direction:column;gap:5px}
 .ia-key{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted2);background:none;border:none;
   cursor:pointer;font-family:inherit;padding:2px 0;text-align:left;transition:color .15s}
@@ -672,6 +675,9 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .ia-tile{background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;padding:10px 11px;
   cursor:pointer;font-family:inherit;text-align:left;transition:all .15s}
 .ia-tile:hover{background:rgba(255,255,255,.055);transform:translateY(-2px)}
+/* a tile with nothing to filter to reads as a number, not a button */
+.ia-tile.is-flat{cursor:default}
+.ia-tile.is-flat:hover{background:rgba(255,255,255,.025);transform:none}
 .ia-tile[aria-pressed="true"]{border-color:rgba(61,220,132,.45);background:rgba(61,220,132,.07)}
 .ia-tile-n{display:block;font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .ia-tile-n em{font-style:normal;font-size:13px;font-weight:700;color:var(--muted);letter-spacing:0}
