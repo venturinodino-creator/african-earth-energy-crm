@@ -72,7 +72,7 @@ let state = {
   newsTopic: 'all', newsProvince: '', newsSearch: '',
 
   /* Contact finder: the scope a discovery run will be queued against. */
-  cfIndustry: 'all', cfProvince: '', cfOnlyEmpty: false,
+  cfProvince: '',
   cfRoles: ['decision'],
   contactRuns: null, foundContacts: null,
 

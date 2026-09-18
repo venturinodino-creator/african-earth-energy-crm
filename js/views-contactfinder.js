@@ -25,7 +25,7 @@
 'use strict';
 
 /* Roles worth finding, in the order the desk works them. */
-const FINDER_ROLES = ['decision', 'technical', 'influencer', 'gatekeeper'];
+const FINDER_ROLES = ['decision', 'technical', 'influencer'];
 const FIND_STATUS_LABEL = { pending: 'Needs review', approved: 'Accepted', discarded: 'Discarded' };
 const RUN_STATUS_LABEL = { queued: 'Queued', running: 'Running', done: 'Done', failed: 'Failed' };
 
@@ -75,14 +75,17 @@ async function refreshFinderFromServer(announce) {
   }
 }
 
-/* The industry chips are the sector groups — the coarse cut of "what
-   kind of business", which is how energy intensity actually varies.
-   Heavy industry and smelting run a flat 24/7 load; a retail chain does
-   not. Ordered heaviest first so the ones worth calling lead. */
-const FINDER_INDUSTRIES = [
-  'heavy-industry', 'primary', 'manufacturing', 'digital',
-  'logistics', 'commercial', 'utilities-public', 'emerging',
-];
+/* One target, fixed: mining. The finder used to offer every sector
+   group as a chip and let that row double as the review filter. Both
+   are gone for now — the desk wants mining contacts and nothing else,
+   and nine chips with (0) on eight of them were noise around the one
+   that mattered. The run history and the export still label older runs
+   by whatever they were pointed at, so nothing already found loses its
+   name. Widen this by changing one constant, not by restoring the row. */
+const FINDER_TARGET = 'mining';
+/* The sector's full name is "Mining & Minerals (Producer)", which is
+   right in a taxonomy and wrong on a button. */
+const FINDER_TARGET_LABEL = 'Mining';
 
 /* Municipalities are a target here as much as the industries are, but
    they are not an industry: they come from reference data rather than
@@ -95,33 +98,20 @@ const FINDER_MUNI = 'municipal';
 function finderIsMuni(key) { return key === FINDER_MUNI; }
 function finderAccountIsMuni(id) { return String(id || '').startsWith('mun_'); }
 
-function industryColor(key) {
-  if (finderIsMuni(key)) return '#38bdf8';
-  return (typeof GROUP_COLOR !== 'undefined' && GROUP_COLOR[key]) || '#7a90a8';
-}
 function industryLabel(key) {
+  if (key === FINDER_TARGET) return FINDER_TARGET_LABEL;
   if (key === 'all') return 'All industries';
   if (finderIsMuni(key)) return 'Main municipalities';
   return SECTOR_GROUPS[key] || key;
 }
 
-/* The accounts a run would cover. The chip is the primary cut; the two
-   selects narrow it further. Municipalities and offtakers are different
-   record types, so this returns the shape they have in common — an id,
-   a name and a province — which is all a run or this page needs. */
+/* The accounts a run would cover: every mining offtaker, narrowed by
+   province if one is picked. No "only where we have nobody" any more —
+   a run is pointed at the sector and the reviewer decides per row. */
 function finderScopeOfftakers() {
-  if (finderIsMuni(state.cfIndustry)) {
-    return SA_MUNICIPALITIES.filter(m => {
-      if (!muniIsMain(m)) return false;
-      if (state.cfProvince && m.province !== state.cfProvince) return false;
-      if (state.cfOnlyEmpty && contactsFor(m.id).length) return false;
-      return true;
-    }).map(muniAsAccount);
-  }
   return state.offtakers.filter(o => {
-    if (state.cfIndustry !== 'all' && sectorGroup(o.sector) !== state.cfIndustry) return false;
+    if (o.sector !== FINDER_TARGET) return false;
     if (state.cfProvince && o.province !== state.cfProvince) return false;
-    if (state.cfOnlyEmpty && contactsFor(o.id).length) return false;
     return true;
   });
 }
@@ -152,19 +142,14 @@ function finderAccountOf(id) {
 function renderContactFinder() {
   if (!state.contactRuns) { loadFinderCache(); refreshFinderFromServer(false); }
 
+  /* Everything not discarded is reviewed here. The chip row that used
+     to narrow this list went with the chips; a find still waiting from
+     an earlier run is still a find waiting. */
   const live = state.foundContacts.filter(f => f.status !== 'discarded');
-  const counts = { all: live.length };
-  FINDER_INDUSTRIES.concat([FINDER_MUNI]).forEach(k => { counts[k] = 0; });
-  live.forEach(f => { const k = finderIndustryOf(f); if (counts[k] != null) counts[k]++; });
-
-  const filtered = state.cfIndustry === 'all'
-    ? live : live.filter(f => finderIndustryOf(f) === state.cfIndustry);
-  const pending = filtered.filter(f => f.status === 'pending');
+  const pending = live.filter(f => f.status === 'pending');
   const scoped = finderScopeOfftakers();
 
-  const findLabel = state.cfIndustry === 'all'
-    ? 'Find contacts now'
-    : 'Find ' + industryLabel(state.cfIndustry) + ' contacts now';
+  const findLabel = 'Find ' + FINDER_TARGET_LABEL.toLowerCase() + ' contacts now';
 
   setPage('Contact finder',
     'Contacts found by the agent, awaiting review — accept to add to the CRM, discard to drop',
@@ -183,47 +168,29 @@ function renderContactFinder() {
       icon('download', 14) + ' Export</button>');
 
   setContent(
-    finderTargetBar(counts) +
+    finderTargetBar() +
     finderRoleBar(scoped) +
     finderNoticeHtml() +
     finderRunStrip() +
-    (live.length ? finderTableHtml(filtered) : finderEmptyHtml()));
+    (live.length ? finderTableHtml(live) : finderEmptyHtml()));
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   THE CHIP ROW — filters the list and sets the next run's target,
-   which is one control because they are one decision.
-   ═══════════════════════════════════════════════════════════════ */
-function finderTargetBar(counts) {
-  const chip = (key) => {
-    const active = state.cfIndustry === key;
-    const colour = key === 'all' ? '#f1f5f9' : industryColor(key);
-    const n = key === 'all' ? counts.all : (counts[key] || 0);
-    return '<button class="cf-chip" onclick="setFinderIndustry(\'' + key + '\')" style="' +
-      'border-color:' + (active ? colour : 'var(--border2)') + ';' +
-      'background:' + (active ? colour + '22' : 'transparent') + ';' +
-      'color:' + (active ? colour : 'var(--muted)') + '">' +
-      esc(industryLabel(key)) + ' (' + n + ')</button>';
-  };
+/* The target line. One fixed chip, because there is one target; it
+   is drawn the way the roles are so the bar still reads as one control.
+   Not clickable — there is nothing else to click to. */
+function finderTargetBar() {
+  const n = finderScopeOfftakers().length;
   return '<div class="cf-bar">' +
-    '<span class="cf-bar-label">Filter / next scrape target:</span>' +
-    ['all'].concat(FINDER_INDUSTRIES).map(chip).join('') +
-    '<span class="cf-bar-sep"></span>' + chip(FINDER_MUNI) +
+    '<span class="cf-bar-label">Next scrape target:</span>' +
+    '<span class="cf-chip" style="border-color:var(--accent);background:rgba(61,220,132,.13);color:var(--accent);cursor:default">' +
+      esc(FINDER_TARGET_LABEL) + ' (' + n + ')</span>' +
   '</div>';
-}
-
-function setFinderIndustry(key) {
-  state.cfIndustry = key;
-  renderContactFinder();
 }
 
 /* Roles use the same chip language, plus the two narrowing selects. */
 function finderRoleBar(scoped) {
-  const muni = finderIsMuni(state.cfIndustry);
-  const noun = muni ? 'municipalit' : 'offtaker';
-  const provinces = muni
-    ? MUNI_PROVINCES.slice()
-    : [...new Set(state.offtakers.map(o => o.province).filter(Boolean))].sort();
+  const provinces = [...new Set(state.offtakers
+    .filter(o => o.sector === FINDER_TARGET).map(o => o.province).filter(Boolean))].sort();
   const roleChips = FINDER_ROLES.map(r => {
     const on = state.cfRoles.includes(r);
     return '<button class="cf-chip" onclick="toggleFinderRole(\'' + r + '\')" style="' +
@@ -240,10 +207,7 @@ function finderRoleBar(scoped) {
       provinces.map(p => '<option value="' + esc(p) + '"' +
         (state.cfProvince === p ? ' selected' : '') + '>' + esc(p) + '</option>').join('') +
     '</select>' +
-    '<label class="cf-chip cf-check' + (state.cfOnlyEmpty ? ' on' : '') + '">' +
-      '<input type="checkbox" ' + (state.cfOnlyEmpty ? 'checked' : '') +
-      ' onchange="state.cfOnlyEmpty=this.checked;renderContactFinder()">Only where we have nobody</label>' +
-    '<span class="cf-scope">' + scoped.length + ' ' + noun + (scoped.length === 1 ? (muni ? 'y' : '') : (muni ? 'ies' : 's')) +
+    '<span class="cf-scope">' + scoped.length + ' offtaker' + (scoped.length === 1 ? '' : 's') +
       ' in scope' + (state.cfRoles.length ? '' : ' · pick a role') + '</span>' +
   '</div>';
 }
@@ -295,15 +259,14 @@ function queueContactRun() {
 
   const run = {
     id: uid('run'), created: todayISO(), status: 'queued',
-    industry: state.cfIndustry,
+    industry: FINDER_TARGET,
     roles: state.cfRoles.slice(),
     offtakerIds: scoped.map(o => o.id),
     found: 0, note: '',
   };
   state.contactRuns.unshift(run);
   saveFinderState();
-  toast('Queued · ' + industryLabel(state.cfIndustry) + ' · ' + scoped.length +
-    (finderIsMuni(state.cfIndustry) ? ' municipalities' : ' offtakers'));
+  toast('Queued · ' + FINDER_TARGET_LABEL + ' · ' + scoped.length + ' offtakers');
   renderContactFinder();
   /* The run only means anything once it is on the server — that is where
      the agent looks for work. */
@@ -323,14 +286,13 @@ function deleteContactRun(id) {
 function finderEmptyHtml() {
   return '<div class="empty"><div class="ei">' + icon('contacts', 30) + '</div>' +
     '<h3>No pending contacts</h3>' +
-    '<p>Pick an industry above and click "Find contacts now" to queue a run. ' +
+    '<p>Pick the roles you want and click "Find mining contacts now" to queue a run. ' +
     'People the agent finds land here for review before they reach the contact book.</p></div>';
 }
 
 function finderTableHtml(list) {
   if (!list.length) {
-    return '<div class="empty"><p style="font-size:13px;color:var(--muted)">No <b>' +
-      esc(industryLabel(state.cfIndustry)) + '</b> contacts pending. Try another filter.</p></div>';
+    return '<div class="empty"><p style="font-size:13px;color:var(--muted)">Nothing pending review.</p></div>';
   }
   return '<div class="table-wrap"><table><thead><tr>' +
     '<th>Name</th><th>Title</th><th>Role</th><th>Company</th>' +
@@ -408,8 +370,7 @@ async function approveFoundContact(id) {
 
 async function acceptAllFound() {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to accept', 'warn'); return; }
-  await acceptFinds(state.foundContacts.filter(f => f.status === 'pending' &&
-    (state.cfIndustry === 'all' || finderIndustryOf(f) === state.cfIndustry)));
+  await acceptFinds(state.foundContacts.filter(f => f.status === 'pending'));
 }
 
 /* The same acceptance from outside the finder: every pending find,
