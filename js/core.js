@@ -581,6 +581,13 @@ function isStalled(rec) {
    the stage's own patience, with the basis and the date in the tooltip so
    nobody has to trust a bare figure. */
 function dwellChipHtml(rec) {
+  /* Time at a stage only means something once there is a stage. The
+     company list is a research bench of several hundred names that nobody
+     has started working, and stageDwell falls back to the last activity
+     or the record's own timestamp, so every one of them was showing a
+     number in a column headed "In stage" — a sales process reported for
+     companies that are not in one. */
+  if (!inPipeline(rec)) return '<span style="color:var(--muted)">—</span>';
   const d = stageDwell(rec);
   if (!d) return '<span style="color:var(--muted)">—</span>';
   const stalled = isStalled(rec);
