@@ -344,7 +344,9 @@ they happen.
 - **Import contacts** reads a CSV with a header row and matches the company
   column to an existing offtaker by name, or to a municipality by name, id
   (`mun_MP312`) or code (`MP312`); a `province` column settles a municipality
-  name that is not unique. Anything unmatched is filed as unassigned.
+  name that is not unique. Anything unmatched is filed as unassigned. A row
+  without a work email is skipped — the same rule the Contact finder applies,
+  so there is no path into the contact book for a person nobody can write to.
 
 The URL and publishable key in `js/supabase.js` are meant to be public — they
 identify the project and grant nothing on their own.

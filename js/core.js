@@ -979,7 +979,8 @@ const IMPORT_HINT_CONTACTS =
   'Choose a CSV with a header row.<br>Recognised columns: ' +
   '<b style="color:var(--text2)">first, last</b>, title, department, company, email, phone, linkedin, notes, province.<br><br>' +
   '<b>company</b> matches an offtaker by name, or a municipality by name, id (<i>mun_MP312</i>) or code (<i>MP312</i>). ' +
-  'Where a municipality name is not unique — there are two Emalahlenis — <b>province</b> settles it.';
+  'Where a municipality name is not unique — there are two Emalahlenis — <b>province</b> settles it.<br><br>' +
+  '<b>email</b> is required. A row without a work email is skipped — the same rule the Contact finder applies.';
 
 const IMPORT_HINT_OFFTAKERS =
   'Choose a CSV with a header row.<br>Recognised columns: ' +
@@ -1184,10 +1185,22 @@ function previewContactImport(rows, find, firstIdx, lastIdx) {
     };
   }).filter(c => c.first || c.last);
 
-  const toOff = _importRows.filter(r => r.offtakerId && !isMunicipalityId(r.offtakerId)).length;
-  const toMuni = _importRows.filter(r => isMunicipalityId(r.offtakerId)).length;
-  const ambiguous = _importRows.filter(r => r.ambiguous).length;
-  const unassigned = _importRows.length - toOff - toMuni;
+  /* The email gate, as the Contact finder applies it. This screen was
+     the one way into the book that did not ask — 63 phone-only people
+     came in through it in a day and were deleted again by hand. A row
+     without a work email is shown, so the reviewer can see what the
+     file is missing, and skipped. */
+  _importRows.forEach(r => { r.noEmail = !findHasEmail(r); });
+  const importable = _importRows.filter(r => !r.noEmail);
+  const noEmail = _importRows.length - importable.length;
+
+  const toOff = importable.filter(r => r.offtakerId && !isMunicipalityId(r.offtakerId)).length;
+  const toMuni = importable.filter(r => isMunicipalityId(r.offtakerId)).length;
+  const ambiguous = importable.filter(r => r.ambiguous).length;
+  const unassigned = importable.length - toOff - toMuni;
+  const emailCell = r => r.noEmail
+    ? '<span class="badge b-medium" title="No work email — this row will not be imported">no email · skipped</span>'
+    : esc(r.email);
   const matchedCell = r => {
     if (r.ambiguous) {
       return '<span class="badge b-medium" title="' +
@@ -1203,17 +1216,24 @@ function previewContactImport(rows, find, firstIdx, lastIdx) {
     return '<span class="badge b-contracted">' + esc(getOfftaker(r.offtakerId).short || '') + '</span>';
   };
   document.getElementById('imp-preview').innerHTML =
-    '<div class="fg-hint"><b style="color:var(--text2)">' + _importRows.length + ' contacts</b> found. ' +
-    toOff + ' matched to an offtaker, ' + toMuni + ' to a municipality; ' + unassigned +
-    ' will be filed as unassigned and can be linked later.' +
+    '<div class="fg-hint"><b style="color:var(--text2)">' + _importRows.length + ' contacts</b> found, ' +
+    '<b style="color:var(--text2)">' + importable.length + '</b> with a work email will be imported. ' +
+    (noEmail
+      ? '<span style="color:var(--warn)">' + noEmail + ' without one will be skipped' +
+        (importable.length ? '' : ' — nothing to import') + '.</span> '
+      : '') +
+    (importable.length
+      ? toOff + ' matched to an offtaker, ' + toMuni + ' to a municipality; ' + unassigned +
+        ' will be filed as unassigned and can be linked later.'
+      : '') +
     (ambiguous
       ? ' <span style="color:var(--warn)">' + ambiguous + ' name' + (ambiguous === 1 ? ' fits' : 's fit') +
         ' more than one municipality — add a <b>province</b> column, or write the code (MP312) instead.</span>'
       : '') +
     '</div>' +
-    '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Matched</th></tr></thead><tbody>' +
-    _importRows.slice(0, 8).map(r => '<tr><td>' + esc(r.first + ' ' + r.last) + '</td><td>' + esc(r.title) +
-      '</td><td>' + esc(r.companyName) + '</td><td>' + matchedCell(r) + '</td></tr>').join('') +
+    '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Email</th><th>Matched</th></tr></thead><tbody>' +
+    _importRows.slice(0, 8).map(r => '<tr' + (r.noEmail ? ' style="opacity:.55"' : '') + '><td>' + esc(r.first + ' ' + r.last) + '</td><td>' + esc(r.title) +
+      '</td><td>' + esc(r.companyName) + '</td><td>' + emailCell(r) + '</td><td>' + matchedCell(r) + '</td></tr>').join('') +
     '</tbody></table></div>';
   document.getElementById('imp-go').disabled = false;
 }
@@ -1315,7 +1335,9 @@ function previewOfftakerImport(rows, head, find) {
 async function runImport() {
   if (_importKind === 'offtakers') return runOfftakerImport();
   const made = [];
+  let skipped = 0;
   _importRows.forEach(r => {
+    if (r.noEmail) { skipped++; return; }
     const dup = state.contacts.some(c =>
       (r.email && c.email && c.email.toLowerCase() === r.email.toLowerCase()) ||
       (c.first.toLowerCase() === r.first.toLowerCase() && c.last.toLowerCase() === r.last.toLowerCase() && c.offtakerId === r.offtakerId));
@@ -1330,7 +1352,8 @@ async function runImport() {
   });
   save();
   closeModal('modal-import');
-  toast('Imported ' + made.length + ' new contact' + (made.length === 1 ? '' : 's'));
+  toast('Imported ' + made.length + ' new contact' + (made.length === 1 ? '' : 's') +
+    (skipped ? ' · ' + skipped + ' skipped without an email' : ''));
   nav('contacts');
 
   /* save() is the local cache only. The offtaker importer has always
