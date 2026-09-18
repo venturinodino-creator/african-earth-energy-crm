@@ -1237,7 +1237,7 @@ function previewContactImport(rows, find, firstIdx, lastIdx) {
     _importRows.slice(0, 8).map(r => '<tr' + (r.noEmail ? ' style="opacity:.55"' : '') + '><td>' + esc(r.first + ' ' + r.last) + '</td><td>' + esc(r.title) +
       '</td><td>' + esc(r.companyName) + '</td><td>' + emailCell(r) + '</td><td>' + matchedCell(r) + '</td></tr>').join('') +
     '</tbody></table></div>';
-  document.getElementById('imp-go').disabled = false;
+  document.getElementById('imp-go').disabled = !importable.length;
 }
 
 function previewOfftakerImport(rows, head, find) {
