@@ -53,6 +53,20 @@ function removeFromPipeline(id) {
   if (!rec) return;
   if (!inPipeline(rec)) { toast('Not in the pipeline'); return; }
 
+  /* An executed PPA is a contract, not a mistaken entry. It would be
+     deleted with the speculative ones and take its MW out of Signed with
+     it, and the confirm counts opportunities without saying that one of
+     them is signed. Refuse instead of asking: voiding a PPA has to be a
+     deliberate act on that opportunity, not a side effect of tidying an
+     account off the board. */
+  const signed = dealsFor(id).filter(d => normalizeDealStage(d.stage) === 'closed');
+  if (signed.length) {
+    toast((rec.short || rec.name) + ' has ' +
+      (signed.length === 1 ? 'an executed PPA' : signed.length + ' executed PPAs') +
+      ' — delete ' + (signed.length === 1 ? 'it' : 'them') + ' first if that is really meant', 'warn');
+    return;
+  }
+
   const deals = dealsFor(id);
   const name = rec.short || rec.name;
   const cost = deals.length
