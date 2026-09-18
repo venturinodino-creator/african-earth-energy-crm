@@ -8,9 +8,14 @@
 -- access rules are recoverable from the repository alone.
 --
 -- Running this against an empty project reproduces the schema and the
--- security model. It does NOT reproduce the data: offtakers, contacts,
--- prospects and the pipeline are customer records and are not committed
--- to a public repository. Use the app's CSV export for a data backup.
+-- security model. It does NOT reproduce the data: offtakers, contacts
+-- and the pipeline are customer records and are not committed to a
+-- public repository. Use the app's CSV export for a data backup.
+--
+-- aee_prospects is deliberately absent. Leads and offtakers became one
+-- record type, the table was retired in the live project, and a
+-- `create table if not exists` for it here would have re-created
+-- it — with RLS, a trigger and indexes — on the next run of this file.
 --
 -- Access model, enforced here rather than in the JavaScript:
 --   pending  new account, sees nothing at all (the default)
@@ -76,9 +81,11 @@ create table if not exists public.aee_contacts (
   updated_at  timestamptz not null default now()
 );
 
--- An opportunity hangs off an offtaker, or — before anyone has established
--- the load — off a prospect. Exactly one of the two is set; promoting a
--- prospect moves its opportunities across to the new offtaker.
+-- An opportunity hangs off an offtaker. prospect_id is vestigial: it
+-- pointed at aee_prospects, which no longer exists. The column and its
+-- index are still live and still described here, because this file is a
+-- reference copy of what IS rather than of what should be; nothing
+-- reads or writes it and every row has it null.
 create table if not exists public.aee_deals (
   id          text primary key,
   offtaker_id text,
@@ -96,8 +103,8 @@ create table if not exists public.aee_deals (
   updated_at  timestamptz not null default now()
 );
 
--- Logged against whichever account it happened on: an offtaker, or a
--- prospect still being worked.
+-- Logged against the offtaker it happened on. prospect_id is vestigial
+-- in the same way as on aee_deals above.
 create table if not exists public.aee_interactions (
   id          text primary key,
   offtaker_id text,
@@ -107,47 +114,6 @@ create table if not exists public.aee_interactions (
   summary     text,
   created_by  uuid,
   created_at  timestamptz not null default now()
-);
-
--- The long prospecting list. Deliberately separate from aee_offtakers:
--- a prospect has a name, a place and a sector but no load data, so it
--- is not fit-scored. Promoting one moves it across, and that is when it
--- starts being ranked.
-create table if not exists public.aee_prospects (
-  id             text primary key,
-  name           text not null,
-  sector_id      text,
-  note           text,
-  status         text not null default 'new'
-                   check (status in ('new','researching','promoted','parked','rejected')),
-  -- The same sales-process path the offtakers run on, so a lead that is
-  -- already being worked reads the same way before it is promoted.
-  sf_stage       text check (sf_stage in
-                   ('prospecting','needs-analysis','proposal','negotiation','closed')),
-  promoted_to    text,       -- aee_offtakers.id once promoted
-  notes          text,
-  -- Location of the SITE being targeted, not the group head office.
-  town           text,
-  province       text,
-  lat            double precision,
-  lng            double precision,
-  near_site      text,       -- AEE_PROJECTS id this was identified against
-  -- Published company contacts. Named individuals live in aee_contacts
-  -- and are only added once a real person has been identified.
-  website        text,
-  phone          text,
-  email          text,
-  address        text,
-  contact_source text,       -- where the detail came from, so it can be re-verified
-  -- Load is stored as a BAND with its basis, never as a bare number. A
-  -- single figure reads as fact and ends up in a quote; a band plus a
-  -- stated basis stays honest about what is actually known.
-  annual_gwh_low  numeric,
-  annual_gwh_high numeric,
-  peak_mw_est     numeric,
-  load_basis      text check (load_basis in ('disclosed','derived','sector-range','unknown')),
-  load_method     text,      -- the citation, or the working behind a derivation
-  updated_at     timestamptz not null default now()
 );
 
 -- Pre-existing table from earlier work in this project. Left in place,
@@ -212,11 +178,6 @@ create index if not exists aee_contacts_offtaker_idx     on public.aee_contacts(
 create index if not exists aee_deals_offtaker_idx        on public.aee_deals(offtaker_id);
 create index if not exists aee_deals_stage_idx           on public.aee_deals(stage);
 create index if not exists aee_interactions_offtaker_idx on public.aee_interactions(offtaker_id);
-create index if not exists aee_prospects_sector_idx      on public.aee_prospects(sector_id);
-create index if not exists aee_prospects_status_idx      on public.aee_prospects(status);
-create index if not exists aee_prospects_near_site_idx   on public.aee_prospects(near_site);
-create index if not exists aee_prospects_province_idx    on public.aee_prospects(province);
-create index if not exists aee_prospects_load_basis_idx  on public.aee_prospects(load_basis);
 create index if not exists aee_deals_prospect_idx        on public.aee_deals(prospect_id);
 create index if not exists aee_interactions_prospect_idx on public.aee_interactions(prospect_id);
 create index if not exists aee_offtakers_sf_stage_idx    on public.aee_offtakers(sf_stage);
@@ -233,20 +194,12 @@ create index if not exists aee_found_contacts_offtaker_idx on public.aee_found_c
 -- Idempotent: re-running the whole file on a live project is safe.
 
 alter table public.aee_offtakers add column if not exists sf_stage text;
-alter table public.aee_prospects add column if not exists sf_stage text;
 alter table public.aee_deals     add column if not exists prospect_id text;
 alter table public.aee_interactions add column if not exists prospect_id text;
 
 do $$
 begin
   alter table public.aee_offtakers add constraint aee_offtakers_sf_stage_check
-    check (sf_stage in ('prospecting','needs-analysis','proposal','negotiation','closed'));
-exception when duplicate_object then null;
-end $$;
-
-do $$
-begin
-  alter table public.aee_prospects add constraint aee_prospects_sf_stage_check
     check (sf_stage in ('prospecting','needs-analysis','proposal','negotiation','closed'));
 exception when duplicate_object then null;
 end $$;
@@ -297,7 +250,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['aee_offtakers','aee_contacts','aee_deals','aee_prospects',
+  foreach t in array array['aee_offtakers','aee_contacts','aee_deals',
                            'aee_contact_runs','aee_found_contacts']
   loop
     execute format('drop trigger if exists %I on public.%I', t || '_touch', t);
@@ -327,7 +280,6 @@ alter table public.aee_offtakers    enable row level security;
 alter table public.aee_contacts     enable row level security;
 alter table public.aee_deals        enable row level security;
 alter table public.aee_interactions enable row level security;
-alter table public.aee_prospects    enable row level security;
 alter table public.mining_leads     enable row level security;
 alter table public.aee_contact_runs   enable row level security;
 alter table public.aee_found_contacts enable row level security;
@@ -347,7 +299,7 @@ do $$
 declare t text;
 begin
   foreach t in array array['aee_offtakers','aee_contacts','aee_deals',
-                           'aee_interactions','aee_prospects','mining_leads',
+                           'aee_interactions','mining_leads',
                            'aee_contact_runs','aee_found_contacts']
   loop
     execute format('drop policy if exists %I on public.%I', t || '_read',   t);
