@@ -290,7 +290,7 @@ function accountTableHtml() {
         '<td>' + (sfStageFor(o) === 'closed'
           ? '<span style="font-size:11px">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>'
           : dwellChipHtml(o)) + '</td>' +
-        '<td style="white-space:nowrap">' + opportunityButtonsHtml(o, deals) + '</td>' +
+        '<td style="white-space:nowrap">' + opportunityButtonsHtml(o, deals, true) + '</td>' +
       '</tr>';
     }).join('') + '</tbody></table></div>';
 }
@@ -379,14 +379,20 @@ function accountBoardHtml() {
 /* The small buttons on a card or row. Editing an opportunity's own
    numbers is the rarer job, so it is a button rather than the whole
    card; with more than one open the company page lists them. Taking
-   a company off the board goes back to Off-taker Prospects. */
-function opportunityButtonsHtml(o, deals) {
+   a company off the board goes back to Off-taker Prospects.
+
+   On a card the buttons are the hover-revealed pc-edit kind. A table
+   row has no hover rule to reveal them, so there they are ordinary
+   small buttons — otherwise the Actions column is simply blank. */
+function opportunityButtonsHtml(o, deals, inTable) {
   const one = deals.length === 1 ? deals[0] : null;
+  const cls = inTable ? 'btn btn-xs btn-outline' : 'pc-edit';
   return (one
-    ? '<button class="pc-edit" data-admin-only title="Edit this opportunity" ' +
-      'onclick="event.stopPropagation();openEditDeal(&#39;' + one.id + '&#39;)">' + icon('edit', 11) + '</button>'
+    ? '<button class="' + cls + '" data-admin-only title="Edit this opportunity" ' +
+      'onclick="event.stopPropagation();openEditDeal(&#39;' + one.id + '&#39;)">' + icon('edit', 11) + '</button>' +
+      (inTable ? ' ' : '')
     : '') +
-    '<button class="pc-edit pc-remove" data-admin-only ' +
+    '<button class="' + cls + (inTable ? '' : ' pc-remove') + '" data-admin-only ' +
       'title="Take ' + esc(o.short || o.name) + ' off the board and back to Off-taker Prospects" ' +
       'onclick="event.stopPropagation();removeFromPipeline(' + jsStr(o.id) + ')">' + icon('logout', 11) + '</button>';
 }
