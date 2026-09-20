@@ -14,7 +14,7 @@ Company site: <https://www.aeeg.co.za/en>
 | Screen | What it is for |
 | --- | --- |
 | **Dashboard** | The morning view — today's call list, funnel by stage, sector mix, capacity allocation, recent activity |
-| **Pipeline** | The opportunities somebody is working. Four readings of the same records: **Accounts** on the five-stage sales path, **Deals** for the PPA opportunities with weighted contract value, **Flow** for where they stop, **Table** for the lot. Drag to move a card |
+| **Pipeline** | The companies somebody is working, one board on the five-stage sales path. Each card carries the MW, value and likelihood of the PPA opportunities open on it. **Flow** reads where they stop, **Table** lists the lot in stage order. Drag to move a card, and its opportunities move with it |
 | **Off-taker Prospects** | The leads: researched companies nobody has picked up. No sales stage, no board position. Grid or table, filterable by sector, status and province, sortable by fit score |
 | **Offtaker detail** | Three cards for a lead — who they are, what the desk researched, who works there — plus the sales path once it is in the pipeline |
 | **Contacts** | People at each offtaker, with role in the decision. CSV import and export |
@@ -68,9 +68,11 @@ because a stage change with no trace of why is how a pipeline stops being
 believed. Records created before the path existed read their stage back out of
 the status they already carry, so nothing had to be back-filled.
 
-This is separate from, and coarser than, the seven PPA stages an individual
-opportunity moves through on the deal board. An account can be at Negotiation
-while one of its opportunities is still in Due Diligence.
+An individual opportunity carries the same five stages, and the two are held
+together: an account sits where its furthest-along opportunity sits, dragging
+the account on the board brings its opportunities with it, and saving an
+opportunity at a later stage moves its account the same way. The board shows
+one card per company, with its opportunities summed on the card.
 
 ## Access and security
 
@@ -368,7 +370,7 @@ js/icons.js                 inline SVG icon set
 js/supabase.js              auth, row mapping, reads and writes
 js/core.js                  state, routing, helpers, fit score, sales path, auth gate, CSV
 js/views-dashboard.js       dashboard
-js/views-pipeline.js        the deal board, the account board, flow and the deal table
+js/views-pipeline.js        the pipeline board, flow and table
 js/views-offtakers.js       the lead list, the record detail, contacts
 js/views-orgmap.js          who is at an account, and where they sit
 js/views-contactfinder.js   people at the offtakers, found by an agent

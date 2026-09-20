@@ -244,13 +244,14 @@ function checkFind(f) {
   if (f.seat && !SEATS.includes(f.seat)) problems.push('seat must be one of ' + SEATS.join(', '));
   if (!f.source) problems.push('source is required — the page you read it from');
   else if (!/^https?:\/\//i.test(String(f.source))) problems.push('source must be a URL you actually read');
-  /* A work email is required, not merely one of two options. The desk
-     writes before it phones, and a row with only a switchboard number
-     is a contact nobody follows up — so it is not written. Phone stays
-     optional. Keep reading (contact page, annual report, press release
-     signature) or use the Apollo source; never guess a pattern. */
-  if (!f.email) problems.push('email is required — a person with no work email is not written; find it on an official page or via the Apollo source, and never guess a pattern');
-  else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) problems.push('email does not look like an address');
+  /* A person needs a way to be reached: a work email or a work phone.
+     Email is what the desk wants — Accept all shows how many rows lack
+     one, and the reviewer can add it — but a named person with only a
+     published direct line is still a find, because the alternative is
+     no contact at that mine at all. What is never enough is a name on
+     its own, and an email that is an office inbox (checked below). */
+  if (!f.email && !f.phone) problems.push('a find with neither email nor phone cannot be contacted; skip it');
+  else if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) problems.push('email does not look like an address');
   /* A shared inbox belongs to no named person, and this table is about
      named people. The reviewer cannot tell from the row, so it is
      refused here. The list grew after an agent filed a CEO under the

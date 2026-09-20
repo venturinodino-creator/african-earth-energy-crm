@@ -120,11 +120,11 @@ function renderDashboard() {
       '<div class="funnel-block-title divided">Opportunities open on them</div>' +
       '<div class="funnel-block-note">' + liveDeals().length + ' live · ' + fmtNum(pipelineMw()) + ' MW under discussion' +
       (closedDeals ? ', plus ' + closedDeals + ' closed, counted in the Closed row' : '') +
-      '. These are the cards on the board.</div>' +
+      '. Each sits on its company\'s card on the board.</div>' +
       '<div class="funnel-head"><span></span><span>deals</span><span>MW</span></div>' +
       byStage.map(s =>
         '<div class="bar-row with-count clickable" title="' + esc(s.hint) + ' — open the board" ' +
-        'onclick="state.pipeView=&#39;board&#39;;nav(&#39;pipeline&#39;)">' +
+        'onclick="state.pipeView=&#39;accounts&#39;;nav(&#39;pipeline&#39;)">' +
         '<div class="bar-label">' + esc(s.label) + '</div>' +
         '<div class="bar-track"><span class="bar-fill" data-w="' + ((s.mw / maxMw) * 100) + '" ' +
         'style="background:linear-gradient(90deg,var(--accent),var(--accent2))"></span></div>' +
