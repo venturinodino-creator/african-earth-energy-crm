@@ -142,11 +142,11 @@ function finderAccountOf(id) {
 function renderContactFinder() {
   if (!state.contactRuns) { loadFinderCache(); refreshFinderFromServer(false); }
 
-  /* Everything not discarded is reviewed here. The chip row that used
-     to narrow this list went with the chips; a find still waiting from
-     an earlier run is still a find waiting. */
-  const live = state.foundContacts.filter(f => f.status !== 'discarded');
-  const pending = live.filter(f => f.status === 'pending');
+  /* Only what still needs a decision is reviewed here. An accepted find
+     has become a contact and lives on the Contacts page under its
+     company — keeping it in this table too made the queue read as
+     never-ending. A find waiting from an earlier run is still shown. */
+  const pending = state.foundContacts.filter(f => f.status === 'pending');
   const noEmail = pending.filter(f => !findHasEmail(f)).length;
   const scoped = finderScopeOfftakers();
 
@@ -184,7 +184,7 @@ function renderContactFinder() {
     finderRoleBar(scoped) +
     finderNoticeHtml() +
     finderRunStrip() +
-    (live.length ? finderTableHtml(live) : finderEmptyHtml()));
+    (pending.length ? finderTableHtml(pending) : finderEmptyHtml()));
 }
 
 /* The target line. One fixed chip, because there is one target; it
@@ -309,7 +309,9 @@ function finderEmptyHtml() {
   return '<div class="empty"><div class="ei">' + icon('contacts', 30) + '</div>' +
     '<h3>No pending contacts</h3>' +
     '<p>Pick the roles you want and click "Find mining contacts now" to queue a run. ' +
-    'People the agent finds land here for review before they reach the contact book.</p></div>';
+    'People the agent finds land here for review before they reach the contact book — ' +
+    'everything already accepted is on the <span class="ext-link" style="cursor:pointer" ' +
+    'onclick="nav(\'contacts\')">Contacts page</span>, filed under its company.</p></div>';
 }
 
 function finderTableHtml(list) {
