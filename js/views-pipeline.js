@@ -1,13 +1,21 @@
 /* ═══════════════════════════════════════════════════════════════════
    Pipeline
-   Three readings of the same work, and the page is built so switching
-   between them answers a different question rather than showing the same
-   thing twice:
+   One board, three readings of it. The page used to carry a second
+   board of PPA opportunities beside the board of companies, on the
+   same five stages, each with its own stat row — two pipelines on one
+   tab, and the deal board showed three cards where the account board
+   showed nineteen. The company is the unit of the sales process, so it
+   is the card; its opportunities are numbers ON the card, and editing
+   them is a button on it.
 
-     Deals     the PPA opportunities, on the sales-path stages
-     Accounts  the companies being worked, on the sales path
+     Board     the companies being worked, on the sales path, carrying
+               the MW and value of the opportunities open on each
      Flow      where those companies are, and where they stop
-     Table     the whole deal list in stage order
+     Table     the same companies in stage order, one row each
+
+   An opportunity's stage is its company's stage and the two are held
+   together in core.js: dragging a company brings its opportunities
+   with it, and saving an opportunity moves its company the same way.
 
    This is the other half of the book. Off-taker Prospects holds the
    leads — researched names nobody has picked up, carrying no stage. A
@@ -18,69 +26,68 @@
 'use strict';
 
 function renderPipeline() {
+  /* 'board' was the deal board's key; a browser that stored it, or a
+     link that still sends it, lands on the one board there is. */
+  if (state.pipeView === 'board' || !['accounts', 'flow', 'table'].includes(state.pipeView)) {
+    state.pipeView = 'accounts';
+  }
   const open = liveDeals();
   const working = pipelineAccounts();
   setPage('Pipeline',
     working.length + ' account' + (working.length === 1 ? '' : 's') + ' being worked · ' +
-    open.length + ' live opportunities · ' + fmtNum(pipelineMw()) + ' MW under discussion',
-    viewToggle('pipeView', [['accounts', 'Accounts'], ['board', 'Deals'], ['flow', 'Flow'], ['table', 'Table']]) +
+    open.length + ' live opportunit' + (open.length === 1 ? 'y' : 'ies') + ' · ' +
+    fmtNum(pipelineMw()) + ' MW under discussion',
+    viewToggle('pipeView', [['accounts', 'Board'], ['flow', 'Flow'], ['table', 'Table']]) +
     '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
-  if (state.pipeView === 'accounts') {
-    setContent(stageDriftCardHtml() + accountStageStats() + accountBoardHtml() +
-      '<div class="fg-hint" style="margin-top:12px">Drag a company between columns to move it along the sales ' +
-      'process. Moving it writes the matching status on the record and logs the change against the account. ' +
-      'A company appears here only once somebody has pressed <b>Work it</b> on it in Off-taker Prospects, ' +
-      'and it leaves that list the moment it does — a record is a lead or an opportunity, never both.</div>');
-    return;
-  }
-
   if (state.pipeView === 'flow') {
-    setContent(accountStageStats() + flowHtml());
+    setContent(pipelineStats() + flowHtml());
     growBars();
     return;
   }
 
-  const totalWeighted = open.reduce((s, d) => s + weightedValue(d), 0);
-  const summary =
-    '<div class="stats-grid">' +
-      statTile('pipeline', 'amber', 'Open opportunities', open.length, fmtNum(pipelineMw()) + ' MW') +
-      statTile('trending', 'blue', 'Weighted pipeline', fmtR(totalWeighted), 'across contract life') +
-      statTile('bolt', 'green', 'Signed', fmtNum(contractedMw()) + ' MW',
-        state.deals.filter(d => d.stage === 'closed').length + ' executed PPAs') +
-      statTile('clock', 'purple', 'Average tenor',
-        open.length ? Math.round(open.reduce((s, d) => s + num(d.tenor), 0) / open.length) + ' yrs' : '—',
-        'across live opportunities') +
-    '</div>';
-
   if (state.pipeView === 'table') {
-    setContent(summary + dealTableHtml() +
-      '<div class="fg-hint" style="margin-top:12px">The table reads the whole pipeline in stage order. ' +
-      'Switch back to the board to move a deal between stages by dragging it.</div>');
+    setContent(pipelineStats() + accountTableHtml() +
+      '<div class="fg-hint" style="margin-top:12px">The table reads the whole pipeline in stage order, one row ' +
+      'per company. Switch back to the board to move one between stages by dragging it.</div>');
     return;
   }
 
-  const cols = PIPELINE_STAGES.map(s => {
-    const list = state.deals.filter(d => d.stage === s.id);
-    const mw = list.reduce((a, d) => a + num(d.mw), 0);
-    const val = list.reduce((a, d) => a + weightedValue(d), 0);
-    return '<div class="kcol" data-stage="' + s.id + '" ondragover="pipeDragOver(event)" ondragleave="pipeDragLeave(event)" ondrop="pipeDrop(event)">' +
-      '<div class="kcol-head"><div class="kcol-title" title="' + esc(s.hint) + '">' + esc(s.label) + '</div>' +
-      '<div class="kcol-count">' + list.length + '</div></div>' +
-      '<div class="kcol-value">' + fmtNum(mw) + ' MW · ' + fmtR(val) + '</div>' +
-      list.map(dealCardHtml).join('') +
-      (list.length ? '' : '<div class="fg-hint" style="padding:12px 4px;text-align:center">Drop here</div>') +
-    '</div>';
-  }).join('');
+  setContent(stageDriftCardHtml() + pipelineStats() + accountBoardHtml() +
+    '<div class="fg-hint" style="margin-top:12px">Drag a company between columns to move it along the sales ' +
+    'process. Moving it writes the matching status on the record, brings its opportunities with it, and logs ' +
+    'the change against the account. Values on a card assume a ' + Math.round(CAPACITY_FACTOR * 100) +
+    '% capacity factor on the MW under discussion and are indicative only. ' +
+    'A company appears here only once somebody has pressed <b>Work it</b> on it in Off-taker Prospects, ' +
+    'and it leaves that list the moment it does — a record is a lead or an opportunity, never both.</div>');
+}
 
-  setContent(summary + '<div class="kanban">' + cols + '</div>' +
-    '<div class="fg-hint" style="margin-top:12px">Drag a card between columns to move the deal. Values assume a ' +
-    Math.round(CAPACITY_FACTOR * 100) + '% capacity factor on contracted MW and are indicative only.</div>');
+/* One stat row for the one board: the companies and the money, side by
+   side, rather than a row for each on separate tabs. */
+function pipelineStats() {
+  const accounts = pipelineAccounts();
+  const open = accounts.filter(o => sfStageFor(o) !== 'closed');
+  const won = accounts.filter(o => sfStageFor(o) === 'closed' && !sfIsClosedLost(o));
+  const lost = accounts.filter(sfIsClosedLost);
+  const live = liveDeals();
+  const weighted = live.reduce((s, d) => s + weightedValue(d), 0);
+  const bench = state.offtakers.length - accounts.length;
+  return '<div class="stats-grid">' +
+    statTile('building', 'amber', 'Accounts in process', open.length,
+      fmtNum(open.reduce((a, o) => a + num(o.annualGwh), 0)) + ' GWh a year between them') +
+    statTile('pipeline', 'amber', 'Open opportunities', live.length, fmtNum(pipelineMw()) + ' MW under discussion') +
+    statTile('trending', 'blue', 'Weighted pipeline', fmtR(weighted), 'across contract life') +
+    statTile('bolt', 'green', 'Signed', fmtNum(contractedMw()) + ' MW',
+      won.length + ' closed won' + (lost.length ? ' · ' + lost.length + ' lost' : '')) +
+    statTile('clock', 'amber', 'Stalled', accounts.filter(isStalled).length,
+      'sitting longer than the stage allows') +
+    statTile('target', 'purple', 'Leads in Prospects', bench, 'researched, not being worked', "nav('offtakers')") +
+  '</div>';
 }
 
 /* ═══ FLOW ═══════════════════════════════════════════════════════
-   The boards show position. This shows movement, in the order a sales
+   The board shows position. This shows movement, in the order a sales
    manager asks about it: how much sits at each stage, where it stops,
    and whether anything has moved lately. */
 
@@ -142,8 +149,8 @@ function flowHtml() {
     const here = accounts.filter(o => sfStageFor(o) === st.id);
     const gwh = here.reduce((a, o) => a + num(o.annualGwh), 0);
     const bar =
-      /* Opens the accounts board, where this stage is a column. It used to
-         open the company list narrowed to the stage; that list holds leads
+      /* Opens the board, where this stage is a column. It used to open
+         the company list narrowed to the stage; that list holds leads
          now, and a lead has no stage to be narrowed by. */
       '<div class="bar-row with-count clickable" title="' + esc(st.hint) +
         (gwh ? ' — ' + fmtNum(gwh) + ' GWh a year at this stage. ' : '. ') + 'Open the board" ' +
@@ -249,50 +256,46 @@ function flowHtml() {
   return flowCard + '<div class="grid-2" style="margin-top:14px">' + stallCard + moveCard + '</div>';
 }
 
-/* Same deals as the board, ordered by stage then by size — the reading a
-   manager wants when the question is "what is actually in there". */
-function dealTableHtml() {
-  const order = PIPELINE_STAGES.map(s => s.id);
-  const list = state.deals.slice().sort((a, b) =>
-    order.indexOf(a.stage) - order.indexOf(b.stage) || num(b.mw) - num(a.mw));
+/* ═══ THE TABLE ═════════════════════════════════════════════════
+   The same companies as the board, in stage order and then by load —
+   the reading a manager wants when the question is "what is actually
+   in there". Each row carries what its opportunities add up to. */
+function pipelineOrdered() {
+  return pipelineAccounts().slice().sort((a, b) =>
+    sfStageIndex(sfStageFor(a)) - sfStageIndex(sfStageFor(b)) || num(b.annualGwh) - num(a.annualGwh));
+}
 
-  if (!list.length) {
-    return '<div class="empty"><div class="ei">' + icon('pipeline', 30) + '</div>' +
-      '<h3>No opportunities yet</h3><p>Open one from a company page, or add it here.</p></div>';
-  }
+function accountTableHtml() {
+  const list = pipelineOrdered();
+  if (!list.length) return accountBoardHtml();
 
   return '<div class="table-wrap"><table><thead><tr>' +
-    '<th>Account</th><th>Site</th><th>Stage</th><th class="num">MW</th><th class="num">R/kWh</th>' +
-    '<th class="num">Tenor</th><th class="num">Likely</th><th class="num">Weighted</th><th>Close</th><th>Actions</th>' +
+    '<th>Account</th><th>Sector</th><th>Stage</th><th class="num">GWh/yr</th>' +
+    '<th class="num">Open MW</th><th class="num">Weighted</th><th class="num">Fit</th><th>In stage</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
-    list.map(d => {
-      const acc = dealAccount(d);
-      const p = getProject(d.projectId);
-      const stage = PIPELINE_STAGES.find(s => s.id === d.stage);
+    list.map(o => {
+      const deals = dealsFor(o.id);
+      const open = deals.filter(isLiveDeal);
+      const mw = open.reduce((a, d) => a + num(d.mw), 0);
+      const weighted = open.reduce((a, d) => a + weightedValue(d), 0);
       return '<tr>' +
-        '<td>' + (acc.id
-          ? '<span class="ext-link" style="cursor:pointer" onclick="nav(' + jsStr(acc.view) + ',{id:' + jsStr(acc.id) + '})">' +
-            esc(acc.name) + '</span>'
-          : '<span style="color:var(--muted)">Unknown account</span>') + '</td>' +
-        '<td>' + esc(p.town || p.name || '—') + '</td>' +
-        '<td><span class="badge ' + (d.stage === 'closed' ? 'b-contracted' : 'b-prospect') + '">' +
-          esc(stage ? stage.label : d.stage) + '</span></td>' +
-        '<td class="num">' + fmtNum(d.mw) + '</td>' +
-        '<td class="num">' + num(d.tariff).toFixed(2) + '</td>' +
-        '<td class="num">' + num(d.tenor) + ' yr</td>' +
-        '<td class="num">' + num(d.probability) + '%</td>' +
-        '<td class="num" style="font-weight:800">' + fmtR(weightedValue(d)) + '</td>' +
-        '<td>' + (d.closeDate ? esc(d.closeDate) : '<span style="color:var(--muted)">—</span>') + '</td>' +
-        '<td style="white-space:nowrap">' +
-          '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditDeal(\'' + d.id + '\')">' + icon('edit', 11) + '</button>' +
-        '</td></tr>';
+        '<td><span class="ext-link" style="cursor:pointer" onclick="nav(' + jsStr(accountView(o.id)) +
+          ',{id:' + jsStr(o.id) + '})">' + esc(o.short || o.name) + '</span></td>' +
+        '<td>' + esc(sectorName(o.sector)) + '</td>' +
+        '<td>' + sfStageBadge(o) + '</td>' +
+        '<td class="num">' + (isUnworked(o) ? '<span style="color:var(--muted)">—</span>' : fmtNum(o.annualGwh)) + '</td>' +
+        '<td class="num">' + (open.length ? fmtNum(mw) : '<span style="color:var(--muted)">—</span>') + '</td>' +
+        '<td class="num" style="font-weight:800">' + (open.length ? fmtR(weighted) : '<span style="color:var(--muted)">—</span>') + '</td>' +
+        '<td class="num">' + (isUnworked(o) ? '<span style="color:var(--muted)">—</span>' : fitScore(o)) + '</td>' +
+        '<td>' + (sfStageFor(o) === 'closed'
+          ? '<span style="font-size:11px">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>'
+          : dwellChipHtml(o)) + '</td>' +
+        '<td style="white-space:nowrap">' + opportunityButtonsHtml(o, deals) + '</td>' +
+      '</tr>';
     }).join('') + '</tbody></table></div>';
 }
 
-/* ═══ THE SALES PROCESS, BY ACCOUNT ═══════════════════════
-   The deal board answers "what is in the pipeline"; this answers "where is
-   each company in the process". Same records, coarser question — and the
-   one a sales manager asks first. */
+/* ═══ THE BOARD ═════════════════════════════════════════════════ */
 /* A company sitting at a different stage from its own opportunities.
    Nothing in the app can produce this any more, so when it shows up the
    data came from somewhere else and the board has been quietly lying
@@ -308,7 +311,7 @@ function stageDriftCardHtml() {
       '<div class="card-title">' + icon('alert', 13) + ' ' +
         (drift.length === 1 ? 'One account is' : drift.length + ' accounts are') +
         ' out of step with their opportunities</div>' +
-      '<div class="card-sub">The sales path on the company page says one thing and the deal board ' +
+      '<div class="card-sub">The sales path on the company page says one thing and its opportunities ' +
         'another. Nothing inside the CRM writes them apart, so this came in from an import or a ' +
         'direct edit. Moving an account here sets it to the stage its opportunities are already at.' +
       '</div></div></div>' +
@@ -328,23 +331,6 @@ function stageDriftCardHtml() {
           'onclick="reconcileAccountStage(' + jsStr(d.rec.id) + ')">Move to ' +
           esc((sfStageOf(d.fromDeals) || {}).label || d.fromDeals) + '</button>' +
       '</div>').join('') +
-  '</div>';
-}
-
-function accountStageStats() {
-  const accounts = pipelineAccounts();
-  const open = accounts.filter(o => sfStageFor(o) !== 'closed');
-  const won = accounts.filter(o => sfStageFor(o) === 'closed' && !sfIsClosedLost(o));
-  const lost = accounts.filter(sfIsClosedLost);
-  const bench = state.offtakers.length - accounts.length;
-  return '<div class="stats-grid">' +
-    statTile('building', 'amber', 'Accounts in process', open.length,
-      fmtNum(open.reduce((a, o) => a + num(o.annualGwh), 0)) + ' GWh a year between them') +
-    statTile('check', 'green', 'Closed won', won.length, 'contracted') +
-    statTile('alert', 'blue', 'Closed lost', lost.length, 'out of the process') +
-    statTile('clock', 'amber', 'Stalled', accounts.filter(isStalled).length,
-      'sitting longer than the stage allows') +
-    statTile('target', 'purple', 'Leads in Prospects', bench, 'researched, not being worked', "nav('offtakers')") +
   '</div>';
 }
 
@@ -373,12 +359,15 @@ function accountBoardHtml() {
     const list = shown.filter(o => sfStageFor(o) === st.id)
       .sort((a, b) => fitScore(b) - fitScore(a));
     const gwh = list.reduce((a, o) => a + num(o.annualGwh), 0);
+    const open = list.flatMap(o => dealsFor(o.id).filter(isLiveDeal));
+    const mw = open.reduce((a, d) => a + num(d.mw), 0);
     const stuck = list.filter(isStalled).length;
     return '<div class="kcol" data-sfstage="' + st.id + '" ondragover="pipeDragOver(event)" ' +
       'ondragleave="pipeDragLeave(event)" ondrop="sfDrop(event)">' +
       '<div class="kcol-head"><div class="kcol-title" title="' + esc(st.hint) + '">' + esc(st.label) + '</div>' +
       '<div class="kcol-count">' + list.length + '</div></div>' +
       '<div class="kcol-value">' + fmtNum(gwh) + ' GWh a year' +
+        (mw ? ' · ' + fmtNum(mw) + ' MW open' : '') +
         (stuck ? ' <span style="color:var(--warn)">· ' + stuck + ' stalled</span>' : '') + '</div>' +
       list.map(accountCardHtml).join('') +
       (list.length ? '' : '<div class="fg-hint" style="padding:12px 4px;text-align:center">Drop here</div>') +
@@ -387,23 +376,52 @@ function accountBoardHtml() {
   return filterBar + '<div class="kanban">' + cols + '</div>';
 }
 
+/* The small buttons on a card or row. Editing an opportunity's own
+   numbers is the rarer job, so it is a button rather than the whole
+   card; with more than one open the company page lists them. Taking
+   a company off the board goes back to Off-taker Prospects. */
+function opportunityButtonsHtml(o, deals) {
+  const one = deals.length === 1 ? deals[0] : null;
+  return (one
+    ? '<button class="pc-edit" data-admin-only title="Edit this opportunity" ' +
+      'onclick="event.stopPropagation();openEditDeal(&#39;' + one.id + '&#39;)">' + icon('edit', 11) + '</button>'
+    : '') +
+    '<button class="pc-edit pc-remove" data-admin-only ' +
+      'title="Take ' + esc(o.short || o.name) + ' off the board and back to Off-taker Prospects" ' +
+      'onclick="event.stopPropagation();removeFromPipeline(' + jsStr(o.id) + ')">' + icon('logout', 11) + '</button>';
+}
+
+/* Clicking a card opens the company, not a deal form. The question a
+   rep has in front of the board is "where is this one and what do I do
+   next", and that is answered on the profile — which is why the sales
+   path is the first thing on it. */
 function accountCardHtml(o) {
   const deals = dealsFor(o.id);
-  const mw = deals.reduce((a, d) => a + num(d.mw), 0);
+  const open = deals.filter(isLiveDeal);
+  const signed = deals.filter(d => d.stage === 'closed');
+  const mw = open.reduce((a, d) => a + num(d.mw), 0);
+  const annual = open.reduce((a, d) => a + dealAnnualValue(d), 0);
   const fit = fitScore(o);
+  const money = open.length
+    ? fmtNum(mw) + ' MW open · ' + fmtR(annual) + '/yr'
+    : signed.length
+      ? fmtNum(signed.reduce((a, d) => a + num(d.mw), 0)) + ' MW signed'
+      : 'no opportunity';
   return '<div class="pipeline-card" draggable="true" data-id="' + esc(o.id) + '" ' +
     'ondragstart="sfDragStart(event)" ondragend="pipeDragEnd(event)" ' +
     'onclick="nav(' + jsStr(accountView(o.id)) + ',{id:' + jsStr(o.id) + '})">' +
-    '<div class="pc-name">' + esc(o.short || o.name) + '</div>' +
+    '<div class="pc-name">' + esc(o.short || o.name) + opportunityButtonsHtml(o, deals) + '</div>' +
     '<div class="pc-sub">' + esc(sectorName(o.sector)) + (o.city ? ' · ' + esc(o.city) : '') + '</div>' +
     /* An account can be worked before anybody has established its load, so
        say so rather than showing a confident nought. */
     '<div class="pc-row"><span>' + (isUnworked(o) ? 'load not established' : fmtNum(o.annualGwh) + ' GWh/yr') + '</span>' +
-      '<span class="pc-val">' + (deals.length ? fmtNum(mw) + ' MW open' : 'no opportunity') + '</span></div>' +
+      '<span class="pc-val">' + money + '</span></div>' +
     (isUnworked(o) ? '' :
       '<div class="fit-bar" style="margin-top:8px"><span style="background:' + fitColor(fit) + ';width:' + fit + '%"></span></div>') +
     '<div class="pc-row"><span style="font-size:9.5px;letter-spacing:.4px;text-transform:uppercase">' +
-      (isUnworked(o) ? 'not scored' : 'fit ' + fit + '/100') + '</span>' +
+      (isUnworked(o) ? 'not scored' : 'fit ' + fit + '/100') +
+      (open.length ? ' · ' + Math.round(open.reduce((a, d) => a + num(d.probability), 0) / open.length) + '% likely' : '') +
+      '</span>' +
       /* A closed account cannot stall and its dwell says nothing useful;
          which way it closed does. */
       (sfStageFor(o) === 'closed'
@@ -414,6 +432,9 @@ function accountCardHtml(o) {
 
 let _dragAccountId = null;
 function sfDragStart(e) {
+  /* Read-only users cannot move accounts; the server would refuse the
+     write anyway, so stop it here rather than showing a card that snaps
+     back. */
   if (state.role !== 'admin') { e.preventDefault(); return; }
   _dragAccountId = e.currentTarget.dataset.id;
   e.currentTarget.classList.add('dragging');
@@ -427,79 +448,6 @@ function sfDrop(e) {
   if (!_dragAccountId || !stage) return;
   setSfStage(_dragAccountId, stage);
 }
-
-/* Clicking a card opens the company, not the deal form. The question a
-   rep has in front of the board is "where is this one and what do I do
-   next", and that is answered on the profile — which is why the sales
-   path is the first thing on it. Editing the opportunity's own numbers is
-   the rarer job, so it gets the small button rather than the whole card. */
-function dealCardHtml(d) {
-  const acc = dealAccount(d);
-  const p = getProject(d.projectId);
-  /* Only an account with a record of its own can be taken back off the
-     board. A deal filed against a municipality is assembled from the
-     reference data and has nothing to write the move to. */
-  const removable = acc.id && state.offtakers.some(o => o.id === acc.id);
-  return '<div class="pipeline-card" draggable="true" data-id="' + d.id + '" ondragstart="pipeDragStart(event)" ondragend="pipeDragEnd(event)" onclick="' +
-    /* jsStr already escapes for an attribute; escaping it again turns the
-       quotes into &amp;quot; and the handler dies silently on click. */
-    (acc.id ? 'nav(' + jsStr(acc.view) + ',{id:' + jsStr(acc.id) + '})' : 'openEditDeal(&#39;' + d.id + '&#39;)') + '">' +
-    '<div class="pc-name">' + esc(acc.name) +
-      '<button class="pc-edit" data-admin-only title="Edit this opportunity" ' +
-      'onclick="event.stopPropagation();openEditDeal(&#39;' + d.id + '&#39;)">' + icon('edit', 11) + '</button>' +
-      (removable
-        ? '<button class="pc-edit pc-remove" data-admin-only ' +
-          'title="Take ' + esc(acc.name) + ' off the board and back to Off-taker Prospects" ' +
-          'onclick="event.stopPropagation();removeFromPipeline(' + jsStr(acc.id) + ')">' + icon('logout', 11) + '</button>'
-        : '') +
-    '</div>' +
-    '<div class="pc-sub">' + esc(p.town || p.name || 'No site assigned') + ' · ' + num(d.tenor) + ' yr · R' + num(d.tariff).toFixed(2) + '/kWh</div>' +
-    '<div class="pc-row"><span>' + fmtNum(d.mw) + ' MW</span><span class="pc-val">' + fmtR(dealAnnualValue(d)) + '/yr</span></div>' +
-    '<div class="fit-bar" style="margin-top:8px"><span data-w="' + num(d.probability) + '" style="background:var(--accent);width:' + num(d.probability) + '%"></span></div>' +
-    '<div class="pc-row"><span style="font-size:9.5px;letter-spacing:.4px;text-transform:uppercase">' + num(d.probability) + '% likely</span>' +
-    (d.closeDate ? '<span style="font-size:10px">' + esc(d.closeDate) + '</span>' : '') + '</div>' +
-  '</div>';
-}
-
-let _dragDealId = null;
-function pipeDragStart(e) {
-  /* Read-only users cannot move deals; the server would refuse the write
-     anyway, so stop it here rather than showing a card that snaps back. */
-  if (state.role !== 'admin') { e.preventDefault(); return; }
-  _dragDealId = e.currentTarget.dataset.id;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-  try { e.dataTransfer.setData('text/plain', _dragDealId); } catch (err) {}
-}
 function pipeDragEnd(e) { e.currentTarget.classList.remove('dragging'); }
 function pipeDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drop-target'); }
 function pipeDragLeave(e) { e.currentTarget.classList.remove('drop-target'); }
-function pipeDrop(e) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drop-target');
-  const stage = e.currentTarget.dataset.stage;
-  const d = state.deals.find(x => x.id === _dragDealId);
-  if (!d || d.stage === stage) return;
-  const from = PIPELINE_STAGES.find(s => s.id === d.stage);
-  d.stage = stage;
-  /* Keep probability in step with the stage so the weighted number stays
-     honest without the rep having to remember to update it. */
-  d.probability = stageProbability(stage) ?? d.probability;
-  const acc = dealAccount(d);
-  const to = (PIPELINE_STAGES.find(s => s.id === stage) || {}).label;
-  /* The account follows its furthest-along opportunity, so the sales path
-     on the company page never contradicts the board. */
-  const accountMovedTo = applyAccountStageFromDeals(d.offtakerId);
-  const entry = {
-    id: uid('int'), offtakerId: d.offtakerId,
-    date: todayISO(), type: 'stage change',
-    summary: (acc.name || 'Deal') + ' moved from ' + (from ? from.label : d.stage) + ' to ' + to + '.' +
-      (accountMovedTo ? ' The account moved to ' + accountMovedTo + ' with it.' : ''),
-  };
-  state.interactions.push(entry);
-  pushDeal(d);
-  pushInteraction(entry);
-  save();
-  renderPipeline();
-  toast('Moved to ' + to + (accountMovedTo ? ' — account now ' + accountMovedTo : ''));
-}
