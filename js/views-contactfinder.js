@@ -142,11 +142,12 @@ function finderAccountOf(id) {
 function renderContactFinder() {
   if (!state.contactRuns) { loadFinderCache(); refreshFinderFromServer(false); }
 
-  /* Everything not discarded is reviewed here. The chip row that used
-     to narrow this list went with the chips; a find still waiting from
-     an earlier run is still a find waiting. */
-  const live = state.foundContacts.filter(f => f.status !== 'discarded');
-  const pending = live.filter(f => f.status === 'pending');
+  /* Only what still needs a decision is listed here. An accepted find
+     is a contact now and lives on the Contacts page; leaving it in this
+     table as well made the review queue read as if nothing ever moved.
+     A find still waiting from an earlier run is still a find waiting. */
+  const pending = state.foundContacts.filter(f => f.status === 'pending');
+  const accepted = state.foundContacts.filter(f => f.status === 'approved').length;
   const noEmail = pending.filter(f => !findHasEmail(f)).length;
   const scoped = finderScopeOfftakers();
 
@@ -163,7 +164,9 @@ function renderContactFinder() {
     : 'Nothing pending';
 
   setPage('Contact finder',
-    'Contacts found by the agent, awaiting review — accept to add to the CRM, discard to drop',
+    pending.length + ' awaiting review' +
+      (accepted ? ' · ' + accepted + ' accepted and filed under Contacts' : '') +
+      ' — accept to add to the CRM, discard to drop',
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="queueContactRun()"' +
       (scoped.length && state.cfRoles.length ? '' : ' disabled') + '>' +
       icon('search', 14) + ' ' + esc(findLabel) + '</button>' +
@@ -184,7 +187,7 @@ function renderContactFinder() {
     finderRoleBar(scoped) +
     finderNoticeHtml() +
     finderRunStrip() +
-    (live.length ? finderTableHtml(live) : finderEmptyHtml()));
+    (pending.length ? finderTableHtml(pending) : finderEmptyHtml(accepted)));
 }
 
 /* The target line. One fixed chip, because there is one target; it
@@ -305,9 +308,13 @@ function deleteContactRun(id) {
 /* ═══════════════════════════════════════════════════════════════
    THE REVIEW TABLE — everything a rep needs to judge a find
    ═══════════════════════════════════════════════════════════════ */
-function finderEmptyHtml() {
+function finderEmptyHtml(accepted) {
   return '<div class="empty"><div class="ei">' + icon('contacts', 30) + '</div>' +
-    '<h3>No pending contacts</h3>' +
+    '<h3>Nothing awaiting review</h3>' +
+    (accepted
+      ? '<p>' + accepted + ' find' + (accepted === 1 ? ' has' : 's have') + ' been accepted and filed under ' +
+        '<span class="ext-link" style="cursor:pointer" onclick="nav(&#39;contacts&#39;)">Contacts</span>.</p>'
+      : '') +
     '<p>Pick the roles you want and click "Find mining contacts now" to queue a run. ' +
     'People the agent finds land here for review before they reach the contact book.</p></div>';
 }
