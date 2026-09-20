@@ -251,7 +251,7 @@ function checkFind(f) {
      no contact at that mine at all. What is never enough is a name on
      its own, and an email that is an office inbox (checked below). */
   if (!f.email && !f.phone) problems.push('a find with neither email nor phone cannot be contacted; skip it');
-  else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) problems.push('email does not look like an address');
+  else if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) problems.push('email does not look like an address');
   /* A shared inbox belongs to no named person, and this table is about
      named people. The reviewer cannot tell from the row, so it is
      refused here. The list grew after an agent filed a CEO under the
