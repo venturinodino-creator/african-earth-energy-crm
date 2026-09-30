@@ -1,0 +1,8 @@
+province,mine,owner,commodity,type,status,district
+Mpumalanga,Mafube Colliery,Thungela Resources / Exxaro JV,Coal,Open-pit,Operating,Middelburg
+Mpumalanga,New Largo Colliery,Seriti Resources,Coal,Open-pit,Operating,Emalahleni
+Mpumalanga,Greenside Colliery,Thungela Resources,Coal,Underground,Operating,Emalahleni
+Mpumalanga,Isibonelo Colliery,Thungela Resources,Coal,Open-pit,Operating,Secunda
+Gauteng,Kusasalethu Gold Mine,Harmony Gold,Gold,Underground,Operating,Carletonville
+Limpopo,Sefateng Chrome Mine,Sefateng Chrome Mining,Chrome,Open-pit,Operating,Steelpoort
+Northern Cape,Kimberley Mine,Ekapa Minerals,Diamonds,Underground & Tailings,Operating,Kimberley

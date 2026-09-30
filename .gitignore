@@ -63,3 +63,4 @@ npm-debug.log*
 .claude-flow/
 .swarm/
 memory/
+!research/*.csv
