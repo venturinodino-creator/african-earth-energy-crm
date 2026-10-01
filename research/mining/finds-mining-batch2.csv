@@ -1,0 +1,43 @@
+first,last,title,department,company,email,phone,linkedin,notes
+Kobus,Verster,Chief Executive Officer,,ArcelorMittal South Africa,,,,CEO since Feb 2018. AMSA's own site refused automated fetches - verify manually before outreach. · seat: exec · https://cfo.co.za/articles/arcelormittal-south-africa-appoints-kobus-verster-as-ceo/ · confidence 0.85
+Gavin,Griffiths,Chief Financial Officer and Executive Director,,ArcelorMittal South Africa,,,,"CFO since 1 April 2024, via Engineering News. · seat: finance · https://www.engineeringnews.co.za/article/arcelormittal-south-africa-appoints-gavin-griffiths-cfo-2024-03-22 · confidence 0.9"
+Johannes Christiaan,Van Coller,Executive Director and Chief Operating Officer,,Columbus Stainless,,,,Only named operational exec; at this size the COO likely owns the power decision. · seat: ops · https://columbus.co.za/columbus-stainless/board-of-directors.html · confidence 0.9
+Mark,Gounder,Chief Executive Officer,,Hulamin,,,, · seat: exec · https://www.hulamin.com/about/corporate/group-executives · confidence 0.9
+Pravashni,Nirghin,Chief Financial Officer,,Hulamin,,,, · seat: finance · https://www.hulamin.com/about/corporate/group-executives · confidence 0.9
+Tom,du Plessis,Chief Operational Officer,,Hulamin,,,, · seat: ops · https://www.hulamin.com/about/corporate/group-executives · confidence 0.9
+Marlon,Reddy,Executive - Engineering,,Hulamin,,,,"Aluminium rolling is electricity-intensive; closest technical seat, no distinct energy title listed. · seat: eng · https://www.hulamin.com/about/corporate/group-executives · confidence 0.85"
+Billy,Mawasha,Managing Director,,Richards Bay Minerals,,,,RBM is one of SA's largest single power consumers and actively signing PPAs (140MW wind). · seat: exec · https://www.riotinto.com/en/news/releases/RBM-new-managing-director · confidence 0.9
+Wilhemina,Ngcobo,Chief Operating Officer,,Richards Bay Minerals,,,,Previously Acting MD. · seat: ops · https://www.riotinto.com/en/news/releases/RBM-new-managing-director · confidence 0.85
+Dean,Subramanian,Chief Executive Officer,,Rand Refinery,,+27 (0)11 418 9000,,Appointed Jan 2026. Phone is the published switchboard. · seat: exec · https://www.randrefinery.com/about-us/ · confidence 0.9
+Terance,Nkosi,"Chief Technical, Governance and Sustainability Officer",,Rand Refinery,,,,Chemical engineer; appointed March 2026. · seat: sustain · https://www.randrefinery.com/about-us/ · confidence 0.9
+Zahir,Mohamed,Acting Chief Financial Officer,,Rand Refinery,,,,"Acting, appointed Jan 2026. · seat: finance · https://www.randrefinery.com/about-us/ · confidence 0.85"
+Ufikile,Khumalo,President and Chief Executive Officer,,Foskor,,,,foskor.co.za blocked automated fetches - needs a human check before contact. · seat: exec · https://www.foskor.co.za/about-us/board-committees/ · confidence 0.75
+Jubilant,Speckman,Chief Financial Officer and Executive Director,,Foskor,,,,CFO since Nov 2022 per cfo.co.za; not confirmable on foskor.co.za due to fetch blocks - verify. · seat: finance · https://cfo.co.za/profiles/jubilant-speckman-wescoal/ · confidence 0.65
+Matias,Cardarelli,Chief Executive Officer,,PPC,,,,Appointed Dec 2023. · seat: exec · https://www.ppc.africa/about-us/our-leadership/ · confidence 0.9
+Ernesto,Acosta,Chief Operations Officer,,PPC,,,,Cement kilns are major power consumers; no separate energy exec listed. · seat: ops · https://www.ppc.africa/about-us/our-leadership/ · confidence 0.9
+Paulo,Marques,Chief Strategy Officer (Acting Chief Financial Officer),,PPC,,,,Acting CFO until Veliswa Rozani starts 1 Oct 2026. · seat: finance · https://www.moneyweb.co.za/mny_sens/ppc-limited-appointment-of-chief-financial-officer-and-acting-chief-financial-officer-for-an-interim-period/ · confidence 0.75
+Eric,Diack,Executive Chairman and Chief Executive Officer,,AfriSam,,,, · seat: exec · https://www.afrisam.co.za/about-us/executive-management-team · confidence 0.9
+Leon,Serfontein,Chief Financial Officer,,AfriSam,,,, · seat: finance · https://www.afrisam.co.za/about-us/executive-management-team · confidence 0.9
+Vishal,Aniruth,Cementitious Executive,,AfriSam,,,,"Oversees cement production, the most energy-intensive division. · seat: ops · https://www.afrisam.co.za/about-us/executive-management-team · confidence 0.85"
+Andries,van Heerden,Chief Executive Officer,,Afrimat,,,, · seat: exec · https://www.afrimat.co.za/about-us/directorate/ · confidence 0.9
+Pieter,de Wit,Chief Financial Officer,,Afrimat,,,, · seat: finance · https://www.afrimat.co.za/about-us/directorate/ · confidence 0.9
+Collin,Ramukhubathi,Executive Director; Executive Head: HR and Sustainability,,Afrimat,,,, · seat: sustain · https://www.afrimat.co.za/about-us/directorate/ · confidence 0.85
+Muthanyi Robinson,Ramaite,Group Chief Executive Officer,,Salungano,,,,Salungano Group (formerly Wescoal). · seat: exec · https://salunganogroup.com/about-us/ · confidence 0.85
+Jannie,Muller,Chief Financial Officer,,Salungano,,,, · seat: finance · https://salunganogroup.com/about-us/ · confidence 0.85
+Freddy,Ndou,Executive Head: Corporate Services,,Salungano,,,,"Not an energy title, but 25+ years in energy incl. a Divisional Executive role at Eskom - the most energy-literate named exec found; verify current remit. · seat: energy · https://salunganogroup.com/about-us/ · confidence 0.6"
+Vuslat,Bayoglu,Managing Director,,Menar,,,,"Private holding co (Canyon Coal, Kangra, ZAC); site lists only 3 board members. · seat: exec · https://www.menar.com/board · confidence 0.85"
+Leon,Coetzer,Chief Executive Officer,,Jubilee Metals Group,,,,"Chemical engineer, ex-Anglo, ran platinum concentrators and smelters. · seat: exec · https://jubileemetalsgroup.com/executive-strategic-committee/ · confidence 0.9"
+Riaan,Smit,Chief Financial Officer,,Jubilee Metals Group,,,, · seat: finance · https://jubileemetalsgroup.com/executive-strategic-committee/ · confidence 0.9
+Jaco,Prinsloo,Chief Executive Officer,,Sylvania Platinum,,,,CEO since March 2020. · seat: exec · https://www.sylvaniaplatinum.com/about-us/board-of-directors · confidence 0.9
+Ronel,Bosman,Chief Financial Officer,,Sylvania Platinum,,,,Appointed 1 Dec 2025. · seat: finance · https://www.sylvaniaplatinum.com/about-us/senior-management · confidence 0.9
+Christiaan,de Wet,Executive Officer: Operations,,Sylvania Platinum,,,,"Chemical engineer, ex-Anglo Platinum. · seat: ops · https://www.sylvaniaplatinum.com/about-us/senior-management · confidence 0.85"
+Craig,Coltman,Chief Executive Officer,,Bushveld Minerals,,,,Since July 2023; ex-De Beers CFO. · seat: exec · https://www.bushveldminerals.com/about/leadership/ · confidence 0.9
+Robbie,Taylor,Interim Chief Financial Officer,,Bushveld Minerals,,,,Interim. · seat: finance · https://www.bushveldminerals.com/about/leadership/ · confidence 0.85
+Sibu,Majozi,Group Executive: Corporate Affairs & Sustainability,,Bushveld Minerals,,,,Group also owns Bushveld Energy (battery storage / vanadium electrolyte). · seat: sustain · https://www.bushveldminerals.com/about/leadership/ · confidence 0.85
+Tony,Lennox,Managing Director and Chief Executive Officer,,Orion Minerals,,,,Took over 3 April 2025. · seat: exec · https://www.orionminerals.com.au/about-us/our-team/ · confidence 0.85
+Peet,van Coller,Chief Financial Officer,,Orion Minerals,,,, · seat: finance · https://www.orionminerals.com.au/about-us/our-team/ · confidence 0.85
+Marcus,Birch,Executive: Sustainability & Business Support,,Orion Minerals,,,,Prieska mine still ramping up; no dedicated energy title yet. · seat: sustain · https://www.orionminerals.com.au/about-us/our-team/ · confidence 0.8
+Cobus,Loots,Chief Executive Officer,,Pan African Resources,,,, · seat: exec · https://www.panafricanresources.com/team/ · confidence 0.9
+Marileen,Kok,Financial Director,,Pan African Resources,,,, · seat: finance · https://www.panafricanresources.com/team/ · confidence 0.85
+Stefano,Marani,Chief Executive Officer,,Renergen,,,,Site blocked automated fetch; corroborated via ASX filings. Lower PPA priority (gas producer). Verify before contact. · seat: exec · https://www.renergen.co.za/board-of-directors/ · confidence 0.75
+Nick,Mitchell,Chief Operating Officer,,Renergen,,,,Co-founder; same sourcing caveat. · seat: ops · https://www.renergen.co.za/board-of-directors/ · confidence 0.7

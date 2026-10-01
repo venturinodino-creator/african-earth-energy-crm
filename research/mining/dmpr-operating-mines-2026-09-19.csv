@@ -1,0 +1,90 @@
+province,mine,owner,commodity,type,status,district
+Eastern Cape,Pondoland Heavy Mineral Sands Project,Transworld Energy & Resources,"Heavy Mineral Sands (Ilmenite, Rutile, Zircon)",Open-pit,Operating,OR Tambo
+Eastern Cape,Glendore Sand Mine,Glendore Sand & Stone,Silica Sand,Surface,Operating,Nelson Mandela Bay
+Eastern Cape,Coega Aggregate Quarry,WG Wearne,Aggregate,Quarry,Operating,Nelson Mandela Bay
+Eastern Cape,Paterson Limestone Mine,Lafarge,Limestone,Open-pit,Operating,Sundays River Valley
+Eastern Cape,Addo Clay Mine,Algoa Brick,Clay,Open-pit,Operating,Sundays River Valley
+Eastern Cape,Bluewater Bay Quarry,Blurock Quarries,Aggregate,Quarry,Operating,Nelson Mandela Bay
+Eastern Cape,Cradock Lime Works,Cradock Lime Company,Limestone / Lime,Processing Plant,Operating,Chris Hani
+Eastern Cape,Port Alfred Silica Mine,Silica Quartz (Pty) Ltd,Silica Sand,Open-pit,Operating,Sarah Baartman
+Eastern Cape,Uitenhage Aggregate Quarry,Quinmar Mining,Aggregate,Quarry,Operating,Nelson Mandela Bay
+Eastern Cape,Queenstown Sand Mine,Independent Quarries,Sand,Surface,Operating,Chris Hani
+Free State,Beatrix Gold Mine,Sibanye-Stillwater,Gold,Underground,Operating,Lejweleputswa
+Free State,Tshepong Operations,Harmony Gold,Gold,Underground,Operating,Matjhabeng
+Free State,Bambanani Mine,Harmony Gold,Gold,Underground,Operating,Matjhabeng
+Free State,Target Mine,Harmony Gold,Gold,Underground,Operating,Matjhabeng
+Free State,Kopanang Mine,Village Main Reef,Gold,Underground,Operating,Nala
+Free State,New Vaal Colliery,Seriti Resources,Coal,Open-pit,Operating,Fezile Dabi
+Free State,New Denmark Colliery,Seriti Resources,Coal,Underground,Operating,Gert Sibande
+Free State,Koffiefontein Diamond Mine,Petra Diamonds,Diamonds,Underground,Operating,Xhariep
+Free State,Ventersburg Industrial Clay Mine,Clay Industries SA,Industrial Clay,Surface,Operating,Matjhabeng
+Free State,Bloemfontein Sand Mine,Central Sandworks,Sand,Surface,Operating,Mangaung
+Gauteng,Mponeng Gold Mine,Harmony Gold,Gold,Underground,Operating,Merafong
+Gauteng,Moab Khotsong Mine,Harmony Gold,"Gold, Uranium",Underground,Operating,Carletonville
+Gauteng,Driefontein Gold Mine,Sibanye-Stillwater,Gold,Underground,Operating,Randfontein
+Gauteng,Kloof Gold Mine,Sibanye-Stillwater,Gold,Underground,Operating,Westonaria
+Gauteng,Modder East Mine,Gold One Group,Gold,Underground,Operating,Springs
+Gauteng,South Deep Gold Mine,Gold Fields,Gold,Underground,Operating,Westonaria
+Gauteng,Cullinan Diamond Mine,Petra Diamonds,Diamonds,Underground,Operating,Tshwane
+Gauteng,Elandsfontein Chrome Mine,Northam Platinum,Chromite / PGM,Underground,Operating,Ekurhuleni
+Gauteng,Ferndale Coal Plant,Canyon Coal,Coal,Processing Plant,Operating,Johannesburg
+Gauteng,Exxaro Ferroalloys Plant,Exxaro,Industrial Minerals,Processing Plant,Operating,Tshwane
+KwaZulu Natal,Somkhele Anthracite Mine,Tendele Coal Mining,Coal (Anthracite),Open-pit,Operating,uMkhanyakude
+KwaZulu Natal,Foskor Plant – Richards Bay,Foskor,Phosphate / Sulphuric Acid,Processing Plant,Operating,King Cetshwayo
+KwaZulu Natal,Richards Bay Minerals (RBM),Rio Tinto & KZN Sands,"Titanium, Zircon, Ilmenite",Surface / Mineral Sands,Operating,King Cetshwayo
+KwaZulu Natal,Zululand Anthracite Colliery (ZAC),Menar,Coal (Anthracite),Underground,Operating,uMkhanyakude
+KwaZulu Natal,Hluhluwe Limestone Quarry,Various Local Operators,Limestone,Open-pit,Operating,uMkhanyakude
+KwaZulu Natal,Port Shepstone Quarry,NPC / Cimpor,Aggregates / Quarry,Surface,Operating,Ugu District
+KwaZulu Natal,Klipriver Coal Operations,Ikwezi Mining,Coal,Open-pit,Operating,Amajuba
+KwaZulu Natal,Ladysmith Quarry,AfriSam,Aggregates,Surface,Operating,uThukela
+KwaZulu Natal,Emoyeni Chrome Project,Local Chrome Operators,Chrome,Surface / Small-scale,Operating,King Cetshwayo
+Limpopo,Mogalakwena Mine,Anglo American Platinum,Platinum Group Metals (PGM),Open-pit,Operating,Mokopane
+Limpopo,Marula Platinum Mine,Impala Platinum (Implats),PGM,Underground,Operating,Burgersfort
+Limpopo,Modikwa Platinum Mine,African Rainbow Minerals / Anglo Platinum JV,PGM,Underground,Operating,Steelpoort
+Limpopo,Venetia Diamond Mine,De Beers,Diamonds,Open-pit (Transitioning to Underground),Operating,Musina
+Limpopo,Two Rivers Platinum Mine,ARM / Implats JV,PGM,Underground,Operating,Lydenburg / Steelpoort
+Limpopo,Palabora Copper Mine,Palabora Mining Company (Rio Tinto formerly),"Copper, Vermiculite",Underground,Operating,Phalaborwa
+Limpopo,Thabazimbi Iron Ore Mine,ArcelorMittal SA,Iron Ore,Surface,Operating,Thabazimbi
+Limpopo,Samancor Eastern Chrome Mines,Samancor,Chrome,Underground & Surface,Operating,Steelpoort Region
+Limpopo,Vametco Vanadium Mine,Bushveld Minerals,Vanadium,Open-pit & Processing,Operating,Bela-Bela
+Limpopo,Foskor Mine – Phalaborwa,Foskor,Phosphate,Open-pit,Operating,Phalaborwa
+Mpumalanga,Grootegeluk Coal Mine,Exxaro,Coal,Open-pit,Operating,Lephalale (Mpumalanga supply region)
+Mpumalanga,Khwezela Colliery,Anglo American Coal,Coal,Surface & Underground,Operating,Emalahleni
+Mpumalanga,Goedehoop Colliery,Seriti Resources,Coal,Underground,Operating,Emalahleni
+Mpumalanga,Kusile Mining Operations,Various (Coal Supply to Eskom),Coal,Open-pit,Operating,Nkangala
+Mpumalanga,Tweefontein Complex,Glencore,Coal,Surface,Operating,Emalahleni
+Mpumalanga,Belfast Coal Mine,Exxaro,Coal,Open-pit,Operating,eMakhazeni
+Mpumalanga,Arnot Coal Mine,Wescoal / Innovators Resources,Coal,Underground,Operating,Steve Tshwete
+Mpumalanga,North Block Complex,Thungela Resources,Coal,Surface,Operating,Emalahleni
+Mpumalanga,Steelpoort Valley Mines,Samancor / Glencore / Assore Consortium,Chrome,Underground & Surface,Operating,Steelpoort
+Mpumalanga,Marikana PGM Operations,Sibanye-Stillwater,Platinum Group Metals (PGM),Underground,Operating,Bushbuckridge / Thaba Chweu
+North West,Rustenburg Platinum Mines,Impala Platinum (Implats),Platinum Group Metals (PGM),Underground,Operating,Bojanala
+North West,Marikana Mine,Sibanye-Stillwater,PGM,Underground,Operating,Bojanala
+North West,Mooinooi Platinum Mine,Northam Platinum,PGM,Underground,Operating,Madibeng
+North West,Zondereinde Mine,Northam Platinum,PGM,Underground,Operating,Thabazimbi / Moses Kotane
+North West,Bathopele Platinum Mine,Anglo American Platinum,PGM,Underground,Operating,Bojanala
+North West,Karee Mine (Marikana Operations),Sibanye-Stillwater,PGM,Underground,Operating,Rustenburg
+North West,Buffelsfontein Gold Mine,Village Main Reef,Gold,Underground,Care & Maintenance,Matlosana
+North West,Hartebeestfontein Gold Mine,Village Main Reef,Gold,Underground,Decommissioned / Limited Ops,Matlosana
+North West,Wonderkop Chrome Mine,Glencore – Merafe,Chrome,Surface & Processing,Operating,Madibeng
+North West,Western Limb Tailings Treatment,DRDGOLD,Gold / Uranium,Tailings Processing,Operating,Bojanala
+North West,Nkomati Nickel Operations (NW Portion),African Rainbow Minerals,"Nickel, Copper, PGMs",Mixed,Limited / Joint Operations,Rustenburg
+Northern Cape,Sishen Mine,Kumba Iron Ore (Anglo American),Iron Ore,Open-pit,Operating,Gamagara
+Northern Cape,Kolomela Mine,Kumba Iron Ore (Anglo American),Iron Ore,Open-pit,Operating,Ga-Segonyana
+Northern Cape,Hotazel Manganese Mines,South32,Manganese,Underground & Surface,Operating,Joe Morolong
+Northern Cape,Black Rock Mine,Assmang (Assore / African Rainbow Minerals),Manganese,Underground,Operating,Joe Morolong
+Northern Cape,Lambasi Iron Ore Mine,Anglo American,Iron Ore,Open-pit,Operating,Namakwa
+Northern Cape,Gamsberg Zinc Mine,Vedanta Zinc International,Zinc,Open-pit,Operating,Namakwa
+Northern Cape,De Beers Venetia Supply Operations (NC),De Beers Group,Diamonds,Underground & Surface,Operating,Namakwa
+Northern Cape,Finsch Diamond Mine,Petra Diamonds,Diamonds,Underground,Operating,Ga-Segonyana
+Northern Cape,N'Chwaning Mines,Assmang,Manganese,Underground,Operating,Joe Morolong
+Northern Cape,Aggeneys Copper-Zinc Operations,Vedanta Zinc International,"Copper, Zinc, Lead",Underground,Operating,Namakwa
+Western Cape,Paardeberg Granite Quarry,Dimension Stone (Pty) Ltd,Granite / Dimension Stone,Quarry,Operating,Cape Winelands
+Western Cape,Vredenburg Limestone Quarry,AfriSam,Limestone,Open-pit,Operating,West Coast
+Western Cape,De Hoop Brick Clay Mine,De Hoop Bricks,Clay,Surface,Operating,Overberg
+Western Cape,Malmesbury Aggregate Quarry,WG Wearne,Aggregate,Quarry,Operating,West Coast
+Western Cape,Piketberg Sand Mine,West Coast Sand & Stone,Silica Sand,Surface,Operating,Bergrivier
+Western Cape,Riebeek Valley Stone Works,Riebeek Quarry Operators,Dimension Stone,Quarry,Operating,Cape Winelands
+Western Cape,George Limestone Quarry,Southern Cape Quarries,Limestone,Open-pit,Operating,Garden Route
+Western Cape,Paarl Aggregate Quarry,Raubex Materials,Aggregate,Quarry,Operating,Cape Winelands
+Western Cape,Saldanha Bay Industrial Minerals Plant,Independent Industrial Minerals,Limestone / Industrial Minerals,Processing Plant,Operating,West Coast

@@ -58,9 +58,10 @@ npm-debug.log*
 # Local exports
 *.csv
 !data/*.csv
+!research/*.csv
+!research/**/*.csv
 
 # Local agent tooling
 .claude-flow/
 .swarm/
 memory/
-!research/*.csv
