@@ -1,0 +1,1899 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Exxaro Investor Centre | Integrated Reports | Exxaro</title>
+        <meta name="keywords" content="investor centre,integrated report,share information,share price" />
+        <meta name="description" content="Explore the Exxaro investor centre to access share price information, integrated reports, performance analysis, historical data &amp; more" />
+    <meta name="author" content="Clockwork Media">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <!-- Cookie Consent -->
+    <script type="text/javascript" src="/js/cookie-consent.js" charset="UTF-8"></script>
+    <script type="text/javascript" charset="UTF-8">document.addEventListener('DOMContentLoaded', function () {
+            cookieconsent.run({ "notice_banner_type": "headline", "consent_type": "express", "palette": "light", "language": "en", "page_load_consent_levels": ["strictly-necessary"], "notice_banner_reject_button_hide": false, "preferences_center_close_button_hide": false, "page_refresh_confirmation_buttons": false });
+        });</script>
+    <!-- End of Cookie Consent -->
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.0.7/swiper-bundle.min.css" integrity="sha512-xdNgqS9I7CHbzFYjDiySh1lV5Sc4sobLLAvHLqtZY6ynlCiWpl+eGPds9CAMFFst5QgZRgd92qfeg03sl3UCjA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/video.js/7.19.0/video-js.min.css" integrity="sha512-CC/7yn+5QWpQl8AD5jMda7YHm7UXb6um0DzQFi7sjnCTGUgGTAfwvo+sBpLVznmIgXy+S8ZAoDOcFa5zsUAziQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css" integrity="sha512-ZKX+BvQihRJPA8CROKBhDNvoc2aDMOdAlcm7TUQY+35XYtrd3yh95QOOhsPDQY9QnKE0Wqag9y38OIgEvb88cA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link href="/css/main.min.css" rel="stylesheet" />
+    <link href="/css/slick.css" rel="stylesheet" />
+
+    <!-- AOS CSS -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-14BP8NR7TM"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-14BP8NR7TM');
+    </script>
+    <!-- End Google Analytics -->
+    <!-- Google Tag Manager 18MAY2021 -->
+    <script type="text/plain"
+            cookie-consent="tracking">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0], j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src= 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f); })(window,document,'script','dataLayer','GTM-NTLW5PX');</script>
+    <!-- End Google Tag Manager 18MAY2021 -->
+    <!-- Google Search Console -->
+    <meta name="google-site-verification" content="vB7b18xiQ3-N8YqY71yfDtdjLF6HTX_Oc39qn8WgkcU" />
+    <!-- End Google Search Console -->
+    
+    <!-- Bing Search Console Validation -->
+    <meta name="msvalidate.01" content="CD30D654985C44A1B1496FA88DBEF719" />
+    <!-- End Bing Search Console Validation -->
+
+</head>
+
+<body id="investorCentre">
+    <noscript>
+        <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NTLW5PX" height="0" width="0"
+                style="display:none;visibility:hidden"></iframe>
+    </noscript>
+    <header>
+        <nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-transparent">
+            <div class="container-xl">
+                <a class="navbar-brand" href="/" title="Home">
+                    <img src="/img/logo_light.svg" />
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="offcanvas offcanvas-end" tabindex="-1" id="mainNavbar"
+                     aria-labelledby="offcanvasNavbarLabel">
+                    <div class="position-relative">
+                        <div class="offcanvas-header">
+                            <img src="/img/logo_dark.svg" />
+                            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                                    aria-label="Close"></button>
+                        </div>
+                        <div class="offcanvas-body">
+
+                            <ul class="navbar-nav ms-auto">
+
+                                    
+
+    <li class="nav-item dropdown ">
+        <a class="nav-link dropdown-toggle d-lg-none" href="#" id="nav-3123" role="button" data-bs-toggle="dropdown"
+       aria-haspopup="true" aria-expanded="false">
+            Our Business
+        </a>
+        <a class="nav-link dropdown-toggle d-none d-lg-block" href="/our-business/" id="nav-3123">
+            Our Business
+        </a>
+        <div class="dropdown-menu " aria-labelledby="nav-3123">
+            <div class="d-flex flex-column flex-md-row">
+                <div style="min-width: 200px;">
+                    <a class="dropdown-item fs-6 fw-black text-uppercase" href="/our-business/">Our Business</a>
+                                <a class="dropdown-item fw-light" href="/our-business/our-history/">Our History</a>
+                                <a class="dropdown-item fw-light" href="/our-business/our-vision/">Our Vision</a>
+                                <a class="dropdown-item fw-light" href="/our-business/leadership/">Leadership</a>
+                                <a class="dropdown-item fw-light" href="/our-business/governance/">Governance</a>
+
+                </div>
+
+
+                            <div class="p-2 pe-4 d-flex align-items-center">
+                                <div class="card text-white rounded-0">
+                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/nyxdxjiz/dsc_6140-edit.jpg" class="card-img rounded-0" alt="See where we operate">
+                                    <div class="card-img-overlay d-flex flex-column justify-content-end">
+                                        <h4 class="card-title">See where we operate</h4>
+                                            
+<a href="/operations/" target="_self" class="text-nowrap d-flex text-white justify-content-start me-3 align-items-center " title="Read More">
+    <div class="text-start">
+        <span>Read More</span>
+    </div>
+            <div class="ps-2 link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                    <path d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                                    </div>
+                                </div>
+                            </div>
+
+
+            </div>
+
+
+        </div>
+    </li>
+
+                                    
+
+    <li class="nav-item dropdown ">
+        <a class="nav-link dropdown-toggle d-lg-none" href="#" id="nav-3138" role="button" data-bs-toggle="dropdown"
+       aria-haspopup="true" aria-expanded="false">
+            Operations
+        </a>
+        <a class="nav-link dropdown-toggle d-none d-lg-block" href="/operations/" id="nav-3138">
+            Operations
+        </a>
+        <div class="dropdown-menu " aria-labelledby="nav-3138">
+            <div class="d-flex flex-column flex-md-row">
+                <div style="min-width: 200px;">
+                    <a class="dropdown-item fs-6 fw-black text-uppercase" href="/operations/">Operations</a>
+                                <a class="dropdown-item fw-light" href="/operations/our-resources/">Our Resources</a>
+                                <a class="dropdown-item fw-light" href="/operations/where-we-operate/">Where We Operate</a>
+                                <a class="dropdown-item fw-light" href="/operations/mining-innovation/">Mining Innovation</a>
+                                <a class="dropdown-item fw-light" href="/operations/#mega-projects">Mega Projects</a>
+
+                </div>
+
+
+                                <div class="">
+                                        <div class="dropdown-header fw-bold fs-6 py-1">Minerals</div>
+                                            <a class="dropdown-item fw-light" href="/operations/where-we-operate/?location=grootegeluk">Grootegeluk</a>
+                                            <a class="dropdown-item fw-light" href="/operations/where-we-operate/?location=matla">Matla</a>
+                                            <a class="dropdown-item fw-light" href="/operations/where-we-operate/?location=belfast">Belfast</a>
+                                            <a class="dropdown-item fw-light" href="/operations/where-we-operate/?location=leeuwpan">Leeuwpan</a>
+                                            <a class="dropdown-item fw-light" href="/operations/where-we-operate/?location=mafube-50-ownership">Mafube (50% ownership)</a>
+                                        <div class="dropdown-header fw-bold fs-6 py-1">Renewable Energy</div>
+                                            <a class="dropdown-item fw-light" href="/operations/where-we-operate/?location=tsitsikamma-community-windfarm-tcwf">Tsitsikamma Community Windfarm (TCWF)</a>
+                                            <a class="dropdown-item fw-light" href="/operations/where-we-operate/?location=amakhala-emoyeni-windfarm-ae01">Amakhala Emoyeni Windfarm (AE01)</a>
+                                </div>
+                            <div class="p-2 pe-4 d-flex align-items-center">
+                                <div class="card text-white rounded-0">
+                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/pmubhoks/operations-menu.jpg" class="card-img rounded-0" alt="Get To Know Us">
+                                    <div class="card-img-overlay d-flex flex-column justify-content-end">
+                                        <a href="https://exxaro-prod.azureedge.net/sitestorage/media/ruhf1qrd/quickturn_5717_exxaro_cdmvideo_videoedit_version1.mp4" target="_blank" class="mb-3 video-button" title="Get To Know Us">
+                                            <svg id="icons_placeholder_video-play" data-name="icons/placeholder/video-play" xmlns="http://www.w3.org/2000/svg" width="42.167" height="42.167" viewBox="0 0 42.167 42.167">
+                                                <circle cx="14.25" cy="14.25" r="14.25" transform="translate(6.833 6.834)" fill="#fff" />
+                                                <path d="M21.085,42.167h-.079A21.052,21.052,0,0,1,0,21.023a20.5,20.5,0,0,1,1.634-8.112A21.3,21.3,0,0,1,12.868,1.679,20.9,20.9,0,0,1,21.1,0c.186,0,.374,0,.56.007A20.739,20.739,0,0,1,29.5,1.776a21.333,21.333,0,0,1,6.544,4.491,21.059,21.059,0,0,1-14.96,35.9ZM15.795,12.3a.886.886,0,0,0-.718.331,1.5,1.5,0,0,0-.274.948c-.041,4.863-.041,9.795,0,14.658,0,.81.387,1.313,1.01,1.313a1.719,1.719,0,0,0,.857-.268c4.172-2.4,8.4-4.876,12.577-7.354l.156-.1a1.944,1.944,0,0,0,.469-.36c.185-.195.193-.25.209-.359l0-.027a1.092,1.092,0,0,0-.038-.34s-.074-.412-.887-.874c-4.1-2.422-8.3-4.877-12.486-7.3A1.8,1.8,0,0,0,15.795,12.3Z" transform="translate(0 0)" fill="#a5cf4c" />
+                                            </svg>
+
+                                        </a>
+                                        <h4 class="card-title mb-0">Get To Know Us</h4>
+                                    </div>
+                                </div>
+                            </div>
+
+
+            </div>
+
+
+        </div>
+    </li>
+
+                                    
+
+    <li class="nav-item dropdown ">
+        <a class="nav-link dropdown-toggle d-lg-none" href="#" id="nav-3139" role="button" data-bs-toggle="dropdown"
+       aria-haspopup="true" aria-expanded="false">
+            Careers
+        </a>
+        <a class="nav-link dropdown-toggle d-none d-lg-block" href="/careers/" id="nav-3139">
+            Careers
+        </a>
+        <div class="dropdown-menu " aria-labelledby="nav-3139">
+            <div class="d-flex flex-column flex-md-row">
+                <div style="min-width: 200px;">
+                    <a class="dropdown-item fs-6 fw-black text-uppercase" href="/careers/">Careers</a>
+                                <a class="dropdown-item fw-light" href="/careers/grow-with-us/">Grow With Us</a>
+                                <a class="dropdown-item fw-light" href="/careers/student-hub/">Student Hub</a>
+                                <a class="dropdown-item fw-light" href="/careers/diversity-equity-and-inclusion/">Diversity, Equity and Inclusion</a>
+
+                </div>
+
+
+                        <div class="pe-4 mt-2 d-flex flex-column justify-content-around">
+                                <div class="mb-3">
+                                            <div class="mb-3">
+
+                                                <a class="btn btn-outline-primary d-flex align-items-center w-100" href="https://exxaro.erecruit.co/candidateapp/Jobs/Browse " target="_blank">
+                                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/v4sdpgi5/careers.svg" class="img-fluid me-3 p-2" style="max-width: 75px">
+                                                    <div class="text-dark text-start flex-fill me-3" style="text-transform: none;">
+                                                        <div class="fw-bold fs-6">Careers Portal</div>
+                                                    </div>
+                                                    <svg id="icons_placeholder_search" data-name="icons/placeholder/search" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                        <path id="Combined_Shape" data-name="Combined Shape" d="M12.184,16H4.46c-.276,0-.553,0-.831,0A3.622,3.622,0,0,1,0,12.374V4.383c0-.252,0-.5,0-.752A3.619,3.619,0,0,1,1.972.405,3.761,3.761,0,0,1,3.642,0H7.724a.925.925,0,0,1,.633.261.9.9,0,0,1,0,1.265.934.934,0,0,1-.633.261H3.907c-.179,0-.357,0-.534.012a2.789,2.789,0,0,0-.466.127,2.781,2.781,0,0,0-.412.241,2.819,2.819,0,0,0-.331.331,2.794,2.794,0,0,0-.241.415,2.8,2.8,0,0,0-.127.465c-.007.083-.011.166-.011.25,0,.323,0,.649,0,.974v7c0,.334-.018.679.011,1.015a2.781,2.781,0,0,0,.128.47,2.78,2.78,0,0,0,.241.412,2.759,2.759,0,0,0,.334.333,2.889,2.889,0,0,0,.409.238,2.807,2.807,0,0,0,.469.128c.083.008.166.012.249.012.323,0,.649,0,.974,0h7c.335,0,.682.019,1.019-.012a2.79,2.79,0,0,0,.467-.127,2.838,2.838,0,0,0,.411-.24,2.759,2.759,0,0,0,.333-.333,2.813,2.813,0,0,0,.24-.412,2.836,2.836,0,0,0,.126-.46c.018-.208.013-.417.013-.627V8.276a.921.921,0,0,1,.263-.631.9.9,0,0,1,1.266,0A.93.93,0,0,1,16,8.277v4.075a3.811,3.811,0,0,1-.375,1.623A3.63,3.63,0,0,1,12.423,16h-.238ZM3.492,14.22Zm-.481-.1Zm-.425-.215Zm-.355-.312ZM1.967,13.2Zm-.158-.455Zm5.57-4.127a.907.907,0,0,1-.261-.633.919.919,0,0,1,.261-.633l.012-.012c.283-.29.574-.574.86-.86l1.774-1.773L12.07,2.662l.873-.872H11.135a.943.943,0,0,1-.633-.261A.911.911,0,0,1,10.241.9.9.9,0,0,1,10.5.264.93.93,0,0,1,11.135,0h3.94l.03,0a.809.809,0,0,1,.455.127.914.914,0,0,1,.15.109l.028.025A.907.907,0,0,1,16,.895h0c0,.019,0,.038,0,.057v3.91a.937.937,0,0,1-.261.633.9.9,0,0,1-1.266,0,.93.93,0,0,1-.261-.633V3.053L13.091,4.172,11.046,6.216,9.355,7.907l-.71.709a.922.922,0,0,1-.633.261H7.981A.912.912,0,0,1,7.379,8.617Z" transform="translate(4 4)" fill="#a5cf4c" />
+                                                    </svg>
+
+                                                </a>
+
+                                            </div>
+                                </div>
+                                <div class="mb-3">
+                                            <div class="mb-3">
+
+                                                <a class="btn btn-outline-primary d-flex align-items-center w-100" href="https://exxaro.erecruit.co/candidateapp/Jobs/Browse " target="_blank">
+                                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/v4sdpgi5/careers.svg" class="img-fluid me-3 p-2" style="max-width: 75px">
+                                                    <div class="text-dark text-start flex-fill me-3" style="text-transform: none;">
+                                                        <div class="fw-bold fs-6">Apply Now</div>
+                                                    </div>
+                                                    <svg id="icons_placeholder_search" data-name="icons/placeholder/search" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                        <path id="Combined_Shape" data-name="Combined Shape" d="M12.184,16H4.46c-.276,0-.553,0-.831,0A3.622,3.622,0,0,1,0,12.374V4.383c0-.252,0-.5,0-.752A3.619,3.619,0,0,1,1.972.405,3.761,3.761,0,0,1,3.642,0H7.724a.925.925,0,0,1,.633.261.9.9,0,0,1,0,1.265.934.934,0,0,1-.633.261H3.907c-.179,0-.357,0-.534.012a2.789,2.789,0,0,0-.466.127,2.781,2.781,0,0,0-.412.241,2.819,2.819,0,0,0-.331.331,2.794,2.794,0,0,0-.241.415,2.8,2.8,0,0,0-.127.465c-.007.083-.011.166-.011.25,0,.323,0,.649,0,.974v7c0,.334-.018.679.011,1.015a2.781,2.781,0,0,0,.128.47,2.78,2.78,0,0,0,.241.412,2.759,2.759,0,0,0,.334.333,2.889,2.889,0,0,0,.409.238,2.807,2.807,0,0,0,.469.128c.083.008.166.012.249.012.323,0,.649,0,.974,0h7c.335,0,.682.019,1.019-.012a2.79,2.79,0,0,0,.467-.127,2.838,2.838,0,0,0,.411-.24,2.759,2.759,0,0,0,.333-.333,2.813,2.813,0,0,0,.24-.412,2.836,2.836,0,0,0,.126-.46c.018-.208.013-.417.013-.627V8.276a.921.921,0,0,1,.263-.631.9.9,0,0,1,1.266,0A.93.93,0,0,1,16,8.277v4.075a3.811,3.811,0,0,1-.375,1.623A3.63,3.63,0,0,1,12.423,16h-.238ZM3.492,14.22Zm-.481-.1Zm-.425-.215Zm-.355-.312ZM1.967,13.2Zm-.158-.455Zm5.57-4.127a.907.907,0,0,1-.261-.633.919.919,0,0,1,.261-.633l.012-.012c.283-.29.574-.574.86-.86l1.774-1.773L12.07,2.662l.873-.872H11.135a.943.943,0,0,1-.633-.261A.911.911,0,0,1,10.241.9.9.9,0,0,1,10.5.264.93.93,0,0,1,11.135,0h3.94l.03,0a.809.809,0,0,1,.455.127.914.914,0,0,1,.15.109l.028.025A.907.907,0,0,1,16,.895h0c0,.019,0,.038,0,.057v3.91a.937.937,0,0,1-.261.633.9.9,0,0,1-1.266,0,.93.93,0,0,1-.261-.633V3.053L13.091,4.172,11.046,6.216,9.355,7.907l-.71.709a.922.922,0,0,1-.633.261H7.981A.912.912,0,0,1,7.379,8.617Z" transform="translate(4 4)" fill="#a5cf4c" />
+                                                    </svg>
+
+                                                </a>
+
+                                            </div>
+                                </div>
+                        </div>
+
+
+            </div>
+
+
+        </div>
+    </li>
+
+                                    
+
+    <li class="nav-item dropdown ">
+        <a class="nav-link dropdown-toggle d-lg-none" href="#" id="nav-3140" role="button" data-bs-toggle="dropdown"
+       aria-haspopup="true" aria-expanded="false">
+            Sustainability
+        </a>
+        <a class="nav-link dropdown-toggle d-none d-lg-block" href="/sustainability/" id="nav-3140">
+            Sustainability
+        </a>
+        <div class="dropdown-menu " aria-labelledby="nav-3140">
+            <div class="d-flex flex-column flex-md-row">
+                <div style="min-width: 200px;">
+                    <a class="dropdown-item fs-6 fw-black text-uppercase" href="/sustainability/">Sustainability</a>
+                                <a class="dropdown-item fw-light" href="/sustainability/the-environment/">The Environment</a>
+                                <a class="dropdown-item fw-light" href="/sustainability/case-studies/">Case Studies</a>
+                                <a class="dropdown-item fw-light" href="/sustainability/health-and-safety/">Health and Safety</a>
+                                <a class="dropdown-item fw-light" href="/sustainability/closure-planning/">Closure Planning</a>
+                                <a class="dropdown-item fw-light" href="/sustainability/community-development/">Community Development</a>
+
+                </div>
+
+
+                        <div class="pe-4 mt-2 d-flex flex-column justify-content-around">
+
+                        </div>
+
+
+            </div>
+
+
+        </div>
+    </li>
+
+                                    
+
+    <li class="nav-item dropdown active">
+        <a class="nav-link dropdown-toggle d-lg-none" href="#" id="nav-3141" role="button" data-bs-toggle="dropdown"
+       aria-haspopup="true" aria-expanded="false">
+            Investor Centre
+        </a>
+        <a class="nav-link dropdown-toggle d-none d-lg-block" href="/investor-centre/" id="nav-3141">
+            Investor Centre
+        </a>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="nav-3141">
+            <div class="d-flex flex-column flex-md-row">
+                <div style="min-width: 200px;">
+                    <a class="dropdown-item fs-6 fw-black text-uppercase" href="/investor-centre/">Investor Centre</a>
+                                <a class="dropdown-item fw-light" href="/investor-centre/financial-results/">Financial Results</a>
+                                <a class="dropdown-item fw-light" href="/investor-centre/esg/">ESG</a>
+                                <a class="dropdown-item fw-light" href="/investor-centre/integrated-reports/#integrated-reports">Integrated Reports</a>
+                                <a class="dropdown-item fw-light" href="/investor-centre/presentations-and-speeches/">Presentations And Speeches</a>
+                                <a class="dropdown-item fw-light" href="/investor-centre/legal-documents/">Legal Documents</a>
+
+                </div>
+
+
+                        <div class="pe-4 mt-2 d-flex flex-column justify-content-around">
+                                <div class="mb-3">
+                                            
+<a class="btn btn-outline-primary d-flex align-items-center w-100" href="https://exxaro-prod.azureedge.net/sitestorage/media/prgclasv/260819_1h26-results-presentation_master_wip_v07_final.pdf" target="_blank">
+    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/110bk3r2/container-rounded-fill.svg" class="img-fluid me-3 p-2" style="max-width: 75px" />
+    <div class="text-dark text-start flex-fill"  style="text-transform: none;">
+        <div class="fw-bold fs-6">Interim Financial Results 2026 Presentation</div>
+            <small class="text-muted">PDF • 6.1MB</small>
+    </div>
+            <div class="ps-2 download-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 19 19">
+                    <path data-name="Path 35" d="M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z" transform="translate(0.5 0.5)" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="1" />
+                    <path d="M7.3,6.7,5.5,8.6V1a.945.945,0,0,0-1-1,.945.945,0,0,0-1,1V8.5L1.7,6.7a.967.967,0,0,0-1.4,0,.967.967,0,0,0,0,1.4l3.5,3.5a1.08,1.08,0,0,0,.7.3,1.08,1.08,0,0,0,.7-.3L8.7,8.1A.99.99,0,1,0,7.3,6.7Z" transform="translate(5 3.5)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                                </div>
+                                <div class="mb-3">
+                                            
+<a class="btn btn-outline-primary d-flex align-items-center w-100" href="/investor-centre/#share-information" target="_self">
+    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/ywumuszc/container-rounded-fill.svg" class="img-fluid me-3 p-2" style="max-width: 75px" />
+    <div class="text-dark text-start flex-fill"  style="text-transform: none;">
+        <div class="fw-bold fs-6">Share Information</div>
+    </div>
+</a>
+
+                                </div>
+                                <div class="mb-3">
+                                            
+<a class="btn btn-outline-primary d-flex align-items-center w-100" href="https://thevault.exchange/start-profile-steps/?groupkey=MTkx=" target="_blank">
+    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/zbxafh30/group-1438-shield.svg" class="img-fluid me-3 p-2" style="max-width: 75px" />
+    <div class="text-dark text-start flex-fill"  style="text-transform: none;">
+        <div class="fw-bold fs-6">Register for Alerts</div>
+    </div>
+</a>
+
+                                </div>
+                        </div>
+
+
+            </div>
+
+
+        </div>
+    </li>
+
+                                    
+
+    <li class="nav-item dropdown ">
+        <a class="nav-link dropdown-toggle d-lg-none" href="#" id="nav-3142" role="button" data-bs-toggle="dropdown"
+       aria-haspopup="true" aria-expanded="false">
+            Suppliers
+        </a>
+        <a class="nav-link dropdown-toggle d-none d-lg-block" href="/suppliers/" id="nav-3142">
+            Suppliers
+        </a>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="nav-3142">
+            <div class="d-flex flex-column flex-md-row">
+                <div style="min-width: 200px;">
+                    <a class="dropdown-item fs-6 fw-black text-uppercase" href="/suppliers/">Suppliers</a>
+                                <a class="dropdown-item fw-light" href="/suppliers/supplier-guide/">Supplier Guide</a>
+
+                                <div class="dropdown-item fs-6 fw-black text-uppercase mt-3">Apply to be a prospective supplier</div>
+                                <a class="dropdown-item fw-light" href="/suppliers/#tenders" target="_self">Available Tenders</a>
+                                <a class="dropdown-item fw-light" href="/suppliers/#supplier-contact" target="_self">Supplier Contact</a>
+                </div>
+
+
+                        <div class="pe-4 pb-3 mt-2 d-flex flex-column justify-content-around">
+                                <a href="https://exxaro.microsoftcrmportals.com/ " target="_blank" class="text-nowrap d-flex btn btn-outline-primary justify-content-center align-items-center" title="SUPPLIER PORTAL">
+                                    <div class="text-start me-3">
+                                        <span>SUPPLIER PORTAL</span>
+
+                                    </div>
+                                    <div style="margin-bottom: 3px;">
+                                        <svg id="icons_placeholder_external-link" data-name="icons/placeholder/external-link" xmlns="http://www.w3.org/2000/svg" width="12.27" height="12.27" viewBox="0 0 12.27 12.27">
+                                            <path id="Combined_Shape" data-name="Combined Shape" d="M9.344,12.269H3.421c-.212,0-.424,0-.637,0A2.778,2.778,0,0,1,0,9.489V3.361c0-.193,0-.385,0-.577A2.775,2.775,0,0,1,1.513.31,2.884,2.884,0,0,1,2.794,0h3.13a.709.709,0,0,1,.485.2.688.688,0,0,1,0,.97.716.716,0,0,1-.485.2H3c-.137,0-.274,0-.409.009a2.139,2.139,0,0,0-.357.1,2.132,2.132,0,0,0-.316.185,2.162,2.162,0,0,0-.254.254,2.143,2.143,0,0,0-.185.318,2.145,2.145,0,0,0-.1.357c-.006.063-.009.127-.009.191,0,.248,0,.5,0,.747V8.9c0,.256-.014.521.008.778a2.133,2.133,0,0,0,.1.36,2.132,2.132,0,0,0,.185.316,2.115,2.115,0,0,0,.256.255,2.216,2.216,0,0,0,.314.183,2.152,2.152,0,0,0,.359.1c.063.006.127.009.191.009.248,0,.5,0,.747,0H8.9c.257,0,.523.014.781-.009a2.14,2.14,0,0,0,.358-.1,2.176,2.176,0,0,0,.315-.184,2.115,2.115,0,0,0,.256-.255,2.157,2.157,0,0,0,.184-.316,2.175,2.175,0,0,0,.1-.353c.014-.16.01-.32.01-.48V6.346a.706.706,0,0,1,.2-.484.689.689,0,0,1,.971,0,.713.713,0,0,1,.2.485V9.472a2.922,2.922,0,0,1-.288,1.244,2.784,2.784,0,0,1-2.456,1.553H9.344ZM2.678,10.9Zm-.369-.077Zm-.326-.165Zm-.272-.239Zm-.2-.3Zm-.121-.349ZM5.659,6.607a.7.7,0,0,1-.2-.485.7.7,0,0,1,.2-.485l.009-.009c.217-.222.44-.44.66-.66l1.36-1.36L9.256,2.041l.669-.669H8.539a.723.723,0,0,1-.485-.2.7.7,0,0,1-.2-.485A.69.69,0,0,1,8.054.2.713.713,0,0,1,8.539,0h3.044a.62.62,0,0,1,.349.1.7.7,0,0,1,.115.084L12.069.2a.7.7,0,0,1,.2.485h0c0,.014,0,.029,0,.044v3a.718.718,0,0,1-.2.485.689.689,0,0,1-.971,0,.713.713,0,0,1-.2-.485V2.341L10.04,3.2,8.471,4.767l-1.3,1.3-.545.544a.707.707,0,0,1-.485.2H6.121A.7.7,0,0,1,5.659,6.607Z" transform="translate(0 0)" fill="#a5cf4c" />
+                                        </svg>
+                                    </div>
+
+                                </a>
+                                <a href="https://app.fabricworkflows.com/self-registration/search/2ce054c7-7ca7-4fe6-84da-0172797bc0a9/1e6d00368f381363ac0ad6c78fc6622e" target="_blank" class="text-nowrap d-flex btn btn-outline-primary justify-content-center align-items-center" title="APPLY NOW">
+                                    <div class="text-start me-3">
+                                        <span>APPLY NOW</span>
+
+                                    </div>
+                                    <div style="margin-bottom: 3px;">
+                                        <svg id="icons_placeholder_external-link" data-name="icons/placeholder/external-link" xmlns="http://www.w3.org/2000/svg" width="12.27" height="12.27" viewBox="0 0 12.27 12.27">
+                                            <path id="Combined_Shape" data-name="Combined Shape" d="M9.344,12.269H3.421c-.212,0-.424,0-.637,0A2.778,2.778,0,0,1,0,9.489V3.361c0-.193,0-.385,0-.577A2.775,2.775,0,0,1,1.513.31,2.884,2.884,0,0,1,2.794,0h3.13a.709.709,0,0,1,.485.2.688.688,0,0,1,0,.97.716.716,0,0,1-.485.2H3c-.137,0-.274,0-.409.009a2.139,2.139,0,0,0-.357.1,2.132,2.132,0,0,0-.316.185,2.162,2.162,0,0,0-.254.254,2.143,2.143,0,0,0-.185.318,2.145,2.145,0,0,0-.1.357c-.006.063-.009.127-.009.191,0,.248,0,.5,0,.747V8.9c0,.256-.014.521.008.778a2.133,2.133,0,0,0,.1.36,2.132,2.132,0,0,0,.185.316,2.115,2.115,0,0,0,.256.255,2.216,2.216,0,0,0,.314.183,2.152,2.152,0,0,0,.359.1c.063.006.127.009.191.009.248,0,.5,0,.747,0H8.9c.257,0,.523.014.781-.009a2.14,2.14,0,0,0,.358-.1,2.176,2.176,0,0,0,.315-.184,2.115,2.115,0,0,0,.256-.255,2.157,2.157,0,0,0,.184-.316,2.175,2.175,0,0,0,.1-.353c.014-.16.01-.32.01-.48V6.346a.706.706,0,0,1,.2-.484.689.689,0,0,1,.971,0,.713.713,0,0,1,.2.485V9.472a2.922,2.922,0,0,1-.288,1.244,2.784,2.784,0,0,1-2.456,1.553H9.344ZM2.678,10.9Zm-.369-.077Zm-.326-.165Zm-.272-.239Zm-.2-.3Zm-.121-.349ZM5.659,6.607a.7.7,0,0,1-.2-.485.7.7,0,0,1,.2-.485l.009-.009c.217-.222.44-.44.66-.66l1.36-1.36L9.256,2.041l.669-.669H8.539a.723.723,0,0,1-.485-.2.7.7,0,0,1-.2-.485A.69.69,0,0,1,8.054.2.713.713,0,0,1,8.539,0h3.044a.62.62,0,0,1,.349.1.7.7,0,0,1,.115.084L12.069.2a.7.7,0,0,1,.2.485h0c0,.014,0,.029,0,.044v3a.718.718,0,0,1-.2.485.689.689,0,0,1-.971,0,.713.713,0,0,1-.2-.485V2.341L10.04,3.2,8.471,4.767l-1.3,1.3-.545.544a.707.707,0,0,1-.485.2H6.121A.7.7,0,0,1,5.659,6.607Z" transform="translate(0 0)" fill="#a5cf4c" />
+                                        </svg>
+                                    </div>
+
+                                </a>
+
+                        </div>
+
+
+            </div>
+
+
+        </div>
+    </li>
+
+                                    
+
+    <li class="nav-item dropdown ">
+        <a class="nav-link dropdown-toggle d-lg-none" href="#" id="nav-3143" role="button" data-bs-toggle="dropdown"
+       aria-haspopup="true" aria-expanded="false">
+            Media and Insights
+        </a>
+        <a class="nav-link dropdown-toggle d-none d-lg-block" href="/media-and-insights/" id="nav-3143">
+            Media and Insights
+        </a>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="nav-3143">
+            <div class="d-flex flex-column flex-md-row">
+                <div style="min-width: 200px;">
+                    <a class="dropdown-item fs-6 fw-black text-uppercase" href="/media-and-insights/">Media and Insights</a>
+                                <a class="dropdown-item fw-light" href="/media-and-insights/thought-leadership/">Thought Leadership</a>
+                                <a class="dropdown-item fw-light" href="/media-and-insights/press-releases/">Press Releases</a>
+                                <a class="dropdown-item fw-light" href="/media-and-insights/#past-events">Past Events</a>
+                                <a class="dropdown-item fw-light" href="/media-and-insights/resources/">Resources</a>
+
+                </div>
+
+
+                            <div style="max-width: 300px;" class="pe-3 pb-3 mt-2">
+                                <div class="rounded bg-light p-3 mb-2 mt-4">
+                                    <div class="mb-3"><small class="fw-black text-uppercase">FEATURED • 13 March 2025</small></div>
+                                    <div class="fs-3 fw-bold" style="line-height: 2rem">EXXARO&#x2019;S 2024 FINANCIAL RESULTS PROVE THAT SUSTAINABLE IMPACT IS TRULY AT THE CORE OF THE BUSINESS</div>
+                                </div>
+
+                                    
+<a href="/media-and-insights/press-releases/exxaro-s-2024-financial-results-prove-that-sustainable-impact-is-truly-at-the-core-of-the-business/" target="_self" class="text-nowrap d-flex btn btn-outline-primary justify-content-center me-3 align-items-center " title="Read More ">
+    <div class="text-start">
+        <span>Read More </span>
+    </div>
+</a>
+
+                            </div>
+
+
+            </div>
+
+
+        </div>
+    </li>
+
+                                    
+
+    <li class="nav-item  ">
+        <a class="nav-link " href="/contact/" role="button">
+            Contact
+        </a>
+    </li>
+
+
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" role="button" id="menuSearchButton">
+                                        <span class="d-block-form d-md-none">Search</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="21.999" height="22"
+                                             viewBox="0 0 21.999 22" class="d-none d-md-block">
+                                            <g id="icons_placeholder_search" data-name="icons/placeholder/search"
+                                               transform="translate(-1 -1)">
+                                                <path id="Combined_Shape" data-name="Combined Shape"
+                                                      d="M20.595,22a1.4,1.4,0,0,1-.994-.412L13.316,15.3A8.43,8.43,0,1,1,15.3,13.316L21.588,19.6a1.405,1.405,0,0,1-.994,2.4ZM8.25,2.75a5.5,5.5,0,1,0,5.5,5.5A5.506,5.506,0,0,0,8.25,2.75Z"
+                                                      transform="translate(1 1)" fill="#fff" />
+                                            </g>
+                                        </svg>
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </div>
+                        <div id="menuSearch">
+                            
+
+<form action="/search" method="get">
+    <div class="position-relative">
+        <div class="card border-0 shadow rounded-0 rounded-top mb-1">
+            <div class="search card-body d-flex flex-row align-items-center">
+                <input id="query" name="query" class="form-control flex-grow-1" type="text" placeholder="What are you looking for?" value="" />
+                <a href="#" id="menuSearchClose">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+                        <g id="icons_placeholder_search" data-name="icons/placeholder/search" transform="translate(-3 -3)">
+                            <path id="Path" d="M15.07,17.5,9,11.428,2.93,17.5A1.712,1.712,0,0,1,.5,17.5h0a1.712,1.712,0,0,1,0-2.426L6.572,9,.5,2.93A1.712,1.712,0,0,1,.5.5h0A1.712,1.712,0,0,1,2.93.5L9,6.572,15.07.5A1.712,1.712,0,0,1,17.5.5h0a1.712,1.712,0,0,1,0,2.426L11.428,9,17.5,15.07a1.712,1.712,0,0,1,0,2.426h0a1.712,1.712,0,0,1-2.426,0Z" transform="translate(3 3)" fill="#36393e" />
+                        </g>
+                    </svg>
+
+                </a>
+            </div>
+        </div>
+        <div class="card border-0 shadow rounded-0 rounded-bottom">
+            <div class="card-body d-flex flex-column flex-md-row">
+                <div class="p-md-3 mb-3 flex-fill">
+                    <div class="text-uppercase mb-3">Popular searches</div>
+                        <div class="mb-2">
+                            
+                        
+<a href="/investor-centre/financial-results/" target="_self" class="text-nowrap d-flex text-dark justify-content-start me-3 align-items-center " title="Results and Reporting">
+    <div class="text-start">
+        <span>Results and Reporting</span>
+    </div>
+            <div class="ps-2 link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                    <path d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                        </div>
+                        <div class="mb-2">
+                            
+                        
+<a href="/sustainability/the-environment/" target="_self" class="text-nowrap d-flex text-dark justify-content-start me-3 align-items-center " title="Climate Change">
+    <div class="text-start">
+        <span>Climate Change</span>
+    </div>
+            <div class="ps-2 link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                    <path d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                        </div>
+                        <div class="mb-2">
+                            
+                        
+<a href="/our-business/our-vision/" target="_self" class="text-nowrap d-flex text-dark justify-content-start me-3 align-items-center " title="Strategic Vision">
+    <div class="text-start">
+        <span>Strategic Vision</span>
+    </div>
+            <div class="ps-2 link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                    <path d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                        </div>
+                        <div class="mb-2">
+                            
+                        
+<a href="https://exxaro-site-staging.azurewebsites.net/sustainability/community-development/" target="_blank" class="text-nowrap d-flex text-dark justify-content-start me-3 align-items-center " title="Community Projects">
+    <div class="text-start">
+        <span>Community Projects</span>
+    </div>
+            <div class="ps-2 link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                    <path d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                        </div>
+                        <div class="mb-2">
+                            
+                        
+<a href="https://exxaro.erecruit.co/candidateapp/Jobs/Browse" target="_blank" class="text-nowrap d-flex text-dark justify-content-start me-3 align-items-center " title="Careers Portal">
+    <div class="text-start">
+        <span>Careers Portal</span>
+    </div>
+            <div class="ps-2 link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                    <path d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                        </div>
+                </div>
+                <div class="p-md-3 mb-3 flex-fill">
+                    <div class="text-uppercase mb-3">News and Press Releases</div>
+
+                        <a class="btn btn-outline-primary d-flex align-items-center w-100 mb-2" href="/media-and-insights/press-releases/exxaro-supports-more-than-500-flood-affected-families-in-tshikondeni-limpopo/">
+
+                            <div class="img-fluid me-3 p-2" style="max-width: 75px">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28.576" height="35.341" viewBox="0 0 28.576 35.341">
+                                    <g id="Group_1706" data-name="Group 1706" transform="translate(-1741.71 -4963.571)">
+                                        <g id="Group_1621" data-name="Group 1621" transform="translate(1741.71 4966.539)">
+                                            <g id="Group_1287" data-name="Group 1287" transform="translate(0 1.174)">
+                                                <path id="Path_3617" data-name="Path 3617" d="M1763.89,5001.545h-20.3a.369.369,0,0,1-.37-.37v-27.062a.377.377,0,0,1,.375-.37h3.383a.372.372,0,0,1,.37.37v-2.253a.372.372,0,0,1-.37.37H1743.6a1.89,1.89,0,0,0-1.889,1.884v27.063a1.89,1.89,0,0,0,1.889,1.884h20.292a.757.757,0,1,0,0-1.514Z" transform="translate(-1741.71 -4971.86)" fill="#404041" />
+                                            </g>
+                                            <circle id="Ellipse_60" data-name="Ellipse 60" cx="0.803" cy="0.803" r="0.803" transform="translate(13.486)" fill="#aecc60" />
+                                        </g>
+                                        <path id="Path_3703" data-name="Path 3703" d="M1769.544,4965.829h-4a.377.377,0,0,1-.325-.185,4.071,4.071,0,0,0-1.524-1.529,4.115,4.115,0,0,0-5.616,1.529.369.369,0,0,1-.32.185h-4a.757.757,0,0,0-.755.755v4.512a.758.758,0,0,0,.755.759h15.79a.758.758,0,0,0,.754-.759v-4.512A.757.757,0,0,0,1769.544,4965.829Zm-.76,4.137a.377.377,0,0,1-.375.37h-13.531a.369.369,0,0,1-.37-.37v-2.253a.373.373,0,0,1,.375-.37h3.588a.772.772,0,0,0,.715-.5,2.6,2.6,0,0,1,4.922,0,.766.766,0,0,0,.715.5h3.593a.369.369,0,0,1,.37.37Z" transform="translate(-5.649)" fill="#aecc60" />
+                                        <path id="Path_3704" data-name="Path 3704" d="M1793.256,4974.113v22.545a.757.757,0,0,1-1.514,0v-22.545a.369.369,0,0,0-.37-.37h-3.383a.335.335,0,0,0-.22.075.367.367,0,0,0-.15.295v-2.253a.368.368,0,0,0,.15.3.335.335,0,0,0,.22.074h3.383A1.885,1.885,0,0,1,1793.256,4974.113Z" transform="translate(-22.97 -4.147)" fill="#404041" />
+                                    </g>
+                                </svg>
+
+                            </div>
+                            <div class="text-dark text-start flex-fill" style="text-transform: none;">
+                                <div class="fw-bold" style="max-width: 300px">Exxaro supports more than 500 flood-affected families in Tshikondeni, Limpopo</div>
+                            </div>
+                        </a>
+                        <a class="btn btn-outline-primary d-flex align-items-center w-100 mb-2" href="/media-and-insights/press-releases/exxaro-marks-20-years-of-building-resilient-communities-and-sustainable-local-economies-to-create-impact-beyond-the-surface/">
+
+                            <div class="img-fluid me-3 p-2" style="max-width: 75px">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28.576" height="35.341" viewBox="0 0 28.576 35.341">
+                                    <g id="Group_1706" data-name="Group 1706" transform="translate(-1741.71 -4963.571)">
+                                        <g id="Group_1621" data-name="Group 1621" transform="translate(1741.71 4966.539)">
+                                            <g id="Group_1287" data-name="Group 1287" transform="translate(0 1.174)">
+                                                <path id="Path_3617" data-name="Path 3617" d="M1763.89,5001.545h-20.3a.369.369,0,0,1-.37-.37v-27.062a.377.377,0,0,1,.375-.37h3.383a.372.372,0,0,1,.37.37v-2.253a.372.372,0,0,1-.37.37H1743.6a1.89,1.89,0,0,0-1.889,1.884v27.063a1.89,1.89,0,0,0,1.889,1.884h20.292a.757.757,0,1,0,0-1.514Z" transform="translate(-1741.71 -4971.86)" fill="#404041" />
+                                            </g>
+                                            <circle id="Ellipse_60" data-name="Ellipse 60" cx="0.803" cy="0.803" r="0.803" transform="translate(13.486)" fill="#aecc60" />
+                                        </g>
+                                        <path id="Path_3703" data-name="Path 3703" d="M1769.544,4965.829h-4a.377.377,0,0,1-.325-.185,4.071,4.071,0,0,0-1.524-1.529,4.115,4.115,0,0,0-5.616,1.529.369.369,0,0,1-.32.185h-4a.757.757,0,0,0-.755.755v4.512a.758.758,0,0,0,.755.759h15.79a.758.758,0,0,0,.754-.759v-4.512A.757.757,0,0,0,1769.544,4965.829Zm-.76,4.137a.377.377,0,0,1-.375.37h-13.531a.369.369,0,0,1-.37-.37v-2.253a.373.373,0,0,1,.375-.37h3.588a.772.772,0,0,0,.715-.5,2.6,2.6,0,0,1,4.922,0,.766.766,0,0,0,.715.5h3.593a.369.369,0,0,1,.37.37Z" transform="translate(-5.649)" fill="#aecc60" />
+                                        <path id="Path_3704" data-name="Path 3704" d="M1793.256,4974.113v22.545a.757.757,0,0,1-1.514,0v-22.545a.369.369,0,0,0-.37-.37h-3.383a.335.335,0,0,0-.22.075.367.367,0,0,0-.15.295v-2.253a.368.368,0,0,0,.15.3.335.335,0,0,0,.22.074h3.383A1.885,1.885,0,0,1,1793.256,4974.113Z" transform="translate(-22.97 -4.147)" fill="#404041" />
+                                    </g>
+                                </svg>
+
+                            </div>
+                            <div class="text-dark text-start flex-fill" style="text-transform: none;">
+                                <div class="fw-bold" style="max-width: 300px">Exxaro marks 20 years of building resilient communities and sustainable local economies to create impact beyond the surface</div>
+                            </div>
+                        </a>
+
+                    <a class="btn btn-outline-primary w-100" href="/media-and-insights/">
+                        Media Centre
+                    </a>
+                </div>
+
+                    <div class="p-md-3 mb-3 flex-fill">
+                        <div class="text-uppercase mb-3">Exxaro Portals</div>
+                            <div class="mt-3">
+                                <a href="https://exxaro.microsoftcrmportals.com/" target="_blank" title="Suppliers and Logistics Portal" class="text-dark d-flex justify-content-between align-items-center">
+                                    <span class="me-3">Suppliers and Logistics Portal</span>
+
+                                    <svg id="icons_placeholder_external-link" data-name="icons/placeholder/external-link" xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 18.5 18.5">
+                                        <path id="Combined_Shape" data-name="Combined Shape" d="M8,10.5H2.928c-.181,0-.363,0-.545,0A2.377,2.377,0,0,1,0,8.121V2.876c0-.165,0-.33,0-.494A2.375,2.375,0,0,1,1.295.266,2.468,2.468,0,0,1,2.391,0H5.069a.607.607,0,0,1,.415.171.589.589,0,0,1,0,.83.613.613,0,0,1-.415.171h-2.5c-.117,0-.234,0-.35.008a1.83,1.83,0,0,0-.306.083,1.825,1.825,0,0,0-.27.158,1.85,1.85,0,0,0-.217.217,1.834,1.834,0,0,0-.158.272,1.835,1.835,0,0,0-.083.305c0,.054-.007.109-.007.164,0,.212,0,.426,0,.639V7.616c0,.219-.012.446.007.666a1.825,1.825,0,0,0,.084.308,1.825,1.825,0,0,0,.158.271,1.81,1.81,0,0,0,.219.218,1.9,1.9,0,0,0,.269.156,1.842,1.842,0,0,0,.308.084c.054,0,.109.008.164.008.212,0,.426,0,.639,0h4.6c.22,0,.448.012.668-.008a1.831,1.831,0,0,0,.306-.084,1.863,1.863,0,0,0,.27-.158,1.811,1.811,0,0,0,.219-.219,1.846,1.846,0,0,0,.158-.271,1.861,1.861,0,0,0,.082-.3c.012-.137.008-.274.008-.411V5.431A.6.6,0,0,1,9.5,5.017a.59.59,0,0,1,.831,0,.61.61,0,0,1,.171.415V8.106a2.5,2.5,0,0,1-.246,1.065,2.382,2.382,0,0,1-2.1,1.329H8Zm-5.7-1.168Zm-.316-.066ZM1.7,9.125Zm-.233-.2Zm-.174-.258Zm-.1-.3ZM4.843,5.655a.6.6,0,0,1-.171-.415.6.6,0,0,1,.171-.415l.008-.008c.185-.19.377-.377.565-.565L6.58,3.088,7.922,1.747l.573-.572H7.308A.619.619,0,0,1,6.893,1,.6.6,0,0,1,6.721.588.59.59,0,0,1,6.893.173.61.61,0,0,1,7.308,0H9.913a.531.531,0,0,1,.3.083.6.6,0,0,1,.1.072l.019.016A.6.6,0,0,1,10.5.587h0c0,.012,0,.025,0,.037V3.192a.615.615,0,0,1-.171.415.59.59,0,0,1-.831,0,.61.61,0,0,1-.171-.415V2l-.734.734L7.25,4.079,6.14,5.189l-.466.465a.605.605,0,0,1-.415.171h-.02A.6.6,0,0,1,4.843,5.655Z" transform="translate(3.999 4)" fill="#404041" />
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="mt-3">
+                                <a href="https://exxaro.erecruit.co/candidateapp/Jobs/Browse" target="_blank" title="Careers Portal" class="text-dark d-flex justify-content-between align-items-center">
+                                    <span class="me-3">Careers Portal</span>
+
+                                    <svg id="icons_placeholder_external-link" data-name="icons/placeholder/external-link" xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 18.5 18.5">
+                                        <path id="Combined_Shape" data-name="Combined Shape" d="M8,10.5H2.928c-.181,0-.363,0-.545,0A2.377,2.377,0,0,1,0,8.121V2.876c0-.165,0-.33,0-.494A2.375,2.375,0,0,1,1.295.266,2.468,2.468,0,0,1,2.391,0H5.069a.607.607,0,0,1,.415.171.589.589,0,0,1,0,.83.613.613,0,0,1-.415.171h-2.5c-.117,0-.234,0-.35.008a1.83,1.83,0,0,0-.306.083,1.825,1.825,0,0,0-.27.158,1.85,1.85,0,0,0-.217.217,1.834,1.834,0,0,0-.158.272,1.835,1.835,0,0,0-.083.305c0,.054-.007.109-.007.164,0,.212,0,.426,0,.639V7.616c0,.219-.012.446.007.666a1.825,1.825,0,0,0,.084.308,1.825,1.825,0,0,0,.158.271,1.81,1.81,0,0,0,.219.218,1.9,1.9,0,0,0,.269.156,1.842,1.842,0,0,0,.308.084c.054,0,.109.008.164.008.212,0,.426,0,.639,0h4.6c.22,0,.448.012.668-.008a1.831,1.831,0,0,0,.306-.084,1.863,1.863,0,0,0,.27-.158,1.811,1.811,0,0,0,.219-.219,1.846,1.846,0,0,0,.158-.271,1.861,1.861,0,0,0,.082-.3c.012-.137.008-.274.008-.411V5.431A.6.6,0,0,1,9.5,5.017a.59.59,0,0,1,.831,0,.61.61,0,0,1,.171.415V8.106a2.5,2.5,0,0,1-.246,1.065,2.382,2.382,0,0,1-2.1,1.329H8Zm-5.7-1.168Zm-.316-.066ZM1.7,9.125Zm-.233-.2Zm-.174-.258Zm-.1-.3ZM4.843,5.655a.6.6,0,0,1-.171-.415.6.6,0,0,1,.171-.415l.008-.008c.185-.19.377-.377.565-.565L6.58,3.088,7.922,1.747l.573-.572H7.308A.619.619,0,0,1,6.893,1,.6.6,0,0,1,6.721.588.59.59,0,0,1,6.893.173.61.61,0,0,1,7.308,0H9.913a.531.531,0,0,1,.3.083.6.6,0,0,1,.1.072l.019.016A.6.6,0,0,1,10.5.587h0c0,.012,0,.025,0,.037V3.192a.615.615,0,0,1-.171.415.59.59,0,0,1-.831,0,.61.61,0,0,1-.171-.415V2l-.734.734L7.25,4.079,6.14,5.189l-.466.465a.605.605,0,0,1-.415.171h-.02A.6.6,0,0,1,4.843,5.655Z" transform="translate(3.999 4)" fill="#404041" />
+                                    </svg>
+                                </a>
+                            </div>
+                    </div>
+            </div>
+        </div>
+    </div>
+</form>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+
+        </nav>
+    </header>
+    <div class="banner">
+                <div id="sectionCarousel" class="carousel slide" data-bs-ride="carousel">
+
+        <div class="carousel-inner">
+            <div class="carousel-item active" style="background-image: url('https://exxaro-prod.azureedge.net/sitestorage/media/ghkliy1e/investor-centre.jpg')">
+                <div class="overlay"></div>
+                <div class="carousel-content">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-12 col-lg-6 pe-lg-5">
+                                <div class="carousel-caption">
+                                    <nav aria-label="breadcrumb">
+                                        <ol class="breadcrumb justify-content-center justify-content-md-start">
+                                                <li class="breadcrumb-item">Investor Centre</li>
+                                                <li class="breadcrumb-item">Overview</li>
+
+
+                                        </ol>
+                                    </nav>
+                                    <h1 class="heading mb-3">Investor Centre</h1>
+                                    <div class="description mb-5"><p>With solid returns and access to funds and quality resources, we are confident in saying that Exxaro presents a unique opportunity for mining investors.</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+
+    </div>
+
+
+    </div>
+
+    <div id="content" class="quick-links-container container-xl mb-4">
+
+                
+<div class="px-1 quick-links d-flex align-items-stretch mb-4">
+    <div class="links shadow-sm rounded-3 d-flex align-items-center flex-fill justify-content-between" style="overflow: hidden;overflow-x: auto;">
+            <div class="ms-4 pe-3 py-2  d-flex align-items-center">
+                <iframe class=" mx-auto" src="https://irhosted.profiledata.co.za/Exxaro/2024_feeds/t01.aspx" style="height:75px; width: 1200px" scrolling="no" title="Share price"></iframe>
+            </div>
+    </div>
+
+</div>
+
+
+    </div>
+    
+<div class="container-xl mb-5" id="replays-new">
+    <div class="content-block">
+        <div class="row">
+
+            <div class="col-12 col-md-6 order-1 d-flex align-items-center mb-3">
+                <div class="flex-fill">
+                      <h4 class="content-block-strap"></h4>
+
+                    <div class="d-flex flex-fill justify-content-between align-items-center mb-3">
+                        <h1 class="content-block-title mb-0 me-3">Interim Financial Results Presentation</h1>
+                    </div>
+
+
+                    <div class="content-block-body mb-3"><p><strong>For the six months ended 30 June 2026</strong><br><br>To listen to the financial results presentation for the six month period ended 30 June 2026, that took place on 20th August 2026 please click below</p>
+                    
+                    <p><a class="btn btn-primary" href="https://www.corpcam.com/Exxaro20082026" target="_blank">Replay</a><br></p>
+                    
+                    <p><a class="btn btn-primary" href="/media/prgclasv/260819_1h26-results-presentation_master_wip_v07_final.pdf" target="_blank">Presentation</a><br></p>
+                    
+
+
+<div class="mb-3 d-flex align-items-center">                                    
+
+
+
+
+
+                            </div></div>
+                           
+
+
+                    <div class="content-block-buttons d-flex flex-row justify-content-center justify-content-md-start flex-wrap">
+                        <div class="mb-3 d-flex align-items-center">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 order-0 d-flex align-items-center justify-content-center mb-3 position-relative">
+
+                    <div class="card bg-dark text-white border-0 rounded-0">
+                        <img src="https://exxaro-site.azurewebsites.net/media/zmrb4bsf/interim-image-playback.jpg" class="card-img rounded-0" alt="Webcast" style="height: 540px;">
+                    </div>
+
+
+
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+<div class="container-xl mb-5" id="replays">
+    <div class="content-block">
+        <div class="row">
+
+            <div class="col-12 col-md-6 order-1 d-flex align-items-center mb-3">
+                <div class="flex-fill">
+                    <h4 class="content-block-strap"></h4>
+
+                    <div class="d-flex flex-fill justify-content-between align-items-center mb-3">
+                        <h1 class="content-block-title mb-0 me-3">2026 Capital Markets Day Presentation and FD Pre-Close</h1>
+                    </div>
+
+
+                    <div class="content-block-body mb-3"><p><strong>for the Six-month period ending 30 June 2026.</strong></p>
+                    
+                    <p><a class="btn btn-primary" href="/media/0xvgdwx1/exxaro-2026-cmd-presentation_22-june.pdf" target="_blank">2026 Capital Markets Day Presentation</a><br></p>
+                    
+                    <p><a class="btn btn-primary" href="/media/tkxfkabi/fd-pre-close-hye26_sens.pdf" target="_blank">Finance Director Pre-close Message</a><br></p>
+                    
+                    <p><a class="btn btn-primary" href="/media/dicap0az/exxaro-cmd-22-june-2026.mp4" target="_blank">CMD & FD Message Replay</a></p>
+
+                    <p><a class="btn btn-primary" href="/media/nbhid1t2/exxaro-cmd-transcripts-22-june-2026.pdf" target="_blank">CMD Transcripts</a></p>
+
+
+<div class="mb-3 d-flex align-items-center">                                    
+
+
+
+
+
+                            </div></div>
+                           
+
+
+                    <div class="content-block-buttons d-flex flex-row justify-content-center justify-content-md-start flex-wrap">
+                        <div class="mb-3 d-flex align-items-center">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 order-0 d-flex align-items-center justify-content-center mb-3 position-relative">
+
+                    <div class="card bg-dark text-white border-0 rounded-0">
+                        <img src="https://exxaro-site-staging.azurewebsites.net/media/5jaia0el/2026-cmd.png" class="card-img rounded-0" alt="Webcast" style="height: 540px;">
+                    </div>
+
+
+
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="container-xl mb-5" id="detail">
+    <div class="content-block">
+        <div class="row">
+
+            <div class="col-12 col-md-6 order-1 d-flex align-items-center mb-3">
+                <div class="flex-fill">
+                    <h4 class="content-block-strap"></h4>
+
+                    <div class="d-flex flex-fill justify-content-between align-items-center mb-3">
+                        <h1 class="content-block-title mb-0 me-3">Annual Financial Results</h1>
+                    </div>
+
+
+                    <div class="content-block-body mb-3"><p><strong>for the twelve-month period ended 31 December 2025</strong></p>
+
+<p>Watch the replay by clicking on the button below</p>
+
+<div class="mb-3 d-flex align-items-center">                                    
+<a href="https://www.corpcam.com/Exxaro19032026" target="_blank" class="text-nowrap d-flex btn btn-primary justify-content-center me-3 align-items-center " title="Replay">
+    <div class="text-start">
+         <span id="events">Replay</span>
+    </div>
+</a>
+
+                            </div></div>
+
+                    <div
+                        class="content-block-buttons d-flex flex-row justify-content-center justify-content-md-start flex-wrap">
+                        <div class="mb-3 d-flex align-items-center">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                class="col-12 col-md-6 order-0 d-flex align-items-center justify-content-center mb-3 position-relative">
+
+                    <div class="card bg-dark text-white border-0 rounded-0">
+                        <img src="https://exxaro-prod.azureedge.net/sitestorage/media/eptofxru/exxaro_annual-results-fy25_video-bg.jpg" class="card-img rounded-0" alt="Webcast" />
+                    </div>
+
+
+
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container-xl mb-5" id="investor-calendar">
+        <h1>Stay Up To Date</h1>
+        <div class="rounded shadow p-4 p-md-5 hover">
+            <h3 class="fx-alert-light">Upcoming Events</h3>
+            
+
+    <div class="d-flex flex-column flex-md-row align-items-md-center mb-3">
+        <div class="me-md-3 text-md-center">
+            <span>Oct</span><br />
+            <span class="fs-4">19</span><br />
+        </div>
+        <div class="flex-fill d-flex align-items-left align-items-md-center rounded bg-light px-4 py-3 flex-column flex-gap-1 flex-md-row w-100 w-md-auto">
+            <div class="me-auto">
+                <div><small>2026 Exxaro Governance Roadshow</small></div>
+                <div class="d-flex ">
+                        <small class="fw-bold">To take place from 19 October to 21 October 2026</small>
+                </div>
+            </div>
+
+
+            <div class="mx-md-2 pt-3 pt-md-0">
+                
+
+
+<form action="/investor-centre/" enctype="multipart/form-data" id="form6b6c006d6a074700964417822848ca1a" method="post"><input data-val="true" data-val-required="The EventId field is required." id="EventId" name="EventId" type="hidden" value="60f30043-2ffb-4aba-9371-691b278c8224" />    <button type="submit" class="btn btn-success fw-light text-white d-flex align-items-center" style="border-radius: 2rem">
+        <div class="me-2">Add to calendar</div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
+            <circle id="Oval" cx="18" cy="18" r="18" transform="translate(1 1)" fill="none" stroke="#fff" stroke-miterlimit="10" stroke-width="2" />
+            <g id="Group_1245" data-name="Group 1245" transform="translate(93.289 -13.079)">
+                <g id="Group_1241" data-name="Group 1241" transform="translate(-84.346 22.782)">
+                    <path id="Path_3523" data-name="Path 3523" d="M1210.053,1295.666h-1.893v-.768a.406.406,0,0,0-.813,0v.768h-3.1v-.768a.406.406,0,1,0-.813,0v.768h-3.1v-.768a.406.406,0,1,0-.813,0v.768h-3.1v-.768a.406.406,0,0,0-.813,0v.768h-1.893a1.893,1.893,0,0,0-1.891,1.891v14.148a1.893,1.893,0,0,0,1.891,1.891h16.339a1.893,1.893,0,0,0,1.891-1.891v-14.148A1.893,1.893,0,0,0,1210.053,1295.666Zm-16.339.813h1.893v.768a.406.406,0,1,0,.813,0v-.768h3.1v.768a.406.406,0,1,0,.813,0v-.768h3.1v.768a.406.406,0,1,0,.813,0v-.768h3.1v.768a.406.406,0,1,0,.813,0v-.768h1.893a1.079,1.079,0,0,1,1.078,1.078v1.513h-18.494v-1.513A1.079,1.079,0,0,1,1193.715,1296.479Zm16.339,16.3h-16.339a1.079,1.079,0,0,1-1.078-1.078v-11.822h18.494v11.822A1.079,1.079,0,0,1,1210.053,1312.783Z" transform="translate(-1191.824 -1294.492)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3524" data-name="Path 3524" d="M1253.98,1439.854h-3.616a.406.406,0,0,0-.406.406v2.906a.407.407,0,0,0,.406.407h3.616a.407.407,0,0,0,.406-.407v-2.906A.406.406,0,0,0,1253.98,1439.854Zm-.406,2.906h-2.8v-2.093h2.8Z" transform="translate(-1246.927 -1432.277)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3525" data-name="Path 3525" d="M1373.738,1439.854a.61.61,0,1,0,.61.61A.61.61,0,0,0,1373.738,1439.854Z" transform="translate(-1363.678 -1432.277)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3526" data-name="Path 3526" d="M1435.325,1439.854a.61.61,0,1,0,.609.61A.61.61,0,0,0,1435.325,1439.854Z" transform="translate(-1422.055 -1432.277)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3527" data-name="Path 3527" d="M1496.911,1439.854a.61.61,0,1,0,.61.61A.61.61,0,0,0,1496.911,1439.854Z" transform="translate(-1480.431 -1432.277)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3528" data-name="Path 3528" d="M1373.738,1487.8a.61.61,0,1,0,.61.61A.61.61,0,0,0,1373.738,1487.8Z" transform="translate(-1363.678 -1477.726)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3529" data-name="Path 3529" d="M1435.325,1487.8a.61.61,0,1,0,.609.61A.61.61,0,0,0,1435.325,1487.8Z" transform="translate(-1422.055 -1477.726)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3530" data-name="Path 3530" d="M1496.911,1487.8a.61.61,0,1,0,.61.61A.611.611,0,0,0,1496.911,1487.8Z" transform="translate(-1480.431 -1477.726)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3531" data-name="Path 3531" d="M1373.738,1535.75a.61.61,0,1,0,.61.61A.61.61,0,0,0,1373.738,1535.75Z" transform="translate(-1363.678 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3532" data-name="Path 3532" d="M1435.325,1535.75a.61.61,0,1,0,.609.61A.61.61,0,0,0,1435.325,1535.75Z" transform="translate(-1422.055 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3533" data-name="Path 3533" d="M1435.325,1583.7a.61.61,0,1,0,.609.61A.61.61,0,0,0,1435.325,1583.7Z" transform="translate(-1422.055 -1568.624)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3534" data-name="Path 3534" d="M1496.911,1535.75a.61.61,0,1,0,.61.61A.611.611,0,0,0,1496.911,1535.75Z" transform="translate(-1480.431 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3535" data-name="Path 3535" d="M1312.153,1535.75a.61.61,0,1,0,.61.61A.611.611,0,0,0,1312.153,1535.75Z" transform="translate(-1305.303 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3536" data-name="Path 3536" d="M1250.567,1535.75a.61.61,0,1,0,.61.61A.611.611,0,0,0,1250.567,1535.75Z" transform="translate(-1246.927 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3537" data-name="Path 3537" d="M1373.738,1583.7a.61.61,0,1,0,.61.61A.61.61,0,0,0,1373.738,1583.7Z" transform="translate(-1363.678 -1568.624)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3538" data-name="Path 3538" d="M1312.153,1583.7a.61.61,0,1,0,.61.61A.61.61,0,0,0,1312.153,1583.7Z" transform="translate(-1305.303 -1568.624)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3539" data-name="Path 3539" d="M1250.567,1583.7a.61.61,0,1,0,.61.61A.61.61,0,0,0,1250.567,1583.7Z" transform="translate(-1246.927 -1568.624)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                </g>
+            </g>
+        </svg>
+
+    </button>
+<input name="__RequestVerificationToken" type="hidden" value="CfDJ8NbHINT1aYpCkHZ0zjIWGKdBHyeAjy5sZKLJF7cfFCXs9y9Gj-k5PhePJBtCId4KyL03oGDBAHhgeO14ouifrd5kQXJT6ZScGLnlkDE_qksfQqz8q_LO6LZJaqQRPoS9_QbiZzmCtn7JSiqge8ckUYY" /><input name="ufprt" type="hidden" value="CfDJ8NbHINT1aYpCkHZ0zjIWGKdKKf3y9w93g-soEhk0MjVZp1IUrM0169YwTPjPB4nL_LKGxffQock7DwBgAt-NX56sfkRo0l49ZQw-IctteF--fuGnotVegApbwNbxsgn6-G6CxaTo3IbwiaYTIQG6pse3zWEg4ASv7AEX2QZFFv3R" /></form>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex flex-column flex-md-row align-items-md-center mb-3">
+        <div class="me-md-3 text-md-center">
+            <span>Dec</span><br />
+            <span class="fs-4">02</span><br />
+        </div>
+        <div class="flex-fill d-flex align-items-left align-items-md-center rounded bg-light px-4 py-3 flex-column flex-gap-1 flex-md-row w-100 w-md-auto">
+            <div class="me-auto">
+                <div><small>Finance Director&#x27;s pre-close message</small></div>
+                <div class="d-flex ">
+                        <small class="fw-bold">Twelve-month period ending 31 December 2026</small>
+                </div>
+            </div>
+
+
+            <div class="mx-md-2 pt-3 pt-md-0">
+                
+
+
+<form action="/investor-centre/" enctype="multipart/form-data" id="formf76ace48de484f4ba9d8ff51e76b54ba" method="post"><input id="EventId" name="EventId" type="hidden" value="5e8e3ed9-1933-486a-85a5-19f6b6add27d" />    <button type="submit" class="btn btn-success fw-light text-white d-flex align-items-center" style="border-radius: 2rem">
+        <div class="me-2">Add to calendar</div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
+            <circle id="Oval" cx="18" cy="18" r="18" transform="translate(1 1)" fill="none" stroke="#fff" stroke-miterlimit="10" stroke-width="2" />
+            <g id="Group_1245" data-name="Group 1245" transform="translate(93.289 -13.079)">
+                <g id="Group_1241" data-name="Group 1241" transform="translate(-84.346 22.782)">
+                    <path id="Path_3523" data-name="Path 3523" d="M1210.053,1295.666h-1.893v-.768a.406.406,0,0,0-.813,0v.768h-3.1v-.768a.406.406,0,1,0-.813,0v.768h-3.1v-.768a.406.406,0,1,0-.813,0v.768h-3.1v-.768a.406.406,0,0,0-.813,0v.768h-1.893a1.893,1.893,0,0,0-1.891,1.891v14.148a1.893,1.893,0,0,0,1.891,1.891h16.339a1.893,1.893,0,0,0,1.891-1.891v-14.148A1.893,1.893,0,0,0,1210.053,1295.666Zm-16.339.813h1.893v.768a.406.406,0,1,0,.813,0v-.768h3.1v.768a.406.406,0,1,0,.813,0v-.768h3.1v.768a.406.406,0,1,0,.813,0v-.768h3.1v.768a.406.406,0,1,0,.813,0v-.768h1.893a1.079,1.079,0,0,1,1.078,1.078v1.513h-18.494v-1.513A1.079,1.079,0,0,1,1193.715,1296.479Zm16.339,16.3h-16.339a1.079,1.079,0,0,1-1.078-1.078v-11.822h18.494v11.822A1.079,1.079,0,0,1,1210.053,1312.783Z" transform="translate(-1191.824 -1294.492)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3524" data-name="Path 3524" d="M1253.98,1439.854h-3.616a.406.406,0,0,0-.406.406v2.906a.407.407,0,0,0,.406.407h3.616a.407.407,0,0,0,.406-.407v-2.906A.406.406,0,0,0,1253.98,1439.854Zm-.406,2.906h-2.8v-2.093h2.8Z" transform="translate(-1246.927 -1432.277)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3525" data-name="Path 3525" d="M1373.738,1439.854a.61.61,0,1,0,.61.61A.61.61,0,0,0,1373.738,1439.854Z" transform="translate(-1363.678 -1432.277)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3526" data-name="Path 3526" d="M1435.325,1439.854a.61.61,0,1,0,.609.61A.61.61,0,0,0,1435.325,1439.854Z" transform="translate(-1422.055 -1432.277)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3527" data-name="Path 3527" d="M1496.911,1439.854a.61.61,0,1,0,.61.61A.61.61,0,0,0,1496.911,1439.854Z" transform="translate(-1480.431 -1432.277)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3528" data-name="Path 3528" d="M1373.738,1487.8a.61.61,0,1,0,.61.61A.61.61,0,0,0,1373.738,1487.8Z" transform="translate(-1363.678 -1477.726)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3529" data-name="Path 3529" d="M1435.325,1487.8a.61.61,0,1,0,.609.61A.61.61,0,0,0,1435.325,1487.8Z" transform="translate(-1422.055 -1477.726)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3530" data-name="Path 3530" d="M1496.911,1487.8a.61.61,0,1,0,.61.61A.611.611,0,0,0,1496.911,1487.8Z" transform="translate(-1480.431 -1477.726)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3531" data-name="Path 3531" d="M1373.738,1535.75a.61.61,0,1,0,.61.61A.61.61,0,0,0,1373.738,1535.75Z" transform="translate(-1363.678 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3532" data-name="Path 3532" d="M1435.325,1535.75a.61.61,0,1,0,.609.61A.61.61,0,0,0,1435.325,1535.75Z" transform="translate(-1422.055 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3533" data-name="Path 3533" d="M1435.325,1583.7a.61.61,0,1,0,.609.61A.61.61,0,0,0,1435.325,1583.7Z" transform="translate(-1422.055 -1568.624)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3534" data-name="Path 3534" d="M1496.911,1535.75a.61.61,0,1,0,.61.61A.611.611,0,0,0,1496.911,1535.75Z" transform="translate(-1480.431 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3535" data-name="Path 3535" d="M1312.153,1535.75a.61.61,0,1,0,.61.61A.611.611,0,0,0,1312.153,1535.75Z" transform="translate(-1305.303 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3536" data-name="Path 3536" d="M1250.567,1535.75a.61.61,0,1,0,.61.61A.611.611,0,0,0,1250.567,1535.75Z" transform="translate(-1246.927 -1523.175)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3537" data-name="Path 3537" d="M1373.738,1583.7a.61.61,0,1,0,.61.61A.61.61,0,0,0,1373.738,1583.7Z" transform="translate(-1363.678 -1568.624)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3538" data-name="Path 3538" d="M1312.153,1583.7a.61.61,0,1,0,.61.61A.61.61,0,0,0,1312.153,1583.7Z" transform="translate(-1305.303 -1568.624)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                    <path id="Path_3539" data-name="Path 3539" d="M1250.567,1583.7a.61.61,0,1,0,.61.61A.61.61,0,0,0,1250.567,1583.7Z" transform="translate(-1246.927 -1568.624)" fill="#fff" stroke="#fff" stroke-width="0.5" />
+                </g>
+            </g>
+        </svg>
+
+    </button>
+<input name="__RequestVerificationToken" type="hidden" value="CfDJ8NbHINT1aYpCkHZ0zjIWGKdBHyeAjy5sZKLJF7cfFCXs9y9Gj-k5PhePJBtCId4KyL03oGDBAHhgeO14ouifrd5kQXJT6ZScGLnlkDE_qksfQqz8q_LO6LZJaqQRPoS9_QbiZzmCtn7JSiqge8ckUYY" /><input name="ufprt" type="hidden" value="CfDJ8NbHINT1aYpCkHZ0zjIWGKdiTjawt0sJUvePxXxZ4_9rkMMkq0ieJ6ZW3QL9p4UwELGV9-ZnMS_zmmlMGhiTK3H9BtAVr3bd68IVm45OUF5N-nB8oXgBJvhSVXGPdd0dX63zkMAr5ZluTnsG_BM2OhT_dZcK9E7w_ifcRQeX3_EJ" /></form>
+            </div>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <div class="container-xl mb-5" id="share-information">
+        <h1>Share Information</h1>
+        <div class="card bg-dark text-white border-0 rounded-0">
+            <img src="https://exxaro-prod.azureedge.net/sitestorage/media/wgcj2yoa/mask-group-31.jpg" class="card-img rounded-0"
+            alt="Share Information">
+            <div class="card-img-overlay d-flex justify-content-end align-items-end">
+
+            </div>
+        </div>
+    </div>
+
+<div class="container-xl mb-5">
+
+    <ul class="nav nav-tabs  nav-fill mb-3 overflow-tabs" id="shareWidgetTab" role="tablist">
+
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold active" id="tab-1" data-bs-toggle="tab" data-bs-target="#tab-content-1"
+                type="button" role="tab" aria-controls="tab-content-3" aria-selected="false">SENS</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="tab-2" data-bs-toggle="tab" data-bs-target="#tab-content-2"
+                type="button" role="tab" aria-controls="tab-content-1" aria-selected="false">Interactive Share
+                Statistics</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="tab-3" data-bs-toggle="tab" data-bs-target="#tab-content-3"
+                type="button" role="tab" aria-controls="tab-content-2" aria-selected="false">Register for
+                Alerts</button>
+        </li>
+        <li class="nav-item dropdown" role="presentation">
+            <button class="nav-link fw-bold" id="tab-6" data-bs-toggle="tab" data-bs-target="#tab-content-6"
+                type="button" role="tab" aria-controls="tab-content-6" aria-selected="true">Performance
+                Analysis</button>
+            <!--<button class="nav-link fw-bold" type="button">Performance Analysis</button>-->
+            <ul class="dropdown-menu">
+                <li>
+                    <button class="dropdown-item" id="tab-4" data-bs-toggle="tab" data-bs-target="#tab-content-4"
+                        type="button" role="tab" aria-controls="tab-content-4" aria-selected="false">Intraday</button>
+                </li>
+                <li>
+                    <button class="dropdown-item" id="tab-5" data-bs-toggle="tab" data-bs-target="#tab-content-5"
+                        type="button" role="tab" aria-controls="tab-content-5" aria-selected="false">End of Day</button>
+                </li>
+                <li>
+                    <button class="dropdown-item" id="tab-7" data-bs-toggle="tab" data-bs-target="#tab-content-7"
+                        type="button" role="tab" aria-controls="tab-content-7" aria-selected="false">Financial
+                        Highlights</button>
+                </li>
+                <li>
+                    <button class="dropdown-item" id="tab-8" data-bs-toggle="tab" data-bs-target="#tab-content-8"
+                        type="button" role="tab" aria-controls="tab-content-8" aria-selected="false">Dividend
+                        Calculator</button>
+                </li>
+                <li>
+                    <button class="dropdown-item" id="tab-9" data-bs-toggle="tab" data-bs-target="#tab-content-9"
+                        type="button" role="tab" aria-controls="tab-content-9" aria-selected="false">Consensus
+                        Forecasts</button>
+                </li>
+                <li>
+                    <button class="dropdown-item" id="tab-10" data-bs-toggle="tab" data-bs-target="#tab-content-10"
+                        type="button" role="tab" aria-controls="tab-content-10" aria-selected="false">Unit Trust
+                        Holdings</button>
+                </li>
+            </ul>
+        </li>
+
+    </ul>
+
+
+
+    <div class="tab-content" id="myTabContent">
+
+                <div class="tab-pane fade show active" id="tab-content-1" role="tabpanel"
+                aria-labelledby="tab-1">
+                        <iframe id="iframe-1-1" src="https://irhosted.profiledata.co.za/exxaro/2021_feedsb/N03_sens.htm"
+                    style="width: 1px; min-width: 100%; min-height: 900px" title="SENS"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-2" role="tabpanel"
+                aria-labelledby="tab-2">
+                        <iframe id="iframe-2-1" src="https://irhosted.profiledata.co.za/Exxaro/2021_feeds/s05_int_stats.aspx"
+                    style="width: 1px; min-width: 100%; min-height: 470px" title="Interactive Share Statistics"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-3" role="tabpanel"
+                aria-labelledby="tab-3">
+                        <iframe id="iframe-3-1" src="https://irhosted.profiledata.co.za/alert_service/exxaro/2021_feeds/"
+                    style="width: 1px; min-width: 100%; min-height: 650px" title="Register for Alerts"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-4" role="tabpanel"
+                aria-labelledby="tab-4">
+                        <iframe id="iframe-4-1" src="https://irhosted.profiledata.co.za/Exxaro/2021_feeds/all_intraday.aspx"
+                    style="width: 1px; min-width: 100%; min-height: 770px" title="Intraday"></iframe>
+                        <iframe id="iframe-4-2" src="https://irhosted.profiledata.co.za/Exxaro/2021_feeds/all_intraday_t05.aspx"
+                    style="width: 1px; min-width: 100%; min-height: 460px" title="Intraday"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-5" role="tabpanel"
+                aria-labelledby="tab-5">
+                        <iframe id="iframe-5-1" src="https://irhosted.profiledata.co.za/Exxaro/2021_feeds/all_eod.aspx"
+                    style="width: 1px; min-width: 100%; min-height: 760px" title="End of Day"></iframe>
+                        <iframe id="iframe-5-2" src="https://irhosted.profiledata.co.za/Exxaro/2021_feeds/all_eod_e03.aspx"
+                    style="width: 1px; min-width: 100%; min-height: 1020px" title="End of Day"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-6" role="tabpanel"
+                aria-labelledby="tab-6">
+                        <iframe id="iframe-6-1" src="https://irhosted.profiledata.co.za/Exxaro/2021_feeds/TotalReturnChartjse/TotalReturn.htm"
+                    style="width: 1px; min-width: 100%; min-height: 400px" title="Performance Analysis"></iframe>
+                        <iframe id="iframe-6-2" src="https://irhosted.profiledata.co.za/Exxaro/2021_feeds/TotalReturnCharta2x/TotalReturn.htm"
+                    style="width: 1px; min-width: 100%; min-height: 400px" title="Performance Analysis"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-7" role="tabpanel"
+                aria-labelledby="tab-7">
+                        <iframe id="iframe-7-1" src="https://irhosted.profiledata.co.za/exxaro/2021_feeds/findetails.aspx"
+                    style="width: 1px; min-width: 100%; min-height: 2530px" title="Financial Highlights"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-8" role="tabpanel"
+                aria-labelledby="tab-8">
+                        <iframe id="iframe-8-1" src="https://irhosted.profiledata.co.za/exxaro/2021_feedsb/DividendsCalculator.htm"
+                    style="width: 1px; min-width: 100%; min-height: 1630px" title="Dividend Calculator"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-9" role="tabpanel"
+                aria-labelledby="tab-9">
+                        <iframe id="iframe-9-1" src="https://irhosted.profiledata.co.za/Exxaro/2021_feeds/forecasts.aspx"
+                    style="width: 1px; min-width: 100%; min-height: 1832px" title="Consensus Forecasts"></iframe>
+
+                </div>
+                <div class="tab-pane fade " id="tab-content-10" role="tabpanel"
+                aria-labelledby="tab-10">
+                        <iframe id="iframe-10-1" src="https://profiledata.co.za/irsites/Exxaro/2021_feeds/FundActivityGraphs/v2/scripts/ShareStatsAndInsights/FundActivityGraphs.aspx?c=EXX"
+                    style="width: 1px; min-width: 100%; min-height: 700px" title="Unit Trust Holdings"></iframe>
+
+                </div>
+
+    </div>
+
+</div>
+
+
+<div class="container-xl mb-2">
+    <div class="content-block p-2 ">
+    <div class="row">
+        <div class="col-12 d-flex align-items-center mb-3">
+            <div class="flex-fill">
+
+                    <div class="d-flex flex-fill justify-content-between align-items-center mb-3">
+                        <h1 class="content-block-title mb-0 me-3">Highlights</h1>
+                    </div>
+
+
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<div class="container-xl mb-5">
+    <div class="row">
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card h-100 p-3 hover">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary fw-normal fs-2">R853 million for SMME empowerment </h5>
+                        <p class="card-text"><p>Local Procurement Investment </p>
+
+<ul>
+<li>Achieved procurement spend of 13.4% (R853 million), compared to our
+target of 10%, which has empowered over 238 local black women-owned
+and black youth-owned SMMEs.</li>
+<li>We approved enterprise and supplier development funding of R250
+million, a year-on-year improvement of 96%, to 22 SMMEs employing 972
+people.</li>
+</ul></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card h-100 p-3 hover">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary fw-normal fs-2">R131 million toward education  </h5>
+                        <p class="card-text"><p>Sustainable Development  </p>
+
+<ul>
+<li>We contributed R131 million toward education, health and water
+infrastructure which will benefit community households.</li>
+<li>Partnered with two implementation partners who are recognised by the
+Youth Employment Service (YES) ecosystem as providers of high-impact
+skills development and social entrepreneurship training.</li>
+<li>There is a year-to-date (YTD) total of 194 learners and spend of R8.6
+million.</li>
+</ul></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card h-100 p-3 hover">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary fw-normal fs-2">R8.2 million for community development </h5>
+                        <p class="card-text"><p>Social Impact </p>
+
+<ul>
+<li>To develop a pipeline of future talent, a total of R8.2 million was
+spent on various education initiatives, such as an Early Childhood
+Development (ECD) programme, Adopt-a-school programme and Information
+and Communications Technology (ICT) learning and support.</li>
+<li>A bursary programme which currently has 34 students from the seven
+communities at an investment is also in place.</li>
+</ul></p>
+                    </div>
+                </div>
+            </div>
+    </div>
+</div>
+
+<div class="container-xl mb-2">
+    <div class="content-block p-2 ">
+    <div class="row">
+        <div class="col-12 col-md-6 order-1 d-flex align-items-center mb-3">
+            <div class="flex-fill">
+
+                    <div class="d-flex flex-fill justify-content-between align-items-center mb-3">
+                        <h1 class="content-block-title mb-0 me-3">Integrated Reports</h1>
+                            
+<a href="/investor-centre/integrated-reports/" target="_self" class="text-nowrap d-flex text-primary justify-content-start me-3 align-items-center " title="View integrated reports">
+    <div class="text-start">
+        <span>View integrated reports</span>
+    </div>
+            <div class="ps-2 link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                    <path d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                    </div>
+
+
+                    <div class="content-block-body mb-3"><p>Exxaro's integrated reports explain the annual progress in our journey to create and preserve value for our stakeholders. As one of our primary channels communication to our stakeholders, the content in the integrated reports contains the most material information relating to our value creation journey.</p></div>
+                
+            </div>
+        </div>
+            <div class="col-12 col-md-6 order-0 d-flex align-items-center justify-content-center mb-3">
+                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/ioxbiqng/in-picturebanner1.jpg" class="img-fluid" alt="Integrated Reports" />
+            </div>
+    </div>
+</div>
+
+</div>
+
+
+    <div class="container-xl mb-2">
+
+    <div class="content-block p-2 hover">
+        <div class="row">
+            <div class="col-12 col-md-6 d-flex align-items-center mb-3">
+                <div class="flex-fill">
+                    <h4 class="content-block-strap">About us</h4>
+
+                    <div class="d-flex flex-fill justify-content-between align-items-center mb-3">
+                        <h1 class="content-block-title mb-0 me-3">Invest in Exxaro</h1>
+                    </div>
+
+
+                    <div class="content-block-body mb-3"><p>We are guided by our purpose – Powering Better Lives in Africa and Beyond: Exxaro is a critical part of the South African economy and an active participant in the just transition to a low-carbon economy. Based on our position as a major coal supplier in South Africa, we understand the importance of being carbon-neutral and finally net-zero carbon. Therefore, we have started incorporating renewable energy solutions into our existing portfolio to reach this milestone by 2050.</p></div>
+
+                    <div
+                        class="content-block-buttons d-flex flex-column justify-content-center justify-content-md-start flex-wrap">
+
+                                <div class="mb-3 d-flex align-items-center">
+                                    
+<a class="btn btn-outline-primary d-flex align-items-center w-100" href="/our-business/our-vision/" target="_self">
+    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/qs4b2nvs/group-1249.svg" class="img-fluid me-3 p-2" style="max-width: 75px" />
+    <div class="text-dark text-start flex-fill"  style="text-transform: none;">
+        <div class="fw-bold fs-6">Strategic Vision</div>
+            <small class="fw-normal">Exxaro uses the six-capitals model as a balanced approach for sustainable growth.</small>
+    </div>
+</a>
+
+                                </div>
+                                <div class="mb-3 d-flex align-items-center">
+                                    
+<a class="btn btn-outline-primary d-flex align-items-center w-100" href="/our-business/leadership/" target="_self">
+    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/gc0embtk/group-1219.svg" class="img-fluid me-3 p-2" style="max-width: 75px" />
+    <div class="text-dark text-start flex-fill"  style="text-transform: none;">
+        <div class="fw-bold fs-6">Meet Our Leaders</div>
+            <small class="fw-normal">We are led by a team of board of directors, and an executive committee committed to driving success. </small>
+    </div>
+</a>
+
+                                </div>
+                                <div class="mb-3 d-flex align-items-center">
+                                    
+<a class="btn btn-outline-primary d-flex align-items-center w-100" href="/investor-centre/esg/" target="_self">
+    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/2jbfdps4/group-1248.svg" class="img-fluid me-3 p-2" style="max-width: 75px" />
+    <div class="text-dark text-start flex-fill"  style="text-transform: none;">
+        <div class="fw-bold fs-6">ESG </div>
+            <small class="fw-normal">Everything we do today is geared toward ensuring a safer and more productive tomorrow.</small>
+    </div>
+</a>
+
+                                </div>
+                                <div class="mb-3 d-flex align-items-center">
+                                    
+<a class="btn btn-outline-primary d-flex align-items-center w-100" href="/investor-disclaimer/" target="_self">
+    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/swmnxrva/group-1683.svg" class="img-fluid me-3 p-2" style="max-width: 75px" />
+    <div class="text-dark text-start flex-fill"  style="text-transform: none;">
+        <div class="fw-bold fs-6">Investor Disclaimer</div>
+            <small class="fw-normal">Although Exxaro provides reports on its operational and financial performance, Exxaro is not a registered financial advisor. Persons considering investing in Exxaro should approach a financial advisor before investing in Exxaro.</small>
+    </div>
+</a>
+
+                                </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 d-flex align-items-center justify-content-center mb-3  ">
+
+                    <div class="mx-lg-4 video-bg  d-flex align-items-center justify-content-center">
+                        <video autoplay muted loop class="video">
+                            <source src="/media/mkmiksj1/video.mp4" type="video/mp4">
+                        </video>
+
+
+
+                            <div class="widget rounded-2 p-3 my-3 d-flex align-items-center justify-content-center">
+                                <iframe class=" mx-auto" src="https://irhosted.profiledata.co.za/exxaro/2021_feedsb/t01_home1.htm" style="height: 140px; width: 245px"
+                            scrolling="no" title="Share price"></iframe>
+                            </div>
+
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="container-xl mb-5">
+    <h1 class="mb-3"></h1>
+
+        <div></div>
+    </div>
+
+    <div class="container-xl mb-5">
+    
+     
+    <a id="investor-relations"></a>
+    <h2 class="fw-light">Investor Relations </h2>
+<div class="d-flex align-items-start align-items-lg-center flex-column flex-lg-row rounded-2 shadow p-3 mb-5 bg-white hover" id="investor-relations">
+    
+    <div class="flex-fill">
+        <h5>Anda Mwanda</h5>
+        <small class="fw-light">Manager: <strong>Investor Relations</strong></small>
+    </div>
+    <div class="pe-lg-5 fs-5 fw-light phone-number">
+        &#x2B;27 12 307 5000
+    </div>
+    <div class="border-end d-none d-md-block">&nbsp;</div>
+    <div class="px-lg-5 fs-5 fw-light">
+        InvestorRelations@exxaro.com
+    </div>
+</div>
+</div>
+
+
+    <div class="container-xl mb-5">
+
+    <div class="content-block">
+        <div class="row">
+
+            <div class="col-12 d-flex align-items-center mb-3">
+                <div class="flex-fill">
+
+                    <div class="d-flex flex-fill justify-content-between align-items-center mb-3">
+                        <h1 class="content-block-title mb-0 me-3">Learning Through Reflection</h1>
+
+                                    
+<a href="/media-and-insights/" target="_self" class="text-nowrap d-flex text-dark justify-content-start me-3 align-items-center " title="Archive">
+    <div class="text-start">
+        <span>Archive</span>
+    </div>
+            <div class="ps-2 link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                    <path d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="currentColor" />
+                </svg>
+            </div>
+</a>
+
+                        </div>
+
+
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                    <div class="col-12 col-md-6">
+                        <div class="card text-white position-relative hover">
+                            <img src="https://exxaro-prod.azureedge.net/sitestorage/media/qkzenotz/mask-group-32_.jpg" class="card-img rounded-0" alt="6 Green Star Rating Building">
+                            <div class="overlay"></div>
+                            <div class="card-img-overlay d-flex align-items-end px-5 rounded-0">
+
+                                <div>
+                                    <h3 class="card-title fw-light">6 Green Star Rating Building</h3>
+                                    <a href="/media-and-insights/press-releases/exxaro-s-sustainability-summit-achieves-platinum-status/" title="item.Title" class="d-flex align-items-center text-white">
+                                        <div class="me-2">Read more</div>
+                                        <svg id="ARROW" xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666"
+                                    viewBox="0 0 10.972 8.666">
+                                            <path id="Path"
+                                        d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z"
+                                        transform="translate(0 8.666) rotate(-90)" fill="#fff" />
+                                        </svg>
+
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="card text-white position-relative hover">
+                            <img src="https://exxaro-prod.azureedge.net/sitestorage/media/xntgld2a/mask-group-32.jpg" class="card-img rounded-0" alt="Innovation-led  Transformation">
+                            <div class="overlay"></div>
+                            <div class="card-img-overlay d-flex align-items-end px-5 rounded-0">
+
+                                <div>
+                                    <h3 class="card-title fw-light">Innovation-led  Transformation</h3>
+                                    <a href="/media-and-insights/news/diversity-and-inclusion-drives-exxaro-s-transformation-programme/" title="item.Title" class="d-flex align-items-center text-white">
+                                        <div class="me-2">Read more</div>
+                                        <svg id="ARROW" xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666"
+                                    viewBox="0 0 10.972 8.666">
+                                            <path id="Path"
+                                        d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z"
+                                        transform="translate(0 8.666) rotate(-90)" fill="#fff" />
+                                        </svg>
+
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+        </div>
+
+
+
+
+    </div>
+
+
+
+        <div class="container-xl mb-5" id="interests">
+
+            
+<h3 class="fw-light text-uppercase">OTHER STORIES YOU MIGHT BE INTERESTED IN</h3>
+
+    <div class="row">
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card h-100 interest hover">
+                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/fpvduybe/trpedciq.jpeg" class="card-img rounded-0" alt="EXXARO SEND EXPERT DELEG......" />
+                    <div class="overlay"></div>
+                    <div class="card-img-overlay text-white d-flex align-items-end justify-content-start px-5 rounded-0">
+                        <div>
+                            <h4 class="card-title">EXXARO SEND EXPERT DELEG......</h4>
+                            <a href="/media-and-insights/press-releases/exxaro-send-expert-delegation-to-global-leaders-cop26-climate-change-summit/" target="_self" class="d-flex align-items-center text-white">
+
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">Read more</div>
+                                    <svg id="ARROW" xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                                        <path id="Path" d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="#fff" />
+                                    </svg>
+
+                                </div>
+
+                            </a>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card h-100 interest hover">
+                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/ya3hc1et/image1.jpg" class="card-img rounded-0" alt="EXXARO SUCCESSFULLY VACCINATES......" />
+                    <div class="overlay"></div>
+                    <div class="card-img-overlay text-white d-flex align-items-end justify-content-start px-5 rounded-0">
+                        <div>
+                            <h4 class="card-title">EXXARO SUCCESSFULLY VACCINATES......</h4>
+                            <a href="/media-and-insights/press-releases/exxaro-successfully-vaccinates-over-70-of-its-employees-voluntarily/" target="_self" class="d-flex align-items-center text-white">
+
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">Read more</div>
+                                    <svg id="ARROW" xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                                        <path id="Path" d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="#fff" />
+                                    </svg>
+
+                                </div>
+
+                            </a>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card h-100 interest hover">
+                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/p4phg2xt/ggc-waterbowser.jpg" class="card-img rounded-0" alt="EXXARO GROOTEGELUK DONATES" />
+                    <div class="overlay"></div>
+                    <div class="card-img-overlay text-white d-flex align-items-end justify-content-start px-5 rounded-0">
+                        <div>
+                            <h4 class="card-title">EXXARO GROOTEGELUK DONATES</h4>
+                            <a href="/media-and-insights/press-releases/exxaro-grootegeluk-donates-water-truck-to-lephalale-local-municipality/" target="_self" class="d-flex align-items-center text-white">
+
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">Read more</div>
+                                    <svg id="ARROW" xmlns="http://www.w3.org/2000/svg" width="10.972" height="8.666" viewBox="0 0 10.972 8.666">
+                                        <path id="Path" d="M7.029,6.177,5.3,7.929V.922A.891.891,0,0,0,4.333,0,.891.891,0,0,0,3.37.922V7.837L1.637,6.177a.96.96,0,0,0-1.348,0,.865.865,0,0,0,0,1.291L3.659,10.7a1.064,1.064,0,0,0,.674.277,1.064,1.064,0,0,0,.674-.277l3.37-3.227a.865.865,0,0,0,0-1.291A.96.96,0,0,0,7.029,6.177Z" transform="translate(0 8.666) rotate(-90)" fill="#fff" />
+                                    </svg>
+
+                                </div>
+
+                            </a>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+    </div>
+
+
+        </div>
+    
+
+
+    <footer class="py-5">
+
+
+
+
+        <div class="container-xl">
+            <div class="row">
+                <div class="col">
+                    <img src="/img/logo_light.svg" class="img-fluid mb-4 mb-md-5" />
+                </div>
+                <div class="col d-flex">
+                    <img src="/img/top-employer-south-africa-2026.png" class="img-fluid mb-4 mb-md-5 ms-auto" style="height: 55px">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 col-md-5 col-lg-4">
+                        <p>
+&#x2B;27 12 307 5000                                <br />
+                        </p>
+                        <div class="mb-3"><p><strong>The conneXXion</strong><br />
+263B, West Avenue<br />
+Die Hoewes<br />
+Centurion<br />
+0163</p></div>
+                </div>
+                <div class="d-none d-lg-block col-lg-2">
+                    &nbsp;
+                </div>
+                <div class="col-12 col-md-7 col-lg-6 mb-3">
+                        <div class="h5 text-uppercase fw-bold">Fraud and Ethics Hotline</div>
+                        <div class=""><small><p>Do you have a case of suspected fraud or corruption to report?<br />
+Contact Tip-offs Anonymous using the following independent channels:</p></small></div>
+                        <a href="tel:&#x2B;27 800 203 579">&#x2B;27 800 203 579</a>
+                        <br />
+                        <a href="mailto:exxaro@tip-offs.com">exxaro@tip-offs.com</a>
+                        <br />
+                        <a href="https://www.tip-offs.com" target="_blank" title="www.tip-offs.com">www.tip-offs.com</a>
+                        <br />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 col-md-5 col-lg-4 mb-4">
+
+                        <div class="widget rounded-2 py-3 mb-3 d-flex align-items-center justify-content-center">
+                            <iframe class=" mx-auto" src="https://irhosted.profiledata.co.za/exxaro/2021_feedsb/t01_home1.htm" style="height: 140px; width: 245px"
+                                    scrolling="no" title="Share price"></iframe>
+                        </div>
+                        <div class="widget rounded-2 p-3 mb-3">
+
+                                <div class="h4 fw-bold mt-1 mb-3">Exxaro Portals</div>
+                                <div class="mt-3">
+                                    <a href="https://exxaro.microsoftcrmportals.com/" target="_blank" title="Suppliers and Logistics Portal"
+                                       class="text-white d-flex justify-content-between align-items-center">
+                                        <span>Suppliers and Logistics Portal</span><img src="/img/icon_link.svg" class="img-fluid" />
+                                    </a>
+                                </div>
+                                <div class="mt-3">
+                                    <a href="https://exxaro.erecruit.co/candidateapp/Jobs/Browse" target="_blank" title="Careers Portal"
+                                       class="text-white d-flex justify-content-between align-items-center">
+                                        <span>Careers Portal</span><img src="/img/icon_link.svg" class="img-fluid" />
+                                    </a>
+                                </div>
+
+                        </div>
+                        <div class="d-flex align-items-end justify-content-center justify-content-md-start">
+                                <a href="https://www.facebook.com/ExxaroResources" target="_blank" class="me-3" title="Facebook">
+                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/kcibcra1/icon_facebook.svg" alt="Facebook" />
+                                </a>
+                                <a href="https://twitter.com/exxaroresources" target="_blank" class="me-3" title="Twitter">
+                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/42rnhpvk/icons8-twitterx-24.png" alt="Twitter" />
+                                </a>
+                                <a href="https://www.instagram.com/exxaro_resources/" target="_blank" class="me-3" title="Instagram">
+                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/0vgbp454/icon_instagram.svg" alt="Instagram" />
+                                </a>
+                                <a href="https://www.linkedin.com/company/exxaro-resources/" target="_blank" class="me-3" title="Linkedin">
+                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/ovgjyx4s/icon_linkedin.svg" alt="Linkedin" />
+                                </a>
+                                <a href="https://www.youtube.com/channel/UCWDCTdYHjMIp3lZzo1-_0YQ" target="_blank" class="me-3" title="YouTube">
+                                    <img src="https://exxaro-prod.azureedge.net/sitestorage/media/zifkq35n/icon_youtube.svg" alt="YouTube" />
+                                </a>
+                        </div>
+                </div>
+                <div class="d-none d-lg-block col-lg-2">
+                    &nbsp;
+                </div>
+                <div class="col-12 col-md-7 col-lg-6 mb-4">
+                    <div class="row" data-masonry='{"percentPosition": true }'>
+                            <div class="col-12 col-md-6 mb-3">
+                                <div class="h6 text-uppercase fw-bold">Investors</div>
+                                    <a href="/investor-centre/financial-results/" target="_self" class="text-white">Results and Reporting</a>
+                                    <br />
+                                    <a href="/investor-centre/" target="_self" class="text-white">Share Price and Tools</a>
+                                    <br />
+                                    <a href="/investor-centre/" target="_self" class="text-white">Investor Calendar</a>
+                                    <br />
+                                    <a href="/investor-centre/presentations-and-speeches/" target="_self" class="text-white">Presentation and Speeches</a>
+                                    <br />
+                                    <a href="/investor-centre/" target="_self" class="text-white">Investor Relations Contact</a>
+                                    <br />
+                                    <a href="/sustainability/case-studies/" target="_self" class="text-white">Case Studies</a>
+                                    <br />
+                                    <a href="/media-and-insights/news/" target="_self" class="text-white">Regulatory News</a>
+                                    <br />
+                            </div>
+                            <div class="col-12 col-md-6 mb-3">
+                                <div class="h6 text-uppercase fw-bold">Get In Touch</div>
+                                    <a href="/investor-centre/" target="_self" class="text-white">Investor Relations</a>
+                                    <br />
+                                    <a href="/sustainability/" target="_self" class="text-white">Corporate and Community</a>
+                                    <br />
+                                    <a href="/sustainability/enterprise-supplier-development/" target="_self" class="text-white">Enterprise and Supplier Development</a>
+                                    <br />
+                                    <a href="/suppliers/" target="_self" class="text-white">Supplier</a>
+                                    <br />
+                            </div>
+                            <div class="col-12 col-md-6 mb-3">
+                                <div class="h6 text-uppercase fw-bold">Careers</div>
+                                    <a href="/careers/grow-with-us/" target="_self" class="text-white">Working for Exxaro</a>
+                                    <br />
+                                    <a href="https://exxaro.erecruit.co/candidateapp/Jobs/Browse" target="_blank" class="text-white">Job Opportunities</a>
+                                    <br />
+                                    <a href="/careers/student-hub/" target="_self" class="text-white">Skills Development</a>
+                                    <br />
+                                    <a href="/careers/" target="_self" class="text-white">The Workplace</a>
+                                    <br />
+                            </div>
+                            <div class="col-12 col-md-6 mb-3">
+                                <div class="h6 text-uppercase fw-bold">Media and Insights</div>
+                                    <a href="/media-and-insights/press-releases/" target="_self" class="text-white">Press Releases</a>
+                                    <br />
+                                    <a href="/media-and-insights/news/" target="_self" class="text-white">News and Top Stories</a>
+                                    <br />
+                                    <a href="/investor-centre/presentations-and-speeches/" target="_self" class="text-white">Presentation and Speeches</a>
+                                    <br />
+                            </div>
+                            <div class="col-12 col-md-6 mb-3">
+                                <div class="h6 text-uppercase fw-bold">Suppliers</div>
+                                    <a href="/suppliers/" target="_self" class="text-white">Register as a Supplier</a>
+                                    <br />
+                                    <a href="/suppliers/supplier-guide/" target="_self" class="text-white">Our Selection Process</a>
+                                    <br />
+                                    <a href="/sustainability/enterprise-supplier-development/" target="_self" class="text-white">Enterprise and Supplier Development</a>
+                                    <br />
+                                    <a href="https://exxaro.microsoftcrmportals.com/" target="_blank" class="text-white">Supplier Portal</a>
+                                    <br />
+                            </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </footer>
+    <div class="sub-footer bg-white mt-3 mt-md-0">
+        <div class="container-xl fw-light">
+            <div class="row">
+                <div class="col-12 col-md-5 col-lg-4 my-3 d-flex justify-content-center justify-content-md-start">
+                    &#xA9; 2026 Exxaro. All rights reserved.
+                </div>
+                <div class="d-none d-lg-block col-lg-2">
+                    &nbsp;
+                </div>
+                <div class="col-12 col-md-7 col-lg-6 my-3 d-flex flex-column flex-md-row align-items-center justify-content-md-start">
+                        <a href="/" target="_self" class="me-0 me-md-3 mb-3 mb-md-0">Terms &amp; Conditions</a>
+                        <a href="/disclaimer/" target="_self" class="me-0 me-md-3 mb-3 mb-md-0">Disclaimer</a>
+                        <a href="/sitemap/" target="_self" class="me-0 me-md-3 mb-3 mb-md-0">Site Map</a>
+                        <a href="https://exxaro-prod.azureedge.net/sitestorage/media/hm3ip5x2/exxaro-paia-manual-2024-fv.pdf" target="_blank" class="me-0 me-md-3 mb-3 mb-md-0">PAIA</a>
+                        <a href="/" target="_self" class="me-0 me-md-3 mb-3 mb-md-0">Cookie Policy</a>
+                        <a href="https://exxaro-prod.azureedge.net/sitestorage/media/m2xhzdfm/exxaro-group-privacy-policy_nov-2021.pdf" target="_blank" class="me-0 me-md-3 mb-3 mb-md-0">Privacy Policy</a>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="back-to-top" style="display:none;">
+        <a href="#" class="btn btn-white fw-bold d-flex align-items-center" style="min-width:auto;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 19 19">
+                <path data-name="Path 35" d="M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z" transform="translate(0.5 0.5)"
+                      fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="1"></path>
+                <path d="M7.3,6.7,5.5,8.6V1a.945.945,0,0,0-1-1,.945.945,0,0,0-1,1V8.5L1.7,6.7a.967.967,0,0,0-1.4,0,.967.967,0,0,0,0,1.4l3.5,3.5a1.08,1.08,0,0,0,.7.3,1.08,1.08,0,0,0,.7-.3L8.7,8.1A.99.99,0,1,0,7.3,6.7Z"
+                      transform="translate(14 15.5) rotate(180)" fill="currentColor"></path>
+            </svg>
+        </a>
+    </div>
+
+    <div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="videoModalLabel">Modal title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="ratio ratio-16x9">
+                        <video id="modalVideo" class="video-js" controls preload="auto" width="640" height="264"
+                               data-setup="{}">
+                            <p class="vjs-no-js">
+                                To view this video please enable JavaScript, and consider upgrading to a
+                                web browser that
+                                <a href="https://videojs.com/html5-video-support/" target="_blank">
+                                    supports HTML5
+                                    video
+                                </a>
+                            </p>
+                        </video>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.0.7/swiper-bundle.min.js" integrity="sha512-WlN87oHzYKO5YOmINf1+pSkbt4gm+lOro4fiSTCjII4ykJe/ycHKIaa9b2l9OMkbqEA4NxwTXAGFjSXgqEh19w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/7.19.0/video.min.js" integrity="sha512-p0zIIMDm5p6dWE/Xz8vyg3q40o7JWsGFtfwxOZ/69vE4Jyuo5ECo16g1MN+Ygjzz2ERk1pov+PqIHitTqOjmMA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.2/iframeResizer.min.js" integrity="sha512-dnvR4Aebv5bAtJxDunq3eE8puKAJrY9GBJYl9GC6lTOEC76s1dbDfJFcL9GyzpaDW4vlI/UjR8sKbc1j6Ynx6w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js" integrity="sha512-k2GFCTbp9rQU412BStrcD/rlwv1PYec9SNrkbQlo6RZCf75l6KcC3UwDY8H5n5hl4v77IDtIPwOk9Dqjs/mMBQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="text/javascript" src="/js/slick.min.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="/js/main.js" charset="UTF-8"></script>
+
+    <!-- AOS JS -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+
+    
+<script>
+
+    $(document).ready(function () {
+        iFrameResize({ log: false }, 'iframe');
+        //iFrameResize({ log: true }, '#registerForAlertsIFrame');
+        //iFrameResize({ log: true }, '#interactiveShareStatisticsIFrame');
+        //iFrameResize({ log: false }, '#sensIFrame');
+    });
+
+    if ($('#shareWidgetTab').length) {
+        var tabs = $('#shareWidgetTab');
+        var tabDropItem = $('#shareWidgetTab .dropdown-item');
+        tabDropItem.click(function () {
+            tabDropItem.removeClass('active')
+            $(this).addClass('active');
+        });
+    }
+
+</script>
+
+
+    <script>AOS.init();</script>
+
+    <script>$(document).ready(function () {
+            var videoModalEl = document.getElementById('videoModal');
+            var videoModal = new bootstrap.Modal(videoModalEl);
+            var videoPlayer = videojs('modalVideo');
+            var videoTitle = $('#videoModal .modal-title');
+
+            videoModalEl.addEventListener('hide.bs.modal', function (event) {
+                videoPlayer.pause();
+            });
+
+            $('.video-button').on('click', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                var title = $(this).attr('title');
+
+                videoTitle.html(title);
+
+                videoPlayer.src(url);
+                videoPlayer.ready(function () {
+                    videoPlayer.play();
+                });
+                videoModal.show();
+            });
+
+            $('#menuSearchButton').on('click', function () {
+                $('#menuSearch').fadeIn();
+            });
+
+            $('#menuSearchClose').on('click', function () {
+                $('#menuSearch').fadeOut();
+            });
+
+            let lastKnownScrollPosition = 0;
+            let ticking = false;
+
+            document.addEventListener('scroll', function (e) {
+                lastKnownScrollPosition = window.scrollY;
+
+                if (!ticking) {
+                    window.requestAnimationFrame(function () {
+
+                        var navbar = $('.navbar');
+
+                        if (lastKnownScrollPosition > 100) {
+                            if (navbar.hasClass('bg-transparent')) {
+                                navbar.removeClass('bg-transparent');
+                            }
+                            if (!navbar.hasClass('bg-dark')) {
+                                navbar.addClass('bg-dark');
+                            }
+                        } else {
+                            if (navbar.hasClass('bg-dark')) {
+                                navbar.removeClass('bg-dark');
+                            }
+                            if (!navbar.hasClass('bg-transparent')) {
+                                navbar.addClass('bg-transparent');
+                            }
+                        }
+
+                        if (lastKnownScrollPosition > 300) {
+                            $('.back-to-top').fadeIn();
+                        }
+                        else {
+                            $('.back-to-top').fadeOut();
+                        }
+                        ticking = false;
+                    });
+
+                    ticking = true;
+                }
+            });
+
+            $('.back-to-top').on('click', function () {
+                $(window).scrollTop(0);
+            });
+        });
+
+        (function ($) {
+            if ("onhashchange" in window) {
+                var hashHandler = function () {
+                    var hash = window.location.hash.substring(1);
+                    if (!hash)
+                        return;
+
+                    var offset = -80;
+                    var sel = '[id="' + hash + '"], a[name="' + hash + '"]';
+                    var currentOffset = $(sel).offset().top;
+
+                    $(window).scrollTop(currentOffset + offset);
+                };
+                window.addEventListener("hashchange", hashHandler, false);
+                window.addEventListener("load", hashHandler, false);
+            }
+        })(window.jQuery);</script>
+</body>
+
+</html>
