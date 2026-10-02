@@ -43,7 +43,7 @@
 
 /* ── ROWS ──────────────────────────────────────────────────────── */
 .person-row { transition: background .15s, transform .15s; border-radius:6px; }
-.person-row:hover { background: rgba(255,255,255,.025); transform: translateX(2px); }
+.person-row:hover { background: color-mix(in srgb,var(--fg) 3%,transparent); transform: translateX(2px); }
 
 /* ── NAV ICON TAP ──────────────────────────────────────────────── */
 .nav-icon-box { transition: transform .12s ease; }

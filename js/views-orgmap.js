@@ -53,14 +53,14 @@ const AE_ENG_RE     = /\bengineer\w*\b|\btechnical\b[^,;|]{0,28}\b(?:director|he
    palette, ordered so the two bands a rep opens with read as the
    brightest thing in the chart. */
 const AE_TIERS = [
-  { r: 0, label: 'Energy & utilities lead',  hex: '#3ddc84' },
-  { r: 1, label: 'Sustainability & ESG',     hex: '#38bdf8' },
-  { r: 2, label: 'Exec & finance',           hex: '#a78bfa' },
-  { r: 3, label: 'Operations & site',        hex: '#818cf8' },
-  { r: 4, label: 'Engineering & technical',  hex: '#60a5fa' },
-  { r: 5, label: 'Procurement',              hex: '#f472b6' },
-  { r: 6, label: 'Flagged by hand',          hex: '#fbbf24' },
-  { r: 7, label: 'Other staff',              hex: '#64748b' },
+  { r: 0, label: 'Energy & utilities lead',  hex: '#C0562F' },
+  { r: 1, label: 'Sustainability & ESG',     hex: '#3F7F9A' },
+  { r: 2, label: 'Exec & finance',           hex: '#8A5FA3' },
+  { r: 3, label: 'Operations & site',        hex: '#6F6FB3' },
+  { r: 4, label: 'Engineering & technical',  hex: '#4F7FB0' },
+  { r: 5, label: 'Procurement',              hex: '#BE4F7A' },
+  { r: 6, label: 'Flagged by hand',          hex: '#D4A24C' },
+  { r: 7, label: 'Other staff',              hex: '#8C7E64' },
 ];
 /* Ranks 0–2 are the people who decide a PPA: the one who owns the
    tariff, the one who owns the Scope 2 number, and the one who signs
@@ -262,13 +262,13 @@ function contactMixHtml(o, contacts, opts) {
        gap it is — the panel never offers a click it cannot honour. */
     const inner =
       '<span class="ia-prod-n">' + esc(seat.label) + '</span>' +
-      '<span class="ia-prod-s" style="color:' + (held ? '#3ddc84' : '#fb923c') + '">' + who + '</span>' +
+      '<span class="ia-prod-s" style="color:' + (held ? 'var(--c-green)' : 'var(--c-amber)') + '">' + who + '</span>' +
       '<span class="' + (held ? 'ia-prod-r' : 'ia-prod-x') + '">' + esc(seat.why) + '</span>';
     return held
-      ? '<button class="ia-prod is-linked" style="background:rgba(61,220,132,.10);border-color:rgba(61,220,132,.28)" ' +
+      ? '<button class="ia-prod is-linked" style="background:color-mix(in srgb,var(--c-green) 10%,transparent);border-color:color-mix(in srgb,var(--c-green) 28%,transparent)" ' +
         'aria-pressed="' + !!on + '" onclick="aeSetFilter(\'ladder\',\'' + seat.k + '\')" ' +
         'title="' + (hasList ? 'Show only ' + esc(seat.label) + ' contacts' : 'Open the org map') + '">' + inner + '</button>'
-      : '<div class="ia-prod" style="background:rgba(251,146,60,.07);border-color:rgba(251,146,60,.22)">' + inner + '</div>';
+      : '<div class="ia-prod" style="background:color-mix(in srgb,var(--c-amber) 7%,transparent);border-color:color-mix(in srgb,var(--c-amber) 22%,transparent)">' + inner + '</div>';
   }).join('');
   const seatsHeld = AE_LADDER.filter(s => people.some(c => aeSeatMatch(s, c))).length;
 
@@ -328,13 +328,13 @@ function contactMixHtml(o, contacts, opts) {
         '<div class="ia-h">Reachability</div>' +
         '<div class="ia-mini">' +
           reachTile(
-            '<span class="ia-tile-n" style="color:' + (leaders.length && leadReach === leaders.length ? '#3ddc84' : leaders.length ? '#fb923c' : 'var(--muted)') + '">' +
+            '<span class="ia-tile-n" style="color:' + (leaders.length && leadReach === leaders.length ? 'var(--c-green)' : leaders.length ? 'var(--c-amber)' : 'var(--muted)') + '">' +
             leadReach + '<em>/' + leaders.length + '</em></span>' +
             '<span class="ia-tile-l">Decision makers you can reach</span>' +
             '<span class="ia-tile-s">' + (leaders.length ? (reachPct === 100 ? 'all reachable' : reachPct + '% of them') : 'none identified yet') + '</span>',
             'aeSetFilter(\'lead\',1)', f && f.kind === 'lead') +
           reachTile(
-            '<span class="ia-tile-n" style="color:' + (!live ? 'var(--muted)' : noReach ? '#fb923c' : '#3ddc84') + '">' + noReach + '</span>' +
+            '<span class="ia-tile-n" style="color:' + (!live ? 'var(--muted)' : noReach ? 'var(--c-amber)' : 'var(--c-green)') + '">' + noReach + '</span>' +
             '<span class="ia-tile-l">No email or phone</span>' +
             /* "everyone contactable" on an empty account would be a true
                sentence about nobody, read as a clean bill of health. */

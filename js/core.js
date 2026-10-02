@@ -145,7 +145,7 @@ function relTime(iso) {
 }
 function initials(a, b) { return ((a || '')[0] || '') + ((b || '')[0] || ''); }
 function avatarColor(seed) {
-  const colors = ['#3ddc84', '#f5a524', '#38bdf8', '#a78bfa', '#ec4899', '#22c55e', '#fb923c', '#60a5fa'];
+  const colors = ['#A04A2A', '#8A6A1C', '#3F6F82', '#7A5390', '#A8466A', '#6F7A2E', '#B0603C', '#4F6A8A'];
   let h = 0; for (const ch of String(seed || '')) h = (h * 31 + ch.charCodeAt(0)) | 0;
   return colors[Math.abs(h) % colors.length];
 }
@@ -292,7 +292,7 @@ function loadFactor(o) {
 function fitColor(score) {
   if (score >= 70) return 'var(--accent)';
   if (score >= 50) return 'var(--accent2)';
-  if (score >= 30) return '#7dd3fc';
+  if (score >= 30) return 'var(--c-blue)';
   return 'var(--muted)';
 }
 
@@ -1409,7 +1409,7 @@ function hideGate() {
 
 function signInScreenHtml(message) {
   return '<div class="gate-card">' +
-    '<div class="gate-mark">' + icon('bolt', 22) + '</div>' +
+    '<div class="gate-mark brand"><svg viewBox="0 0 44 44" width="46" height="46" aria-hidden="true"><use href="#aeeg-mark" fill="url(#aeeg-mk)"/></svg></div>' +
     '<h1>African Earth Energy</h1>' +
     '<p class="gate-sub">Offtaker CRM — internal. Sign in with the username and password you were given.</p>' +
     '<form class="gate-form" onsubmit="event.preventDefault();doSignIn()">' +
