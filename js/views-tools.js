@@ -24,9 +24,72 @@ function renderProjects() {
     (state.projectView === 'table'
       ? projectTableHtml(state.projects)
       : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>') +
-    pmTrackerHtml());
+    pmTrackerHtml() + pmPlanHtml());
   growBars();
   focusProjectCard();
+}
+
+/* ─── DELIVERY PLAN (ProjectManager.com task detail) ───────────────
+   Phases and tasks for one site at a time, from data/projectmanager-
+   tasks.js. Status and percent complete are shown exactly as
+   ProjectManager.com holds them, side by side: they do not always agree
+   (see the note in that file), and reconciling them here would be
+   inventing a state nobody recorded. */
+function setPmPlan(key) { state.pmPlan = key; renderProjects(); }
+
+function pmShortDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  return isNaN(d) ? esc(iso) : d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function pmPlanHtml() {
+  if (typeof PM_TASKS === 'undefined') return '';
+  const keys = Object.keys(PM_TASKS.tasks);
+  const key = PM_TASKS.tasks[state.pmPlan] ? state.pmPlan : (PM_TASKS.tasks.middelburg ? 'middelburg' : keys[0]);
+  const proj = PM_TASKS.projects[key] || {};
+  const rows = PM_TASKS.tasks[key];
+  const today = new Date().toISOString().slice(0, 10);
+  const leaf = rows.filter(r => !r[7]);
+  const late = r => r[4] && r[4] < today && num(r[5]) < 100;
+  const overdue = leaf.filter(late).length;
+  const doneStatus = leaf.filter(r => r[2] === 'Done').length;
+  const full = leaf.filter(r => num(r[5]) >= 100).length;
+  const names = ini => ini ? ini.split('/').map(i => PM_TASKS.who[i] || i).join(', ') : '';
+  const statusBadge = s => '<span class="badge ' + (s === 'Done' ? 'b-contracted' : s === 'Doing' ? 'b-engaged' : 'b-prospect') + '">' + esc(s || '—') + '</span>';
+
+  const body = rows.map(r => {
+    const [wbs, name, status, start, fin, pct, who, summary, milestone, level] = r;
+    const lateRow = !summary && late(r);
+    return '<tr' + (summary ? ' style="background:var(--bg3)"' : '') + '>' +
+      '<td class="num" style="text-align:left;color:var(--muted)">' + esc(wbs) + '</td>' +
+      '<td style="padding-left:' + (14 + (num(level) - 1) * 18) + 'px;font-weight:' + (summary ? 800 : 500) + '">' +
+        esc(name) + (milestone ? ' <span class="badge b-solar">milestone</span>' : '') + '</td>' +
+      '<td>' + statusBadge(status) + '</td>' +
+      '<td class="num">' + pmShortDate(start) + '</td>' +
+      '<td class="num"' + (lateRow ? ' style="color:var(--danger);font-weight:700" title="Past its planned finish and not 100% complete"' : '') + '>' + pmShortDate(fin) + '</td>' +
+      '<td class="num" style="font-weight:700">' + num(pct) + '%</td>' +
+      '<td style="color:var(--muted2)">' + esc(names(who)) + '</td></tr>';
+  }).join('');
+
+  return '<div class="card" style="margin-top:18px">' +
+    '<div class="card-header"><div><div class="card-title">Delivery plan</div>' +
+    '<div class="card-sub">ProjectManager.com tasks &middot; snapshot ' + esc(PM_TASKS.asOf) + '</div></div>' +
+    '<select class="flt" onchange="setPmPlan(this.value)">' +
+      keys.map(k => '<option value="' + esc(k) + '"' + (k === key ? ' selected' : '') + '>' +
+        esc((PM_TASKS.projects[k] || {}).name || k) + '</option>').join('') + '</select></div>' +
+    '<div class="dh-metrics" style="margin:0 0 14px">' +
+      '<div class="dh-metric"><div class="dh-metric-v">' + num(proj.progress) + '%</div><div class="dh-metric-l">Project progress</div></div>' +
+      '<div class="dh-metric"><div class="dh-metric-v">' + pmShortDate(proj.start) + ' &ndash; ' + pmShortDate(proj.finish) + '</div><div class="dh-metric-l">Planned</div></div>' +
+      '<div class="dh-metric"><div class="dh-metric-v">' + esc(proj.manager || '—') + '</div><div class="dh-metric-l">Manager &middot; ' + num(proj.members) + ' members</div></div>' +
+      '<div class="dh-metric"><div class="dh-metric-v" style="color:' + (overdue ? 'var(--danger)' : 'inherit') + '">' + overdue + '</div><div class="dh-metric-l">Tasks past finish, not 100%</div></div>' +
+      '<div class="dh-metric"><div class="dh-metric-v">' + doneStatus + ' / ' + full + '</div><div class="dh-metric-l">Marked Done / at 100% (of ' + leaf.length + ')</div></div>' +
+    '</div>' +
+    '<div class="table-wrap" style="border:0;max-height:560px"><table><thead><tr><th>WBS</th><th>Task</th><th>Status</th>' +
+    '<th class="num">Start</th><th class="num">Finish</th><th class="num">Done</th><th>Who</th></tr></thead><tbody>' + body + '</tbody></table></div>' +
+    '<div class="fg-hint" style="margin-top:10px">Status and % are as held in ProjectManager.com and do not always agree ' +
+    '(for example 5 tasks per project are marked Done while the project sits at 0%). A dated copy, not a live feed.</div>' +
+  '</div>';
 }
 
 /* ─── DELIVERY TRACKER (ProjectManager.com snapshot) ───────────────
