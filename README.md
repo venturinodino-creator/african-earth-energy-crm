@@ -31,7 +31,7 @@ Company site: <https://www.aeeg.co.za/en>
 ## The fit score
 
 Every offtaker gets a score out of 100 so the call list can be sorted by who is
-most likely to sign. It weighs five things:
+most likely to sign. It weighs six things:
 
 | Factor | Weight | Why it matters |
 | --- | --- | --- |
@@ -262,23 +262,27 @@ that is the honest answer until someone asks them.
 - **Offtaker load figures and tariffs** — *desk estimates*. They are there so the app
   is useful on day one, not because they are verified. Records carrying an
   `estimated load` chip should be confirmed with the customer before anything is quoted.
-- **Contact names** — mostly role placeholders (`Procurement Lead`, `Energy Manager`).
-  Replace them with real people as the team qualifies each account.
+- **Contact names** — real people found by desk research from official public sources
+  (company sites, annual reports, filings, trade press). Each carries its source and a
+  confidence note, but most have no email on file, so check a name before you dial it.
 - **Deal values** — assume a 30% capacity factor on contracted MW. Indicative only.
 
 Nothing in this repo should be sent to a customer as a quote.
 
 ## Running it
 
-It is static HTML, CSS and JavaScript with no build step and no backend.
+It is static HTML, CSS and JavaScript with no build step. The records themselves live
+in Supabase (see [Data and storage](#data-and-storage)), so the app shows nothing but a
+sign-in card until you are signed in.
 
 ```bash
 python scripts/serve.py
 ```
 
 Then open <http://127.0.0.1:8140/landing.html>. Pass a port as an argument to use a
-different one. Opening `index.html` straight from the filesystem also works — the
-seed data is loaded as a plain script rather than fetched, precisely so that it does.
+different one. The reference data (generation portfolio, sectors, municipalities, news)
+is loaded as plain scripts rather than fetched, so the page itself loads from the
+filesystem too, but `scripts/serve.py` is the supported way to run it.
 
 Use `scripts/serve.py` rather than `python -m http.server`: the latter lets the
 browser reuse a copy it already holds, so editing a file and reloading can quietly
@@ -304,6 +308,13 @@ global scope — then resolves every reference against the scopes enclosing it, 
 every function named in an inline `onclick`. Exits non-zero on a finding, so it can
 gate a commit. It fetches a parser into a temp directory on first run; nothing is
 added to the repo.
+
+The tests are plain Node scripts with no framework and nothing to install:
+
+```bash
+node tests/finder-agent.test.js     # the finder's validator, municipality loader, sign-in and CLI
+node tests/finder-apollo.test.js    # the Apollo helper: seat mapping, CSV shape, spend flags
+```
 
 ## Data and storage
 
@@ -355,6 +366,32 @@ they happen.
 The URL and publishable key in `js/supabase.js` are meant to be public — they
 identify the project and grant nothing on their own.
 
+## The contact finder agents
+
+Two Claude Code agents live in `.claude/agents/`: `offtaker-contact-finder` and
+`municipality-contact-finder`. They find named people at the seven stakeholder seats from
+official public sources only. Neither touches the database directly. They drive
+`scripts/finder-agent.js`, which signs in with `AEE_EMAIL` and `AEE_PASSWORD` from `.env`
+and writes every find as `pending` into `aee_found_contacts`. A person accepts each find in
+the Contact finder screen, and accepting is what creates the contact. How to run them is in
+[`docs/contact-finder-agents.md`](docs/contact-finder-agents.md).
+
+## Research files
+
+`research/` holds the desk-research CSVs behind the contact data, split by lane so the three
+efforts do not mix:
+
+| Folder | Holds |
+| --- | --- |
+| `research/non-mining/` | `nm-<batch>-contacts.csv` and `-sites.csv`: people and site facts for non-mining sectors |
+| `research/mining/` | the mining lane: DMPR, ProjectsIQ and GEM mine lists, and mining contact batches |
+| `research/municipality/` | `municipality-contacts.csv` |
+| `research/sources/` | the source PDFs and text extractions the CSVs were read from, kept for provenance |
+
+`research/big-load-people-no-email.csv` sits at the top as the queue of people still
+needing an email. Each CSV carries a source URL and a confidence note on every row. The CSVs
+contain personal data about named people, so treat the repository accordingly.
+
 ## Layout
 
 ```
@@ -366,6 +403,7 @@ data/seed.js                generation portfolio, sales stages, outreach templat
 data/sectors.js             sector taxonomy, questions, objections, roles, market context
 data/municipalities.js      all 257 municipalities, as consumer and as distributor
 data/news.js                mining-industry stories, and the topics the desk watches
+data/mining-companies.txt   the company list for an Apollo batch run ("Company | domain")
 js/icons.js                 inline SVG icon set
 js/supabase.js              auth, row mapping, reads and writes
 js/core.js                  state, routing, helpers, fit score, sales path, auth gate, CSV
@@ -383,6 +421,22 @@ js/forms.js                 create / edit / delete
 js/forms-leads.js           into and back out of the pipeline, and the sales path
 scripts/serve.py            preview server with caching off
 scripts/check-refs.js       finds identifiers that resolve to nothing
+scripts/finder-agent.js     the contact finder agents' hands: claim a run, add finds, finish
+scripts/finder-apollo.js    Apollo people search and pull, producing a CSV for review
+scripts/accept-finds.js     terminal "Accept all" for the finder queue
+scripts/enrich-offtakers.js fill blank offtaker fields from a research CSV, optional geocode
+scripts/apollo-enrich-contacts.js   Apollo match for contacts with no email (spends credits)
+scripts/infer-emails.js     infer an address from a domain's known format
+scripts/apply-found-emails.js       write researcher-found emails from a CSV into blank contacts
+scripts/dedupe-contacts.js  merge exact duplicate contacts
+scripts/merge-duplicate-offtakers.js  one-off, 2026-09-19
+tests/                      plain Node tests for the finder and the Apollo helper
+supabase/schema.sql         reference copy of the schema and the access rules
+docs/contact-finder-agents.md   how to run the finder agents
+docs/agents/                issue tracker, triage labels and domain-doc conventions
+.claude/agents/             the two contact finder agents (offtaker, municipality)
+research/                   desk-research CSVs and source documents, by lane
+CLAUDE.md                   project instructions for Claude Code
 ```
 
 ## Deploying
