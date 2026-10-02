@@ -83,8 +83,8 @@ function pmProjectFor(siteId) {
 /* ─── SECTION ─────────────────────────────────────────────────────── */
 function pmSectionHtml() {
   const pm = state.pm;
-  const tabs = [['overview', 'Overview'], ['plan', 'Plan'], ['team', 'Team'], ['activity', 'Activity']];
-  state.pmTab = state.pmTab || 'overview';
+  const tabs = [['team', 'Team summary'], ['overview', 'Portfolio summary'], ['plan', 'Plan'], ['activity', 'Activity']];
+  state.pmTab = state.pmTab || 'team';
   let body;
   if (!pm) body = '<div class="empty" style="padding:30px"><h3>Loading the project plans&hellip;</h3></div>';
   else if (pm.error) {
