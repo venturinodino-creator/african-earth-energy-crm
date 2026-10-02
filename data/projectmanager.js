@@ -26,12 +26,12 @@ const PM_SNAPSHOT = {
   source: 'https://9vbldqaexk6.app.projectmanager.com/home/portfolio-summary',
   phase: 'Planning',          // all 8 projects sit in the Planning column of the pipeline chart
   projects: [
-    { name: 'AEEG Mapela Solar Farm 300MW',               mw: 300, progress: 0,  tasks: '0/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: null, suggestedSiteId: 'limpopo300' },
-    { name: 'AEEG Middelburg 49MW Solar Farm',            mw: 49,  progress: 31, tasks: '15/43', time: 'green', cost: 'grey', workload: 'orange', siteId: 'middelburg' },
-    { name: 'AEEG Oudtshoorn Solar Farm 75MW',            mw: 75,  progress: 3,  tasks: '5/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: 'oudtshoorn' },
-    { name: 'AEEG Riverlands Solar Farm 9MW',             mw: 9,   progress: 0,  tasks: '0/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: 'riverlands' },
-    { name: 'AEEG Sable Hills Eco Park Solar Farm 100MW', mw: 100, progress: 0,  tasks: '0/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: null, suggestedSiteId: 'lephalale' },
-    { name: 'AEEG Stanford Solar Farm 9MW',               mw: 9,   progress: 0,  tasks: '0/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: null, suggestedSiteId: 'overberg' },
+    { key: 'mapela', name: 'AEEG Mapela Solar Farm 300MW',               mw: 300, progress: 0,  tasks: '0/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: null, suggestedSiteId: 'limpopo300' },
+    { key: 'middelburg', name: 'AEEG Middelburg 49MW Solar Farm',            mw: 49,  progress: 31, tasks: '15/43', time: 'green', cost: 'grey', workload: 'orange', siteId: 'middelburg' },
+    { key: 'oudtshoorn', name: 'AEEG Oudtshoorn Solar Farm 75MW',            mw: 75,  progress: 3,  tasks: '5/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: 'oudtshoorn' },
+    { key: 'riverlands', name: 'AEEG Riverlands Solar Farm 9MW',             mw: 9,   progress: 0,  tasks: '0/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: 'riverlands' },
+    { key: 'sable', name: 'AEEG Sable Hills Eco Park Solar Farm 100MW', mw: 100, progress: 0,  tasks: '0/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: null, suggestedSiteId: 'lephalale' },
+    { key: 'stanford', name: 'AEEG Stanford Solar Farm 9MW',               mw: 9,   progress: 0,  tasks: '0/44',  time: 'green', cost: 'grey', workload: 'orange', siteId: null, suggestedSiteId: 'overberg' },
     { name: 'AEEG Project Template',                      mw: null, progress: 0, tasks: '0/22',  time: 'green', cost: 'grey', workload: 'orange', siteId: null, template: true },
     { name: 'Project Workflow',                           mw: null, progress: 0, tasks: '0/0',   time: 'green', cost: 'grey', workload: 'orange', siteId: null, template: true },
   ],
