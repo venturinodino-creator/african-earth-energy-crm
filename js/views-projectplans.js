@@ -296,10 +296,23 @@ function pmTeamTabHtml() {
 
   /* ── WORKLOAD / SCHEDULE ── */
   const wl = ts.workload || {};
-  const workloadCard = '<div class="card"><div class="card-header"><div class="card-title">Workload</div></div>' +
-    '<div style="font-size:12px;line-height:1.9">' + (wl.legend || ['Ahead', 'On Track', 'Behind']).map((l, i) =>
-      '<div><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:' + ['var(--c-green)', 'var(--c-blue)', 'var(--c-amber)'][i % 3] + '"></i> ' + esc(l) + '</div>').join('') + '</div>' +
-    '<div class="fg-hint" style="margin-top:10px">The bar values are calculated by ProjectManager.com and are not in this copy.</div></div>';
+  const wlVals = wl.values || null;
+  const wlColours = { Ahead: 'var(--c-green)', 'On Track': 'var(--c-blue)', Behind: 'var(--c-amber)' };
+  const wlMax = wlVals ? Math.max(1, ...Object.values(wlVals).map(Number)) : 1;
+  const wlRows = (wl.legend || ['Ahead', 'On Track', 'Behind']).map(l => {
+    const v = wlVals ? Number(wlVals[l]) || 0 : null;
+    const named = ((wl.named || {})[l] || []).join(', ');
+    return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px">' +
+      '<span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:' + (wlColours[l] || 'var(--muted)') + '"></i> ' + esc(l) + '</span>' +
+      '<b>' + (v === null ? '' : v) + '</b></div>' +
+      (v === null ? '' : '<div class="fit-bar" style="margin:3px 0 0"><span data-w="' + Math.round(v / wlMax * 100) + '" style="background:' + (wlColours[l] || 'var(--muted)') + '"></span></div>') +
+      (named ? '<div class="mkt-note" style="margin-top:2px">' + esc(named) + (l === 'Behind' && v > 3 ? ' and ' + (v - 3) + ' more' : '') + '</div>' : '') + '</div>';
+  }).join('');
+  const hrs = (sync.mySummary || {}).hours;
+  const workloadCard = '<div class="card"><div class="card-header"><div class="card-title">Workload</div></div>' + wlRows +
+    (hrs ? '<div style="margin-top:10px;font-size:12px">Time <b>' + hrs.completed + ' / ' + hrs.planned + ' hours completed</b></div>' : '') +
+    '<div class="fg-hint" style="margin-top:10px">' + (wlVals ? 'Task counts ' + asShown + '. The Behind count here is ProjectManager.com\u2019s; counting open assigned tasks past their planned finish gives 83.' : 'The bar values are calculated by ProjectManager.com and are not in this copy.') +
+    (hrs ? ' Hours are from My Summary (' + esc(sync.mySummary.viewer) + ').' : '') + '</div></div>';
   const scheduleCard = '<div class="card"><div class="card-header"><div class="card-title">Schedule</div></div>' +
     '<div style="font-family:var(--f-display);font-size:26px;font-weight:700;color:var(--c-green)">' + esc(ts.schedule || '—') + '</div>' +
     '<div class="fg-hint" style="margin-top:10px">' + (ts.schedule ? asShown : 'Not in this copy') + '.</div></div>';
