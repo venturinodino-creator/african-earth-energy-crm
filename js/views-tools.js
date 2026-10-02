@@ -23,9 +23,58 @@ function renderProjects() {
     '</div>' +
     (state.projectView === 'table'
       ? projectTableHtml(state.projects)
-      : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>'));
+      : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>') +
+    pmTrackerHtml());
   growBars();
   focusProjectCard();
+}
+
+/* ─── DELIVERY TRACKER (ProjectManager.com snapshot) ───────────────
+   The sites above are what AEE sells; this is how far each one is
+   along its delivery plan. The data is a dated snapshot (see
+   data/projectmanager.js), so the card says how old it is and where
+   it came from rather than passing it off as live. */
+function pmDot(colour) {
+  const css = { green: 'var(--c-green)', orange: 'var(--c-amber)', grey: 'var(--muted)', red: 'var(--c-red)' };
+  return '<span title="' + esc(colour) + ' in ProjectManager.com" style="display:inline-block;width:9px;height:9px;' +
+    'border-radius:50%;background:' + (css[colour] || 'var(--muted)') + '"></span>';
+}
+
+function pmProjectFor(siteId) {
+  return typeof PM_SNAPSHOT === 'undefined' ? null : PM_SNAPSHOT.projects.find(x => x.siteId === siteId) || null;
+}
+
+function pmTrackerHtml() {
+  if (typeof PM_SNAPSHOT === 'undefined') return '';
+  const siteName = id => { const s = state.projects.find(x => x.id === id); return s ? s.name : ''; };
+  const rows = PM_SNAPSHOT.projects.map(p => {
+    const link = p.siteId
+      ? '<span class="ext-link" style="cursor:pointer" onclick="openProject(' + jsStr(p.siteId) + ')">' + esc(siteName(p.siteId)) + '</span>'
+      : p.template ? '<span style="color:var(--muted)">template</span>'
+      : '<span style="color:var(--muted)" title="Not linked - a guess for someone to confirm">' +
+          (p.suggestedSiteId ? 'maybe ' + esc(siteName(p.suggestedSiteId)) : '—') + '</span>';
+    return '<tr><td style="font-weight:700">' + esc(p.name) + '</td>' +
+      '<td class="num">' + (p.mw ? fmtNum(p.mw) : '—') + '</td>' +
+      '<td style="min-width:130px"><div class="fit-bar" style="margin:0"><span data-w="' + p.progress + '" style="background:var(--accent)"></span></div></td>' +
+      '<td class="num" style="font-weight:800">' + p.progress + '%</td>' +
+      '<td class="num">' + esc(p.tasks) + '</td>' +
+      '<td style="white-space:nowrap">' + pmDot(p.time) + ' ' + pmDot(p.cost) + ' ' + pmDot(p.workload) + '</td>' +
+      '<td>' + link + '</td></tr>';
+  }).join('');
+  const team = PM_SNAPSHOT.team.map(t =>
+    '<div class="mkt-row"><span class="mkt-label">' + esc(t.name) + '</span><span class="mkt-value">' + fmtNum(t.load) + '</span></div>').join('');
+  return '<div class="grid-2" style="margin-top:18px">' +
+    '<div class="card"><div class="card-header"><div><div class="card-title">Delivery tracker</div>' +
+    '<div class="card-sub">ProjectManager.com &middot; ' + esc(PM_SNAPSHOT.phase) + ' &middot; snapshot ' + esc(PM_SNAPSHOT.asOf) + '</div></div></div>' +
+    '<div class="table-wrap" style="border:0"><table><thead><tr><th>Project</th><th class="num">MW</th><th colspan="2">Progress</th>' +
+    '<th class="num">Tasks done</th><th title="Time, cost, workload - as coloured in ProjectManager.com">T / C / W</th><th>Site in the app</th></tr></thead><tbody>' +
+    rows + '</tbody></table></div>' +
+    '<div class="fg-hint" style="margin-top:10px">A dated copy, not a live feed. Cost and budget are not shown: the ProjectManager.com ' +
+    'account used to read it has no permission for them. Dots are the colours shown there (time, cost, workload). ' +
+    'Sites marked &ldquo;maybe&rdquo; are unconfirmed guesses.</div></div>' +
+    '<div class="card"><div class="card-header"><div><div class="card-title">Team utilisation</div>' +
+    '<div class="card-sub">as listed in ProjectManager.com (no unit given)</div></div></div>' + team + '</div>' +
+  '</div>';
 }
 
 /* Arriving from a bar on the dashboard, the site that was clicked is one
@@ -91,6 +140,10 @@ function projectCardHtml(p) {
       '</div>' +
       '<div class="fit-row"><span>Allocated</span><span style="color:' + allocationColor(pct) + '">' + Math.round(pct) + '%</span></div>' +
       '<div class="fit-bar"><span data-w="' + pct + '" style="background:' + allocationColor(pct) + '"></span></div>' +
+      (pmProjectFor(p.id)
+        ? '<div class="fit-row"><span>Delivery (ProjectManager.com)</span><span>' + pmProjectFor(p.id).progress + '%</span></div>' +
+          '<div class="fit-bar"><span data-w="' + pmProjectFor(p.id).progress + '" style="background:var(--accent2)"></span></div>'
+        : '') +
       '<div style="font-size:11.5px;color:var(--muted2);line-height:1.55;margin-top:11px">' + esc(p.note) + '</div>' +
       (buyers.length ? '<div class="ec-footer"><span style="font-size:10.5px">In discussion: ' + esc(buyers.join(', ')) + '</span></div>' : '') +
     '</div>';
