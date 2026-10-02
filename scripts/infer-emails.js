@@ -138,7 +138,7 @@ async function main() {
   const evidenceFiles = args.map((a, i) => (a === '--evidence' ? args[i + 1] : null)).filter(Boolean);
 
   await signIn();
-  const offs = await rest('aee_offtakers?select=id,name,website,status,sector');
+  const offs = await rest('aee_offtakers?select=id,name,website,status,sector&archived=eq.false');
   const byId = Object.fromEntries(offs.map(o => [o.id, o]));
   const known = [
     ...(await rest('aee_contacts?select=first,last,email&email=not.is.null')),

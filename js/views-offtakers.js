@@ -28,6 +28,7 @@ function offSortVal(o, field) {
    the whole book, so landing on a list still narrowed by whatever was
    set last would contradict the number that was just clicked. */
 function openOfftakersFiltered(filters) {
+  state.offArchive = false;
   state.offSearch = ''; state.offSector = '';
   state.offStatus = ''; state.offProvince = '';
   Object.assign(state, filters);
@@ -50,7 +51,144 @@ function filteredOfftakers() {
   return sortBy(list, state.offSort, offSortVal);
 }
 
+/* ─── PRIORITY LIST / ARCHIVE ─────────────────────────────────────
+   The page holds two lists. The priority list is the working book of
+   leads. The archive is everything shelved: still on file, still
+   searchable, out of every count and every other page until someone
+   decides a company is worth working and adds it back. */
+function offTabsHtml() {
+  const tab = (arch, label, n) =>
+    '<button class="vt-btn ' + (state.offArchive === arch ? 'active' : '') + '" ' +
+    'onclick="setOffArchive(' + arch + ')">' + label + ' <span style="opacity:.7">' + n + '</span></button>';
+  return '<div class="view-toggle">' + tab(false, 'Priority list', prospectRecords().length) +
+    tab(true, 'Archive', state.archived.length) + '</div>';
+}
+
+function setOffArchive(v) {
+  state.offArchive = v;
+  state.offSearch = ''; state.offSector = ''; state.offStatus = ''; state.offProvince = '';
+  state.offPage = 1;
+  renderOfftakers();
+}
+
+function filteredArchive() {
+  const term = state.offSearch.toLowerCase();
+  const list = state.archived.filter(o => {
+    if (term && !(o.name + ' ' + o.short + ' ' + o.city + ' ' + o.province + ' ' + o.description).toLowerCase().includes(term)) return false;
+    if (state.offSector && o.sector !== state.offSector) return false;
+    if (state.offProvince && o.province !== state.offProvince) return false;
+    return true;
+  });
+  return list.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/* The archive can run to hundreds of rows and a table that long is not
+   readable; search and the filters are how you find one, so only the
+   first screenful is drawn and the count says how many more match. */
+const ARCHIVE_ROW_CAP = 200;
+
+function renderArchive() {
+  const list = filteredArchive();
+  const shown = list.slice(0, ARCHIVE_ROW_CAP);
+  const provinces = [...new Set(state.archived.map(o => o.province))].filter(Boolean).sort();
+
+  setPage('Off-taker Prospects',
+    state.archived.length + ' archived compan' + (state.archived.length === 1 ? 'y' : 'ies') +
+    ' · kept on file, out of every count until you add one back',
+    offTabsHtml());
+
+  const toolbar =
+    '<div class="toolbar">' +
+      '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
+      '<input placeholder="Search the archive..." value="' + esc(state.offSearch) + '" ' +
+      'oninput="state.offSearch=this.value;renderArchive()"></div>' +
+      '<select class="flt" onchange="state.offSector=this.value;renderArchive()">' +
+        '<option value="">All sectors</option>' + sectorOptions(state.offSector) + '</select>' +
+      selectFltArchive('offProvince', 'All provinces', provinces.map(p => [p, p])) +
+      '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
+    '</div>';
+
+  const note = '<div class="fg-hint" style="margin-top:12px">' +
+    'Archived companies are not deleted. Press <b>Add to priority list</b> on any of them and it moves back ' +
+    'to the working list with its contacts. ' +
+    (list.length > shown.length
+      ? 'Showing the first ' + shown.length + ' of ' + list.length + ' &mdash; search or filter to narrow it down.'
+      : '') + '</div>';
+
+  if (!list.length) {
+    setContent(toolbar + '<div class="empty"><div class="ei">' + icon('search', 30) + '</div>' +
+      '<h3>' + (state.archived.length ? 'Nothing in the archive matches' : 'The archive is empty') + '</h3><p>' +
+      (state.archived.length ? 'Loosen the search or the filters.' : 'Companies you archive from the priority list will be kept here.') +
+      '</p></div>');
+    return;
+  }
+
+  const archivedContactCount = id => state.archivedContacts.filter(c => c.offtakerId === id).length;
+  setContent(toolbar +
+    '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Offtaker</th><th>Sector</th><th>Province</th><th class="num">GWh/yr</th><th class="num">Contacts</th><th>Actions</th>' +
+    '</tr></thead><tbody>' +
+    shown.map(o =>
+      '<tr><td><div class="name-cell"><span style="opacity:.6;display:flex">' + sectorIcon(o.sector, 15) + '</span>' +
+        '<div><div style="font-weight:700">' + esc(o.name) + '</div>' +
+        '<div style="font-size:10.5px;color:var(--muted)">' + esc(o.city) + '</div></div></div></td>' +
+      '<td>' + sectorBadge(o.sector) + '</td>' +
+      '<td>' + esc(o.province) + '</td>' +
+      '<td class="num">' + fmtNum(o.annualGwh) + '</td>' +
+      '<td class="num">' + archivedContactCount(o.id) + '</td>' +
+      '<td style="white-space:nowrap">' +
+        (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Site</a> ' : '') +
+        '<button class="btn btn-xs btn-primary" data-admin-only onclick="restoreOfftaker(' + jsStr(o.id) + ')">' +
+          icon('plus', 12) + ' Add to priority list</button>' +
+      '</td></tr>').join('') +
+    '</tbody></table></div>' + note);
+}
+
+function selectFltArchive(key, allLabel, pairs) {
+  return '<select class="flt" onchange="state.' + key + '=this.value;renderArchive()">' +
+    '<option value="">' + esc(allLabel) + '</option>' +
+    pairs.map(([v, l]) => '<option value="' + esc(v) + '"' + (state[key] === v ? ' selected' : '') + '>' + esc(l) + '</option>').join('') +
+    '</select>';
+}
+
+/* Flip the flag on the server, then reload: the contacts, deals and notes
+   that belong to the company move between the two lists with it, and a
+   reload is the one way to be sure every list agrees. */
+async function setArchived(id, value) {
+  try {
+    await supaFetch('aee_offtakers?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH', body: JSON.stringify({ archived: value }),
+    });
+  } catch (e) {
+    console.warn('Archive change failed:', e);
+    toast('Could not save that change - nothing was moved', 'danger');
+    return false;
+  }
+  await load();
+  return true;
+}
+
+async function restoreOfftaker(id) {
+  const o = state.archived.find(x => x.id === id);
+  if (!o) return;
+  if (await setArchived(id, false)) {
+    toast(o.name + ' is back on the priority list', 'ok');
+    renderOfftakers();
+  }
+}
+
+async function archiveOfftaker(id) {
+  const o = state.offtakers.find(x => x.id === id);
+  if (!o) return;
+  if (inPipeline(o)) { toast('Only leads can be archived - this one is in the Pipeline', 'warn'); return; }
+  if (await setArchived(id, true)) {
+    toast(o.name + ' moved to the archive', 'ok');
+    renderOfftakers();
+  }
+}
+
 function renderOfftakers() {
+  if (state.offArchive) { renderArchive(); return; }
   const list = filteredOfftakers();
   const leads = prospectRecords();
   const working = state.offtakers.length - leads.length;
@@ -70,6 +208,7 @@ function renderOfftakers() {
       ? '<button class="btn btn-primary btn-sm" data-admin-only onclick="acceptAllFoundEverywhere()">' +
         'Accept all ' + pendingFinds + ' found contact' + (pendingFinds === 1 ? '' : 's') + '</button>'
       : '') +
+    offTabsHtml() +
     viewToggle('offView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
@@ -221,6 +360,7 @@ function offtakerTableHtml(list) {
         '<td onclick="event.stopPropagation()" style="white-space:nowrap">' +
           workItButtonHtml(o) +
           (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Site</a> ' : '') +
+          '<button class="btn btn-xs btn-outline" data-admin-only title="Move to the archive - kept, not deleted" onclick="archiveOfftaker(' + jsStr(o.id) + ')">Archive</button> ' +
           '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 12) + '</button> ' +
           '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'offtaker\',\'' + o.id + '\')">' + icon('trash', 12) + '</button>' +
         '</td></tr>';
