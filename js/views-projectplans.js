@@ -123,9 +123,12 @@ function pmOverviewHtml() {
   const leaf = all.filter(pmIsLeaf);
   const late = leaf.filter(pmIsLate).length;
   const row = p => {
-    const ts = pmProjectTasks(p.id).filter(pmIsLeaf);
-    const full = ts.filter(t => num(t.progress) >= 100).length;
-    const doneStatus = ts.filter(t => t.status === 'Done').length;
+    /* Task rows that have an owner (anyone), phase rows included; done = 100%.
+       ProjectManager.com's own Project Pulse is the same count for ONE person,
+       the account the copy was taken as, so it reads lower (Middelburg 15 / 43
+       there, against all owners here). That per-person view is on the Team tab. */
+    const pulse = pmPulse(pmProjectTasks(p.id));
+    const doneStatus = pmProjectTasks(p.id).filter(t => t.status === 'Done').length;
     const sid = pmSiteIdFor(p), guess = !sid && !p.isTemplate ? pmSiteGuessFor(p) : null;
     const site = sid ? '<span class="ext-link" style="cursor:pointer" onclick="openProject(' + jsStr(sid) + ')">' + esc(pmSiteName(sid)) + '</span>'
       : guess ? '<span style="color:var(--muted)" title="Not linked - an unconfirmed guess">maybe ' + esc(pmSiteName(guess)) + '</span>'
@@ -134,23 +137,34 @@ function pmOverviewHtml() {
       '<td class="num">' + (pmMw(p) || '—') + '</td>' +
       '<td style="min-width:110px"><div class="fit-bar" style="margin:0"><span data-w="' + num(p.progress) + '" style="background:var(--accent)"></span></div></td>' +
       '<td class="num" style="font-weight:800">' + num(p.progress) + '%</td>' +
-      '<td class="num">' + ts.length + '</td><td class="num">' + full + '</td><td class="num">' + doneStatus + '</td>' +
+      '<td class="num" style="font-weight:700">' + pulse.done + ' / ' + pulse.total + '</td><td class="num">' + doneStatus + '</td>' +
       '<td class="num">' + pmShortDate(p.plannedStart) + ' &ndash; ' + pmShortDate(p.plannedFinish) + '</td>' +
       '<td>' + esc(p.manager || '—') + '</td><td class="num">' + (p.members || []).length + '</td>' +
       '<td onclick="event.stopPropagation()">' + site + '</td></tr>';
   };
   return '<div class="stats-grid" style="margin-bottom:12px">' +
       statTile('pipeline', 'blue', 'Projects', String(real.length), tmpl.length + ' templates not counted') +
-      statTile('check', 'green', 'Tasks', fmtNum(leaf.length), 'working tasks across the sites') +
+      statTile('check', 'green', 'Tasks assigned', fmtNum(real.reduce((s, p) => s + pmPulse(pmProjectTasks(p.id)).total, 0)),
+        'rows with an owner, phases included') +
       statTile('alert', 'amber', 'Past finish, not 100%', fmtNum(late), 'as of today') +
       statTile('contacts', 'purple', 'People', String((state.pm.people || []).filter(p => p.is_active !== false).length), 'active in ProjectManager.com') +
     '</div>' +
     '<div class="table-wrap" style="border:0"><table><thead><tr><th>Project</th><th class="num">MW</th><th colspan="2">Progress</th>' +
-    '<th class="num">Tasks</th><th class="num">At 100%</th><th class="num">Marked Done</th><th class="num">Planned</th><th>Manager</th>' +
+    '<th class="num" title="Task rows that have an owner (anyone), at 100% over all such rows. For one person - as on ProjectManager.com\'s Team Summary - see Team > Project pulse.">Done / owned</th>' +
+    '<th class="num" title="Rows whose status is Done (not always the same as 100%)">Status Done</th><th class="num">Planned</th><th>Manager</th>' +
     '<th class="num">Members</th><th>Site in the app</th></tr></thead><tbody>' +
     real.map(row).join('') +
-    (tmpl.length ? '<tr><td colspan="11" style="background:var(--bg3);color:var(--muted);font-size:11px;font-weight:700">TEMPLATES</td></tr>' + tmpl.map(row).join('') : '') +
-    '</tbody></table></div><div class="fg-hint" style="margin-top:8px">Click a project to open its plan.</div>';
+    (tmpl.length ? '<tr><td colspan="10" style="background:var(--bg3);color:var(--muted);font-size:11px;font-weight:700">TEMPLATES</td></tr>' + tmpl.map(row).join('') : '') +
+    '</tbody></table></div><div class="fg-hint" style="margin-top:8px">Click a project to open its plan. ' +
+    '&ldquo;Done / owned&rdquo; counts task rows (phases included) that have an owner, whoever it is. ProjectManager.com&rsquo;s Team Summary shows the ' +
+    'same count for one person; that view is under Team &rarr; Project pulse.</div>';
+}
+
+/* ProjectManager.com's count: rows with at least one assignee, phases included;
+   done = 100%. `who` narrows it to one person's rows. */
+function pmPulse(tasks, who) {
+  const mine = tasks.filter(t => (t.assignees || []).length && (!who || t.assignees.some(a => a.id === who)));
+  return { total: mine.length, done: mine.filter(t => num(t.progress) >= 100).length };
 }
 
 /* ─── PLAN ────────────────────────────────────────────────────────── */
@@ -238,23 +252,55 @@ function pmPlanResultsHtml() {
 
 /* ─── TEAM ────────────────────────────────────────────────────────── */
 function pmTeamTabHtml() {
-  const leaf = state.pm.tasks.filter(pmIsLeaf);
-  const people = state.pm.people || [];
+  const tasks = state.pm.tasks;
+  const people = (state.pm.people || []).slice().sort((a, b) => pmUtilisation(b.id) - pmUtilisation(a.id));
   const rows = people.map(p => {
-    const mine = leaf.filter(t => (t.assignees || []).some(a => a.id === p.id));
-    const effort = mine.reduce((s, t) => s + num(t.plannedEffortMin), 0) / 60;
+    const mine = tasks.filter(t => (t.assignees || []).some(a => a.id === p.id));
     const projectsN = new Set(mine.map(t => t.projectId)).size;
     return '<tr><td style="font-weight:700">' + esc(p.name) + (p.is_active === false ? ' <span class="badge b-low">inactive</span>' : '') + '</td>' +
       '<td>' + esc(p.role || '—') + '</td>' +
       '<td>' + (p.email ? '<a class="ext-link" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a>' : '—') + '</td>' +
-      '<td class="num">' + projectsN + '</td><td class="num">' + mine.length + '</td>' +
-      '<td class="num">' + mine.filter(pmIsLate).length + '</td><td class="num">' + fmtNum(Math.round(effort)) + ' h</td></tr>';
+      '<td class="num" style="font-weight:800">' + mine.length + '</td>' +
+      '<td class="num">' + mine.filter(t => num(t.progress) >= 100).length + '</td>' +
+      '<td class="num">' + mine.filter(pmIsLate).length + '</td><td class="num">' + projectsN + '</td></tr>';
   }).join('');
+
+  /* Project pulse: for one person, or everyone. Picking Karen Metcalf, the
+     ProjectManager.com user the copy was taken as, gives exactly the figures on
+     its Team Summary page. */
+  /* Until someone picks, show the account the copy was taken as, so the
+     page opens on the same numbers as ProjectManager.com's Team Summary. */
+  const takenAs = state.pm.sync && state.pm.sync.notes && state.pm.sync.notes.takenAs;
+  const takenAsId = (people.find(p => p.name === takenAs) || {}).id || '';
+  const who = state.pmWho !== undefined && state.pmWho !== null ? state.pmWho : takenAsId;
+  const projects = state.pm.projects.slice().sort((a, b) => (a.isTemplate ? 1 : 0) - (b.isTemplate ? 1 : 0) || String(a.name).localeCompare(b.name));
+  const pulse = projects.map(p => ({ p, v: pmPulse(pmProjectTasks(p.id), who) }));
+  const sumDone = pulse.reduce((s, x) => s + x.v.done, 0), sumTotal = pulse.reduce((s, x) => s + x.v.total, 0);
+  const opt = (v, l) => '<option value="' + esc(v) + '"' + (who === v ? ' selected' : '') + '>' + esc(l) + '</option>';
   return '<div class="table-wrap" style="border:0"><table><thead><tr><th>Person</th><th>Role</th><th>Email</th>' +
-    '<th class="num">Projects</th><th class="num">Tasks assigned</th><th class="num">Past finish, not 100%</th><th class="num">Planned effort</th></tr></thead><tbody>' +
+    '<th class="num" title="Task rows assigned, phase rows included - what ProjectManager.com calls team utilization">Utilisation</th>' +
+    '<th class="num">At 100%</th><th class="num">Past finish, not 100%</th><th class="num">Projects</th></tr></thead><tbody>' +
     rows + '</tbody></table></div>' +
-    '<div class="fg-hint" style="margin-top:8px">Counts come from the task assignments in the copy; effort is the planned effort on those tasks, not logged time.</div>';
+    '<div class="fg-hint" style="margin:8px 0 18px">Utilisation is ProjectManager.com&rsquo;s own figure: the number of task rows a person is assigned, phase rows included. ' +
+    'It is a count of tasks, not hours. Availability labels (such as the &ldquo;Holiday&rdquo; shown beside each person there) and the ahead/behind workload ' +
+    'and schedule indicators are calculated by ProjectManager.com and are not in this copy.</div>' +
+    '<div class="card-header" style="margin-bottom:8px"><div><div class="card-title">Project pulse</div>' +
+    '<div class="card-sub">tasks done / assigned, per project</div></div>' +
+    '<select class="flt" onchange="pmSetWho(this.value)">' + opt('', 'Everyone') +
+      people.map(p => opt(p.id, p.name)).join('') + '</select></div>' +
+    '<div class="table-wrap" style="border:0"><table><thead><tr><th>Project</th><th class="num">Done / assigned</th><th colspan="2">Done</th></tr></thead><tbody>' +
+    pulse.map(x => '<tr><td style="font-weight:600">' + esc(x.p.name) + (x.p.isTemplate ? ' <span class="badge b-low">template</span>' : '') + '</td>' +
+      '<td class="num" style="font-weight:700">' + x.v.done + ' / ' + x.v.total + '</td>' +
+      '<td style="min-width:140px"><div class="fit-bar" style="margin:0"><span data-w="' + (x.v.total ? Math.round(x.v.done / x.v.total * 100) : 0) + '" style="background:var(--accent)"></span></div></td>' +
+      '<td class="num">' + (x.v.total ? Math.round(x.v.done / x.v.total * 100) : 0) + '%</td></tr>').join('') +
+    '<tr><td style="font-weight:800">All projects</td><td class="num" style="font-weight:800">' + sumDone + ' / ' + sumTotal + '</td><td></td><td class="num">' +
+      (sumTotal ? Math.round(sumDone / sumTotal * 100) : 0) + '%</td></tr></tbody></table></div>';
 }
+
+function pmUtilisation(personId) {
+  return state.pm.tasks.filter(t => (t.assignees || []).some(a => a.id === personId)).length;
+}
+function pmSetWho(id) { state.pmWho = id; pmRefresh(); }
 
 /* ─── ACTIVITY ────────────────────────────────────────────────────── */
 function pmActivityTabHtml() {
