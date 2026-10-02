@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════
    Core — state, persistence, helpers, routing, modals.
-   Data lives in localStorage so each sales user keeps their own working
-   copy; export/import CSV is how the team shares it.
+   The data lives in Supabase, so the whole team sees the same records;
+   localStorage only caches the last successful read so a dropped
+   connection shows the last known data instead of an empty app. CSV
+   export/import is for sharing and backup.
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
