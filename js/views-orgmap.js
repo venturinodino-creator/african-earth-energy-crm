@@ -36,7 +36,7 @@
    they run the RFP — a different conversation, at a different time. */
 const AE_PROC_RE    = /\bprocure\w*\b|\bsupply\s+chain\b|\bcategory\s+manager\b|\bsourcing\b|\bcontracts?\s+manager\b|\bbuyer\b|\btender\w*\b/i;
 const AE_ENERGY_RE  = /\b(?:energy|utilit\w*|electricity|power)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|executive)\b|\b(?:director|head|chief|manager|lead|executive)\b[^,;|]{0,32}\b(?:energy|utilit\w*|electricity|power)\b/i;
-const AE_SUSTAIN_RE = /\bchief\s+sustainability\s+officer\b|\b(?:sustainab\w*|esg|carbon|decarbonis\w*|decarboniz\w*|climate|environment\w*|net[-\s]?zero|energy\s+transition)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|officer)\b|\b(?:director|head|chief|manager|lead|officer)\b[^,;|]{0,32}\b(?:sustainab\w*|esg|carbon|decarbonis\w*|climate|environment\w*|energy\s+transition)\b/i;
+const AE_SUSTAIN_RE = /\bchief\s+sustainability\s+officer\b|\b(?:sustainab\w*|esg|carbon|decarbonis\w*|decarboniz\w*|climate|environment\w*|net[-\s]?zero|energy\s+transition)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|officer|executive|president)\b|\b(?:director|head|chief|manager|lead|officer|executive|president)\b[^,;|]{0,32}\b(?:sustainab\w*|esg|carbon|decarbonis\w*|climate|environment\w*|energy\s+transition)\b/i;
 const AE_FINANCE_RE = /\bchief\s+financial\s+officer\b|\bcfo\b|\bfinanc\w*\s+director\b|\bhead\s+of\s+financ\w*\b|\bfinancial\s+manager\b|\bgroup\s+financ\w*\b|\btreasur\w*\b/i;
 /* The municipal alternatives are not decoration. A municipality's
    accounting officer is its Municipal Manager — the CEO seat in all but
@@ -45,9 +45,9 @@ const AE_FINANCE_RE = /\bchief\s+financial\s+officer\b|\bcfo\b|\bfinanc\w*\s+dir
    shows empty with them sitting right there in the contact book. Same
    for Technical or Infrastructure Services, which is where a
    municipality keeps the distribution network. */
-const AE_EXEC_RE    = /\bchief\s+executive(?:\s+officer)?\b|\bceo\b|\bmanaging\s+director\b|\bexecutive\s+chairman\b|\bchairman\b|\bstrategy\s+director\b|\bdirector\s+of\s+strategy\b|\b(?:municipal|city)\s+manager\b|\bexecutive\s+mayor\b|\baccounting\s+officer\b/i;
-const AE_OPS_RE     = /\bchief\s+operating\s+officer\b|\bcoo\b|\boperations?\b[^,;|]{0,28}\b(?:director|head|manager|executive)\b|\b(?:director|head|manager|executive)\b[^,;|]{0,28}\boperations?\b|\bgeneral\s+manager\b|\b(?:plant|mine|mill|works|site|production)\s+manager\b|\b(?:technical|infrastructure)\s+services\b/i;
-const AE_ENG_RE     = /\bengineer\w*\b|\btechnical\b[^,;|]{0,28}\b(?:director|head|manager|lead)\b|\bmaintenance\b|\bprojects?\s+manager\b|\basset\s+manager\b|\breticulation\b/i;
+const AE_EXEC_RE    = /\bchief\s+executive(?:\s+officer)?\b|\bceo\b|\bmanaging\s+director\b|\bexecutive\s+chairman\b|\bchairman\b|\bchairperson\b|\bstrategy\s+director\b|\bdirector\s+of\s+strategy\b|\b(?:municipal|city)\s+manager\b|\bexecutive\s+mayor\b|\baccounting\s+officer\b/i;
+const AE_OPS_RE     = /\bchief\s+operat(?:ing|ions?)\s+officer\b|\bcoo\b|\boperations?\b[^,;|]{0,28}\b(?:director|head|manager|executive)\b|\b(?:director|head|manager|executive)\b[^,;|]{0,28}\boperations?\b|\bgeneral\s+manager\b|\b(?:plant|mine|mill|works|site|production)\s+manager\b|\b(?:technical|infrastructure)\s+services\b/i;
+const AE_ENG_RE     = /\bengineer\w*\b|\bchief\s+technical\s+officer\b|\bhead\s+of\s+(?:technical|projects?)\b|\bexecutive\s+head\s+(?:of\s+)?technical\b|\btechnical\b[^,;|]{0,28}\b(?:director|head|manager|lead)\b|\bmaintenance\b|\bprojects?\s+manager\b|\basset\s+manager\b|\breticulation\b/i;
 
 /* The bands the seniority bar is drawn from. Colours are the app's own
    palette, ordered so the two bands a rep opens with read as the
@@ -84,26 +84,50 @@ function aeRoleRank(c) {
 /* The ladder coverage tiles. Each is a seat at the table this desk
    needs filled before a PPA can be signed; the "why" is the reason
    that person takes the call, straight from the workbook. */
+/* `dept` is the department that also fills the seat, for a person whose title is
+   a senior role but does not name the area ("Executive Director" in Finance,
+   "Manager" in Energy). `notDept` rules out a department that only brushes the
+   area: Safety, Health and Environment is not Sustainability. The CEO / MD seat
+   has no department rule on purpose: a bare "Director" in the Executive
+   department is not assumed to be the CEO, and a seat read as covered when it is
+   not is worse than a gap. */
 const AE_LADDER = [
-  { k: 'energy',  label: 'Energy / utilities',   why: 'Owns the tariff, the load and the Eskom exposure',   re: AE_ENERGY_RE },
-  { k: 'sustain', label: 'Sustainability / ESG', why: 'Owns the Scope 2 number publicly',                   re: AE_SUSTAIN_RE },
-  { k: 'finance', label: 'CFO / finance',        why: 'Signs a 15–20 year commitment',                      re: AE_FINANCE_RE },
+  { k: 'energy',  label: 'Energy / utilities',   why: 'Owns the tariff, the load and the Eskom exposure',   re: AE_ENERGY_RE,
+    dept: /\b(?:energy|utilit\w*|electricity|power)\b/i },
+  { k: 'sustain', label: 'Sustainability / ESG', why: 'Owns the Scope 2 number publicly',                   re: AE_SUSTAIN_RE,
+    dept: /\b(?:sustainab\w*|esg|carbon|decarbonis\w*|decarboniz\w*|climate|net[-\s]?zero|energy\s+transition|environment\w*)\b/i,
+    notDept: /\b(?:safety|health|she|sheq|shemq)\b/i },
+  { k: 'finance', label: 'CFO / finance',        why: 'Signs a 15–20 year commitment',                      re: AE_FINANCE_RE,
+    dept: /\b(?:financ\w*|treasur\w*)\b/i },
   { k: 'exec',    label: 'CEO / MD',             why: 'Sponsor, and often decisive at mid-tier',            re: AE_EXEC_RE },
-  { k: 'ops',     label: 'Operations / site',    why: 'Cost-per-tonne owner; energy is a top-three input',  re: AE_OPS_RE },
-  { k: 'eng',     label: 'Engineering',          why: 'Validates reticulation and the connection point',    re: AE_ENG_RE },
-  { k: 'proc',    label: 'Procurement',          why: 'Runs the RFP — reach them before it is written',     re: AE_PROC_RE },
+  { k: 'ops',     label: 'Operations / site',    why: 'Cost-per-tonne owner; energy is a top-three input',  re: AE_OPS_RE,
+    dept: /\b(?:operations?|production|mining)\b/i },
+  { k: 'eng',     label: 'Engineering',          why: 'Validates reticulation and the connection point',    re: AE_ENG_RE,
+    dept: /\b(?:engineer\w*|projects?|maintenance)\b/i },
+  { k: 'proc',    label: 'Procurement',          why: 'Runs the RFP — reach them before it is written',     re: AE_PROC_RE,
+    dept: /\b(?:procure\w*|supply\s+chain|sourcing)\b/i },
 ];
 
-/* Seats follow the same precedence the seniority bands do. Without
+/* A senior role, whatever the area: the department then says which. A junior
+   title (analyst, accountant, clerk) in a seat's department does not fill it. */
+const AE_SENIOR_RE = /\b(?:director|head|chief|manager|executive|lead|officer|president|superintendent|hod)\b/i;
+
+/* A seat is filled by the title (read as before) or, for a senior role, by the
+   department. The org map lists everyone by department, so a person it shows
+   under Finance or Operations must be able to fill that seat here too.
+
+   Seats follow the same precedence the seniority bands do. Without
    this, "Category Manager: Energy & Utilities" fills the energy seat
    as well as the procurement one, and the panel tells a rep they have
    the person who owns the tariff when what they have is the buyer who
    will eventually run the RFP. A procurement title fills exactly one
    seat: procurement. */
 function aeSeatMatch(seat, c) {
-  const t = String((c && c.title) || '');
-  if (!seat || !seat.re.test(t)) return false;
-  return seat.k === 'proc' || !AE_PROC_RE.test(t);
+  if (!seat) return false;
+  const t = String((c && c.title) || ''), d = String((c && c.dept) || '');
+  if (seat.k !== 'proc' && AE_PROC_RE.test(t)) return false;
+  if (seat.re.test(t)) return true;
+  return !!(seat.dept && seat.dept.test(d) && !(seat.notDept && seat.notDept.test(d)) && AE_SENIOR_RE.test(t));
 }
 
 /* ─── THE FILTER ──────────────────────────────────────────────────
@@ -299,6 +323,17 @@ function contactMixHtml(o, contacts, opts) {
   }).join('');
   const seatsHeld = AE_LADDER.filter(s => people.some(c => aeSeatMatch(s, c))).length;
 
+  /* The ladder only has seven seats, so some people (sales, communications, legal) sit on no
+     seat. Say so and point to the org map rather than letting the ladder read as the whole list. */
+  const unplaced = people.filter(c => !AE_LADDER.some(s => aeSeatMatch(s, c)));
+  const unplacedAreas = [...new Set(unplaced.map(c => (c.dept || c.title || '').trim()).filter(Boolean))].slice(0, 3);
+  const unplacedNote = live && unplaced.length
+    ? '<p class="ia-note" style="margin-top:10px">' + unplaced.length + ' other ' +
+      (unplaced.length === 1 ? 'person fills' : 'people fill') + ' no seat on this ladder' +
+      (unplacedAreas.length ? ' (' + esc(unplacedAreas.join(', ')) + ')' : '') + ' &mdash; ' +
+      '<a class="ext-link" href="#" onclick="nav(\'org-map\',{id:\'' + o.id + '\'});return false">see everyone in the org map</a></p>'
+    : '';
+
   const filterChip = f ? '<button class="ia-clear" onclick="aeClearFilter()">Showing ' +
     (f.kind === 'role' ? esc((AE_TIERS.find(t => t.r === Number(f.value)) || {}).label || '')
       : f.kind === 'lead' ? 'the decision makers'
@@ -392,7 +427,7 @@ function contactMixHtml(o, contacts, opts) {
 
       '<div class="ia-panel ia-wide">' +
         '<div class="ia-h">Stakeholder ladder <b>' + seatsHeld + ' of ' + AE_LADDER.length + ' seats covered</b></div>' +
-        '<div class="ia-prods">' + seats + '</div>' +
+        '<div class="ia-prods">' + seats + '</div>' + unplacedNote +
       '</div>' +
     '</div>' +
   '</div>';
