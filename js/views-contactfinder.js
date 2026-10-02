@@ -1,12 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Contact finder — people at the offtakers, found by an agent.
+   Contact finder — people at the offtakers and the main municipalities,
+   found by an agent.
 
    Laid out like the pending-contacts screen in the Netherlands CRM: a
-   chip row that both filters the list and sets what the next run will
-   target, then the found people in a flat table a reviewer works down.
+   target selector and role chips that set what the next run will
+   cover, then the found people in a flat table a reviewer works down.
 
-   THE AGENT DOES NOT EXIST YET. "Find contacts now" records a run and
-   leaves it queued rather than pretending to search. The contract:
+   Two Claude Code agents do the finding (.claude/agents/
+   offtaker-contact-finder and municipality-contact-finder), driven
+   through scripts/finder-agent.js — see docs/contact-finder-agents.md.
+   "Find contacts now" only records a run and leaves it queued; it does
+   not search. The contract:
 
      run   (state.contactRuns)   { id, created, status, industry, roles,
                                    offtakerIds, found, note }
@@ -16,7 +20,7 @@
                                    confidence, status }
            status: 'pending' | 'approved' | 'discarded'
 
-   The agent claims a queued run, appends finds, marks the run done.
+   An agent claims a queued run, appends finds, marks the run done.
    Nothing it finds enters the contact book on its own — a person
    accepts each row, and accepting is what writes the aee_contacts
    record. A scraped person is a claim about a real human, so the
@@ -75,45 +79,123 @@ async function refreshFinderFromServer(announce) {
   }
 }
 
-/* One target, fixed: mining. The finder used to offer every sector
-   group as a chip and let that row double as the review filter. Both
-   are gone for now — the desk wants mining contacts and nothing else,
-   and nine chips with (0) on eight of them were noise around the one
-   that mattered. The run history and the export still label older runs
-   by whatever they were pointed at, so nothing already found loses its
-   name. Widen this by changing one constant, not by restoring the row. */
-const FINDER_TARGET = 'mining';
+/* The target is one piece of screen state (state.cfTarget): a sector id,
+   or FINDER_MUNI for the main municipalities. It opens on mining and is
+   not remembered between loads — the default is the point. The selector
+   lists only targets that still have people missing, so the screen stays
+   as quiet as the mining-only version was. Everything that follows from
+   the target is a pure function of the data passed in, so it can be
+   tested without a browser (tests/finder-targets.test.js). */
+const FINDER_DEFAULT_TARGET = 'mining';
 /* The sector's full name is "Mining & Minerals (Producer)", which is
    right in a taxonomy and wrong on a button. */
-const FINDER_TARGET_LABEL = 'Mining';
+const FINDER_MINING_LABEL = 'Mining';
 
-/* Municipalities are a target here as much as the industries are, but
-   they are not an industry: they come from reference data rather than
-   the offtaker list, and only the main ones are worth a run today. The
-   chip row carries them as one more key so both agents' output is
-   reviewed in the same table — municipalities already hang off the same
-   contacts machinery, so nothing below this line had to be duplicated. */
+/* Municipalities are a target here as much as the sectors are, but they
+   are not a sector: they come from reference data rather than the
+   offtaker list, and only the main ones are worth a run. Both agents'
+   output is reviewed in the same table — municipalities already hang
+   off the same contacts machinery, so nothing below had to be
+   duplicated. */
 const FINDER_MUNI = 'municipal';
+const FINDER_MUNI_LABEL = 'Main municipalities';
 
 function finderIsMuni(key) { return key === FINDER_MUNI; }
 function finderAccountIsMuni(id) { return String(id || '').startsWith('mun_'); }
 
+/* Run history, empty state and export all label by this. Unknown keys
+   fall back to the key itself so an old row never breaks, and a
+   sector-group key from an older run still reads. */
 function industryLabel(key) {
-  if (key === FINDER_TARGET) return FINDER_TARGET_LABEL;
+  if (key === FINDER_DEFAULT_TARGET) return FINDER_MINING_LABEL;
   if (key === 'all') return 'All industries';
-  if (finderIsMuni(key)) return 'Main municipalities';
-  return SECTOR_GROUPS[key] || key;
+  if (finderIsMuni(key)) return FINDER_MUNI_LABEL;
+  return SECTOR_LABEL[key] || SECTOR_GROUPS[key] || key;
 }
 
-/* The accounts a run would cover: every mining offtaker, narrowed by
-   province if one is picked. No "only where we have nobody" any more —
-   a run is pointed at the sector and the reviewer decides per row. */
-function finderScopeOfftakers() {
-  return state.offtakers.filter(o => {
-    if (o.sector !== FINDER_TARGET) return false;
-    if (state.cfProvince && o.province !== state.cfProvince) return false;
-    return true;
+/* An account needs people when nobody is on file and it is still live —
+   a parked, rejected or lost account is not being worked, so a gap there
+   is not a gap. withContacts is the set of account ids that have someone. */
+const FINDER_DEAD_STATUSES = ['parked', 'rejected', 'lost'];
+function finderNeedsPeople(o, withContacts) {
+  return !FINDER_DEAD_STATUSES.includes(o.status) && !withContacts.has(o.id);
+}
+
+/* What the selector offers: mining always, the selected target always,
+   every other sector with at least one account needing people, and the
+   main municipalities when the data holds any. Each carries how many of
+   its accounts need people, and how many it has. The municipality
+   option's count is not shown as a gap: every main municipality has
+   someone on file, and what is missing there is ladder seats, which an
+   account-level count cannot see. */
+function finderTargetOptions(offtakers, withContacts, mainMunis, labelOf, selected) {
+  const bySector = new Map();
+  offtakers.forEach(o => {
+    if (!bySector.has(o.sector)) bySector.set(o.sector, { needs: 0, total: 0 });
+    const t = bySector.get(o.sector);
+    t.total++;
+    if (finderNeedsPeople(o, withContacts)) t.needs++;
   });
+  const sectorOption = key => {
+    const t = bySector.get(key) || { needs: 0, total: 0 };
+    return { key, label: labelOf(key), needs: t.needs, total: t.total };
+  };
+  const others = [...bySector.keys()]
+    .filter(k => k !== FINDER_DEFAULT_TARGET && k !== selected && bySector.get(k).needs > 0)
+    .map(sectorOption)
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const list = [sectorOption(FINDER_DEFAULT_TARGET)];
+  if (selected !== FINDER_DEFAULT_TARGET && !finderIsMuni(selected)) list.push(sectorOption(selected));
+  list.push(...others);
+
+  if (mainMunis.length) {
+    list.push({
+      key: FINDER_MUNI, label: FINDER_MUNI_LABEL, total: mainMunis.length,
+      needs: mainMunis.filter(m => !withContacts.has(m.id)).length,
+    });
+  }
+  return list;
+}
+
+/* The accounts a run would cover: every account in the target, narrowed
+   by province if one is picked. No "only where we have nobody" — a run
+   is pointed at the target and the reviewer decides per row. */
+function finderScopeAccounts(target, offtakers, mainMunis, province) {
+  /* Filtered again here so a caller handing over every municipality
+     still gets only the main ones. */
+  const pool = finderIsMuni(target) ? mainMunis.filter(muniIsMain) : offtakers.filter(o => o.sector === target);
+  return province ? pool.filter(a => a.province === province) : pool;
+}
+
+/* The provinces present in the target, so the filter cannot offer an
+   empty set. */
+function finderProvinces(target, offtakers, mainMunis) {
+  return [...new Set(finderScopeAccounts(target, offtakers, mainMunis, '')
+    .map(a => a.province).filter(Boolean))].sort();
+}
+
+/* The run that queuing writes. The ids are what the agent is pointed at:
+   a municipality run carries mun_ ids and the industry the screen
+   already labels as municipal, so the municipality agent's target
+   command resolves every account with no change on its side. */
+function finderRunRecord(target, scope, roles, id, created) {
+  return {
+    id, created, status: 'queued',
+    industry: target,
+    roles: roles.slice(),
+    offtakerIds: scope.map(a => a.id),
+    found: 0, note: '',
+  };
+}
+
+/* The screen's reading of the above, over live state. */
+function finderMainMunis() { return SA_MUNICIPALITIES.filter(muniIsMain); }
+function finderWithContacts() {
+  return new Set(state.contacts
+    .filter(c => !c.status || c.status === 'active').map(c => c.offtakerId));
+}
+function finderScope() {
+  return finderScopeAccounts(state.cfTarget, state.offtakers, finderMainMunis(), state.cfProvince);
 }
 
 /* Whether a run's scope is municipalities, read off the ids it carries
@@ -149,9 +231,9 @@ function renderContactFinder() {
   const pending = state.foundContacts.filter(f => f.status === 'pending');
   const accepted = state.foundContacts.filter(f => f.status === 'approved').length;
   const noEmail = pending.filter(f => !findHasEmail(f)).length;
-  const scoped = finderScopeOfftakers();
+  const scoped = finderScope();
 
-  const findLabel = 'Find ' + FINDER_TARGET_LABEL.toLowerCase() + ' contacts now';
+  const findLabel = 'Find ' + industryLabel(state.cfTarget).toLowerCase() + ' contacts now';
 
   /* Accept all is always on the bar, greyed when there is nothing to
      take, so a reviewer never has to hunt for it after a run lands.
@@ -190,22 +272,39 @@ function renderContactFinder() {
     (pending.length ? finderTableHtml(pending) : finderEmptyHtml(accepted)));
 }
 
-/* The target line. One fixed chip, because there is one target; it
-   is drawn the way the roles are so the bar still reads as one control.
-   Not clickable — there is nothing else to click to. */
+/* The target selector. Lists only targets with people missing (plus
+   mining and whatever is selected), each with how many need people. */
 function finderTargetBar() {
-  const n = finderScopeOfftakers().length;
+  const options = finderTargetOptions(state.offtakers, finderWithContacts(),
+    finderMainMunis(), industryLabel, state.cfTarget);
   return '<div class="cf-bar">' +
     '<span class="cf-bar-label">Next scrape target:</span>' +
-    '<span class="cf-chip" style="border-color:var(--accent);background:rgba(61,220,132,.13);color:var(--accent);cursor:default">' +
-      esc(FINDER_TARGET_LABEL) + ' (' + n + ')</span>' +
+    '<select class="flt cf-flt" onchange="setFinderTarget(this.value)">' +
+      options.map(o => '<option value="' + esc(o.key) + '"' +
+        (state.cfTarget === o.key ? ' selected' : '') + '>' +
+        esc(o.label) + ' · ' + (finderIsMuni(o.key)
+          ? o.total + ' municipalities' : o.needs + ' need people') + '</option>').join('') +
+    '</select>' +
   '</div>';
 }
 
-/* Roles use the same chip language, plus the two narrowing selects. */
+/* A province that is not in the new target would filter it to nothing,
+   so it is cleared rather than carried across. */
+function setFinderTarget(key) {
+  state.cfTarget = key;
+  if (state.cfProvince &&
+      !finderProvinces(key, state.offtakers, finderMainMunis()).includes(state.cfProvince)) {
+    state.cfProvince = '';
+  }
+  renderContactFinder();
+}
+
+/* Roles use the same chip language, plus the narrowing select. */
 function finderRoleBar(scoped) {
-  const provinces = [...new Set(state.offtakers
-    .filter(o => o.sector === FINDER_TARGET).map(o => o.province).filter(Boolean))].sort();
+  const provinces = finderProvinces(state.cfTarget, state.offtakers, finderMainMunis());
+  const isMuni = finderIsMuni(state.cfTarget);
+  const nounOne = isMuni ? 'municipality' : 'offtaker';
+  const nounPlural = isMuni ? 'municipalities' : 'offtakers';
   const roleChips = FINDER_ROLES.map(r => {
     const on = state.cfRoles.includes(r);
     return '<button class="cf-chip" onclick="toggleFinderRole(\'' + r + '\')" style="' +
@@ -222,7 +321,7 @@ function finderRoleBar(scoped) {
       provinces.map(p => '<option value="' + esc(p) + '"' +
         (state.cfProvince === p ? ' selected' : '') + '>' + esc(p) + '</option>').join('') +
     '</select>' +
-    '<span class="cf-scope">' + scoped.length + ' offtaker' + (scoped.length === 1 ? '' : 's') +
+    '<span class="cf-scope">' + scoped.length + ' ' + (scoped.length === 1 ? nounOne : nounPlural) +
       ' in scope' + (state.cfRoles.length ? '' : ' · pick a role') + '</span>' +
   '</div>';
 }
@@ -278,20 +377,15 @@ function finderRunStrip() {
 
 function queueContactRun() {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to queue a run', 'warn'); return; }
-  const scoped = finderScopeOfftakers();
+  const scoped = finderScope();
   if (!scoped.length) { toast('Nothing matches this target', 'warn'); return; }
   if (!state.cfRoles.length) { toast('Pick at least one role to find', 'warn'); return; }
 
-  const run = {
-    id: uid('run'), created: todayISO(), status: 'queued',
-    industry: FINDER_TARGET,
-    roles: state.cfRoles.slice(),
-    offtakerIds: scoped.map(o => o.id),
-    found: 0, note: '',
-  };
+  const run = finderRunRecord(state.cfTarget, scoped, state.cfRoles, uid('run'), todayISO());
   state.contactRuns.unshift(run);
   saveFinderState();
-  toast('Queued · ' + FINDER_TARGET_LABEL + ' · ' + scoped.length + ' offtakers');
+  toast('Queued · ' + industryLabel(state.cfTarget) + ' · ' + scoped.length +
+    (finderIsMuni(state.cfTarget) ? ' municipalities' : ' offtakers'));
   renderContactFinder();
   /* The run only means anything once it is on the server — that is where
      the agent looks for work. */
@@ -315,7 +409,8 @@ function finderEmptyHtml(accepted) {
       ? '<p>' + accepted + ' find' + (accepted === 1 ? ' has' : 's have') + ' been accepted and filed under ' +
         '<span class="ext-link" style="cursor:pointer" onclick="nav(&#39;contacts&#39;)">Contacts</span>.</p>'
       : '') +
-    '<p>Pick the roles you want and click "Find mining contacts now" to queue a run. ' +
+    '<p>Pick a target and the roles you want, then click "Find ' + esc(industryLabel(state.cfTarget).toLowerCase()) +
+    ' contacts now" to queue a run. ' +
     'People the agent finds land here for review before they reach the contact book — ' +
     'everything already accepted is on the <span class="ext-link" style="cursor:pointer" ' +
     'onclick="nav(\'contacts\')">Contacts page</span>, filed under its company.</p></div>';
@@ -513,7 +608,7 @@ function discardFoundContact(id) {
 function exportFoundContacts() {
   const head = ['first_name', 'surname', 'title', 'role', 'company', 'industry', 'phone', 'email', 'source', 'status'];
   const rows = [head].concat(state.foundContacts.map(f => {
-    const o = getOfftaker(f.offtakerId);
+    const o = finderAccountOf(f.offtakerId);
     return [f.first, f.last, f.title || '', ROLE_LABEL[f.role] || f.role || '',
       o.name || '', industryLabel(finderIndustryOf(f) || 'all'),
       f.phone || '', f.email || '', f.source || '', FIND_STATUS_LABEL[f.status] || f.status];

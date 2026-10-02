@@ -41,11 +41,17 @@ Node 18 or newer. No dependencies to install.
 
 ## Running a batch
 
-**1. Queue the run** in the app — Contact finder, pick a target chip and
-the roles you want, then *Find contacts now*. The industry chips scope
-to offtakers; the **Main municipalities** chip at the end of the row
-scopes to the 20 main municipalities. The run is written as `queued`;
-nothing is searching yet.
+**1. Queue the run** in the app — Contact finder, pick a target from the
+*Next scrape target* selector and the roles you want, then *Find contacts
+now*. The selector opens on **Mining**. It lists only targets that still
+have people missing, each with how many accounts need people (no
+contact on file, and not parked), and always keeps Mining and whatever
+you have selected. Pick **Main municipalities** to send the municipality
+agent after the 20 main municipalities; any other entry is a sector and
+goes to the offtaker agent. The province filter lists only provinces in
+the selected target, and is cleared when you change target. The scope
+line ("n offtakers in scope") shows what the run would cover before you
+queue it. A run is written as `queued`; nothing is searching yet.
 
 **2. Check it landed:**
 
@@ -75,14 +81,22 @@ first, or it can be added on the contact later.
 ## What a good find looks like
 
 Required: `offtakerId` (from `targets`), `first`, `last`, `title`,
-`role`, `source`, and a **work email**. Phone is optional. A person
-with no email is not written — the desk writes before it phones, so a
-row with only a switchboard number is a contact nobody follows up. Keep
+`role`, `source`, and **a work email or a work phone** — the validator
+refuses a find with neither, because a name alone cannot be followed up.
+An email is preferred: the desk writes before it phones, and a row with
+only a number is flagged *No email* in the review table (it can still be
+accepted; *Add email & accept* lets a reviewer type one first). That
+is the floor the script enforces; the two agent definitions are
+stricter in practice and tell the agent to skip a person it can only
+reach by phone. An
+email must look like an address and must not be a shared inbox
+(`info@`, `cosec@`, a privacy office) — the table is about named
+people, so find the individual's own address or skip them. Keep
 reading (contact page, annual report, press-release signature) or turn
-to the Apollo source below; never guess an address from a pattern. `title` is
-recorded exactly as published, because the stakeholder ladder reads the
-seat off the title — tidying it is how a Municipal Manager stops being
-the CEO seat.
+to the Apollo source below; never guess an address from a pattern.
+`title` is recorded exactly as published, because the stakeholder
+ladder reads the seat off the title — tidying it is how a Municipal
+Manager stops being the CEO seat.
 
 `role` is one of `decision`, `influencer`, `technical`, `gatekeeper` —
 the four values `aee_found_contacts.role` accepts.

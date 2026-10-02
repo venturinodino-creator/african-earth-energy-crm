@@ -75,6 +75,7 @@ let state = {
 
   /* Contact finder: the scope a discovery run will be queued against. */
   cfProvince: '',
+  cfTarget: 'mining',
   cfRoles: ['decision'],
   contactRuns: null, foundContacts: null,
 
