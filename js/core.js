@@ -14,7 +14,7 @@ const PER_PAGE = 20;
 let state = {
   offtakers: [],
   pm: null,              // ProjectManager.com copy (Projects page); null until loaded
-  pmTab: 'overview', pmProject: null, pmF: null,
+  pmTab: 'team', pmProject: null, pmF: null,
   archived: [],          // shelved companies, Archive tab only
   archivedContacts: [],  // contacts that belong to them, kept out of every other list
   offArchive: false,     // Off-taker Prospects: false = priority list, true = Archive tab

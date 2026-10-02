@@ -11,8 +11,21 @@ function renderProjects() {
   const total = live.reduce((s, p) => s + num(p.mw), 0);
   const pipelineOnly = state.projects.filter(p => p.status === 'pipeline').reduce((s, p) => s + num(p.mw), 0);
 
-  setPage('Generation portfolio', fmtNum(total) + ' MW in development plus ' + fmtNum(pipelineOnly) + ' MW early-stage',
-    viewToggle('projectView'));
+  /* Arriving from a link to one site (a bar on the dashboard, a site name in
+     the plans) always lands on the sites. */
+  if (state.focusProjectId) state.projectsMode = 'sites';
+  const plans = state.projectsMode === 'plans';
+
+  setPage(plans ? 'Project plans' : 'Generation portfolio',
+    plans ? 'ProjectManager.com: team summary, portfolio, tasks and activity'
+          : fmtNum(total) + ' MW in development plus ' + fmtNum(pipelineOnly) + ' MW early-stage',
+    projectsModeToggle() + (plans ? '' : viewToggle('projectView')));
+
+  if (plans) {
+    setContent(pmSectionHtml());
+    growBars();
+    return;
+  }
 
   setContent(
     '<div class="stats-grid">' +
@@ -21,12 +34,33 @@ function renderProjects() {
       statTile('pipeline', 'blue', 'Under discussion', fmtNum(pipelineMw()) + ' MW', 'across the open pipeline') +
       statTile('target', 'purple', 'Still to sell', fmtNum(Math.max(0, total - contractedMw() - pipelineMw())) + ' MW', 'uncommitted capacity') +
     '</div>' +
+    pmBannerHtml() +
     (state.projectView === 'table'
       ? projectTableHtml(state.projects)
-      : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>') +
-    pmSectionHtml());
+      : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>'));
   growBars();
   focusProjectCard();
+}
+
+/* The Projects page has two views: the sites AEE sells from, and the
+   ProjectManager.com project plans. Both are one click from the top, because
+   a plan hidden at the foot of the sites table was never found. */
+function projectsModeToggle() {
+  const on = state.projectsMode === 'plans' ? 'plans' : 'sites';
+  return '<div class="view-toggle">' +
+    '<button class="vt-btn ' + (on === 'sites' ? 'active' : '') + '" onclick="setProjectsMode(\'sites\')">Sites</button>' +
+    '<button class="vt-btn ' + (on === 'plans' ? 'active' : '') + '" onclick="setProjectsMode(\'plans\')">Project plans</button></div>';
+}
+function setProjectsMode(m) { state.projectsMode = m; renderProjects(); }
+
+/* A pointer on the sites view to the plans, with what is in them. */
+function pmBannerHtml() {
+  if (!state.pm || state.pm.error) return '';
+  const real = state.pm.projects.filter(p => !p.isTemplate).length;
+  return '<div class="card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">' +
+    '<div><div class="card-title" style="font-size:13px">Project plans from ProjectManager.com</div>' +
+    '<div class="card-sub">' + real + ' projects &middot; ' + fmtNum(state.pm.tasks.length) + ' tasks &middot; team summary, portfolio, plans and activity</div></div>' +
+    '<button class="btn btn-primary btn-sm" onclick="setProjectsMode(\'plans\')">Open the project plans</button></div>';
 }
 
 /* Arriving from a bar on the dashboard, the site that was clicked is one
