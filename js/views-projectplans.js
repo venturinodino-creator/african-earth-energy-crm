@@ -251,50 +251,118 @@ function pmPlanResultsHtml() {
 }
 
 /* ─── TEAM ────────────────────────────────────────────────────────── */
+/* The Team tab follows ProjectManager.com's Team Summary page block for block:
+   Tasks, Workload, Schedule; Team Breakdown (due today, team utilization);
+   Project Pulse; Workstream. The task counts, utilisation and pulse are worked
+   out from the copied tasks and reproduce its figures exactly. A few things
+   ProjectManager.com calculates itself - the donut percentages, schedule, each
+   person's availability label, the due-today list - are not derivable, so they
+   are shown as that page displayed them, dated, and labelled as such. */
 function pmTeamTabHtml() {
-  const tasks = state.pm.tasks;
-  const people = (state.pm.people || []).slice().sort((a, b) => pmUtilisation(b.id) - pmUtilisation(a.id));
-  const rows = people.map(p => {
-    const mine = tasks.filter(t => (t.assignees || []).some(a => a.id === p.id));
-    const projectsN = new Set(mine.map(t => t.projectId)).size;
-    return '<tr><td style="font-weight:700">' + esc(p.name) + (p.is_active === false ? ' <span class="badge b-low">inactive</span>' : '') + '</td>' +
-      '<td>' + esc(p.role || '—') + '</td>' +
-      '<td>' + (p.email ? '<a class="ext-link" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a>' : '—') + '</td>' +
-      '<td class="num" style="font-weight:800">' + mine.length + '</td>' +
-      '<td class="num">' + mine.filter(t => num(t.progress) >= 100).length + '</td>' +
-      '<td class="num">' + mine.filter(pmIsLate).length + '</td><td class="num">' + projectsN + '</td></tr>';
-  }).join('');
+  const sync = (state.pm.sync && state.pm.sync.notes) || {};
+  const ts = sync.teamSummary || {};
+  const readOn = ts.readOn ? pmShortDate(ts.readOn) : '';
+  const asShown = readOn ? 'as displayed by ProjectManager.com on ' + readOn : 'as displayed by ProjectManager.com';
+  const allPeople = state.pm.people || [];
+  /* one entry per person: the copy can hold the same name twice (one inactive) */
+  const byName = new Map();
+  allPeople.forEach(p => { const k = p.name; const prev = byName.get(k); if (!prev || (prev.is_active === false && p.is_active !== false)) byName.set(k, p); });
+  const people = [...byName.values()];
 
-  /* Project pulse: for one person, or everyone. Picking Karen Metcalf, the
-     ProjectManager.com user the copy was taken as, gives exactly the figures on
-     its Team Summary page. */
-  /* Until someone picks, show the account the copy was taken as, so the
-     page opens on the same numbers as ProjectManager.com's Team Summary. */
-  const takenAs = state.pm.sync && state.pm.sync.notes && state.pm.sync.notes.takenAs;
-  const takenAsId = (people.find(p => p.name === takenAs) || {}).id || '';
+  const takenAsId = (people.find(p => p.name === sync.takenAs) || {}).id || '';
   const who = state.pmWho !== undefined && state.pmWho !== null ? state.pmWho : takenAsId;
+  const whoName = (people.find(p => p.id === who) || {}).name || 'everyone';
+  const rowsOf = id => state.pm.tasks.filter(t => (t.assignees || []).length && (!id || t.assignees.some(a => a.id === id)));
+  const viewerRows = rowsOf(who);
+
+  /* ── TASKS ── */
+  const d = ts.tasksDonut;
+  const nsPct = d ? Number(d.notStartedPct) : null, stPct = d ? Number(d.startedPct) : null;
+  const calcNot = viewerRows.filter(t => num(t.progress) === 0).length;
+  const calcDone = viewerRows.filter(t => num(t.progress) >= 100).length;
+  const calcMid = viewerRows.length - calcNot - calcDone;
+  const donut = d
+    ? '<div style="position:relative;width:118px;height:118px;border-radius:50%;flex-shrink:0;background:conic-gradient(var(--muted) 0 ' + nsPct + '%, var(--c-blue) ' + nsPct + '% 100%)">' +
+        '<div style="position:absolute;inset:24px;border-radius:50%;background:var(--card)"></div></div>'
+    : '';
+  const tasksCard = '<div class="card"><div class="card-header"><div class="card-title">Tasks</div></div>' +
+    '<div style="display:flex;gap:16px;align-items:center">' + donut +
+    '<div style="font-size:12px;line-height:1.9">' +
+      '<div><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--muted)"></i> Not Started' + (d ? ' <b>' + nsPct + '%</b>' : '') + '</div>' +
+      '<div><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c-blue)"></i> In Progress' + (d ? ' <b>' + stPct + '%</b>' : '') + '</div>' +
+      '<div><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c-green)"></i> Completed</div></div></div>' +
+    '<div class="fg-hint" style="margin-top:10px">' + (d ? 'Percentages ' + asShown + '. ' : '') +
+    'Calculated here from the copy for ' + esc(whoName) + '&rsquo;s ' + viewerRows.length + ' task rows: ' + calcNot + ' at 0%, ' + calcMid + ' between, ' + calcDone + ' at 100%.</div></div>';
+
+  /* ── WORKLOAD / SCHEDULE ── */
+  const wl = ts.workload || {};
+  const workloadCard = '<div class="card"><div class="card-header"><div class="card-title">Workload</div></div>' +
+    '<div style="font-size:12px;line-height:1.9">' + (wl.legend || ['Ahead', 'On Track', 'Behind']).map((l, i) =>
+      '<div><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:' + ['var(--c-green)', 'var(--c-blue)', 'var(--c-amber)'][i % 3] + '"></i> ' + esc(l) + '</div>').join('') + '</div>' +
+    '<div class="fg-hint" style="margin-top:10px">The bar values are calculated by ProjectManager.com and are not in this copy.</div></div>';
+  const scheduleCard = '<div class="card"><div class="card-header"><div class="card-title">Schedule</div></div>' +
+    '<div style="font-family:var(--f-display);font-size:26px;font-weight:700;color:var(--c-green)">' + esc(ts.schedule || '—') + '</div>' +
+    '<div class="fg-hint" style="margin-top:10px">' + (ts.schedule ? asShown : 'Not in this copy') + '.</div></div>';
+
+  /* ── TEAM BREAKDOWN: due today, team utilization ── */
+  const due = (ts.dueToday || []).map(x =>
+    '<div class="mkt-row"><div style="min-width:0"><div style="font-weight:700">' + esc(x.task) + '</div>' +
+    '<div class="mkt-note">' + esc(x.project) + ' &middot; due ' + esc(x.due) + '</div></div>' +
+    '<div style="display:flex;gap:4px;align-items:center;flex-shrink:0">' +
+      (x.tags || []).map(g => '<span class="badge ' + (g === 'Risk' ? 'b-high' : g === 'Issue' ? 'b-medium' : 'b-low') + '">' + esc(g) + '</span>').join('') +
+      '<span class="chip">' + esc(x.who || '') + '</span></div></div>').join('');
+  const dueCard = '<div class="card"><div class="card-header"><div class="card-title">Due today</div></div>' +
+    (due || '<div class="fg-hint">Nothing listed.</div>') +
+    '<div class="fg-hint" style="margin-top:10px">' + asShown + '.</div></div>';
+
+  const av = ts.availability || {};
+  const util = people.slice().sort((a, b) => String(a.name).localeCompare(b.name)).map(p => {
+    const parts = String(p.name || '').split(' ');
+    const ini = ((parts[0] || '')[0] || '') + ((parts[parts.length - 1] || '')[0] || '');
+    return '<div class="mkt-row"><div style="display:flex;align-items:center;gap:10px">' +
+      '<div class="av" style="background:' + avatarColor(p.name) + '">' + esc(ini.toUpperCase()) + '</div>' +
+      '<div><div style="font-weight:700">' + esc(p.name) + (p.is_active === false ? ' <span class="badge b-low">inactive</span>' : '') + '</div>' +
+      (av[p.name] ? '<div class="mkt-note" title="' + esc(asShown) + '">' + esc(av[p.name]) + '</div>' : '') + '</div></div>' +
+      '<div class="mkt-value" title="Task rows assigned, phase rows included">' + pmUtilisation(p.id) + '</div></div>';
+  }).join('');
+  const utilCard = '<div class="card"><div class="card-header"><div class="card-title">Team utilization</div></div>' + util +
+    '<div class="fg-hint" style="margin-top:10px">The number is a count of task rows assigned (phases included), not hours. Availability ' + asShown + '.</div></div>';
+
+  /* ── PROJECT PULSE ── */
+  const opt = (v, l) => '<option value="' + esc(v) + '"' + (who === v ? ' selected' : '') + '>' + esc(l) + '</option>';
   const projects = state.pm.projects.slice().sort((a, b) => (a.isTemplate ? 1 : 0) - (b.isTemplate ? 1 : 0) || String(a.name).localeCompare(b.name));
   const pulse = projects.map(p => ({ p, v: pmPulse(pmProjectTasks(p.id), who) }));
   const sumDone = pulse.reduce((s, x) => s + x.v.done, 0), sumTotal = pulse.reduce((s, x) => s + x.v.total, 0);
-  const opt = (v, l) => '<option value="' + esc(v) + '"' + (who === v ? ' selected' : '') + '>' + esc(l) + '</option>';
-  return '<div class="table-wrap" style="border:0"><table><thead><tr><th>Person</th><th>Role</th><th>Email</th>' +
-    '<th class="num" title="Task rows assigned, phase rows included - what ProjectManager.com calls team utilization">Utilisation</th>' +
-    '<th class="num">At 100%</th><th class="num">Past finish, not 100%</th><th class="num">Projects</th></tr></thead><tbody>' +
-    rows + '</tbody></table></div>' +
-    '<div class="fg-hint" style="margin:8px 0 18px">Utilisation is ProjectManager.com&rsquo;s own figure: the number of task rows a person is assigned, phase rows included. ' +
-    'It is a count of tasks, not hours. Availability labels (such as the &ldquo;Holiday&rdquo; shown beside each person there) and the ahead/behind workload ' +
-    'and schedule indicators are calculated by ProjectManager.com and are not in this copy.</div>' +
-    '<div class="card-header" style="margin-bottom:8px"><div><div class="card-title">Project pulse</div>' +
+  const pulseCard = '<div class="card" style="margin-top:14px"><div class="card-header"><div><div class="card-title">Project pulse</div>' +
     '<div class="card-sub">tasks done / assigned, per project</div></div>' +
-    '<select class="flt" onchange="pmSetWho(this.value)">' + opt('', 'Everyone') +
-      people.map(p => opt(p.id, p.name)).join('') + '</select></div>' +
+    '<select class="flt" onchange="pmSetWho(this.value)">' + opt('', 'Everyone') + people.map(p => opt(p.id, p.name)).join('') + '</select></div>' +
     '<div class="table-wrap" style="border:0"><table><thead><tr><th>Project</th><th class="num">Done / assigned</th><th colspan="2">Done</th></tr></thead><tbody>' +
     pulse.map(x => '<tr><td style="font-weight:600">' + esc(x.p.name) + (x.p.isTemplate ? ' <span class="badge b-low">template</span>' : '') + '</td>' +
       '<td class="num" style="font-weight:700">' + x.v.done + ' / ' + x.v.total + '</td>' +
       '<td style="min-width:140px"><div class="fit-bar" style="margin:0"><span data-w="' + (x.v.total ? Math.round(x.v.done / x.v.total * 100) : 0) + '" style="background:var(--accent)"></span></div></td>' +
       '<td class="num">' + (x.v.total ? Math.round(x.v.done / x.v.total * 100) : 0) + '%</td></tr>').join('') +
     '<tr><td style="font-weight:800">All projects</td><td class="num" style="font-weight:800">' + sumDone + ' / ' + sumTotal + '</td><td></td><td class="num">' +
-      (sumTotal ? Math.round(sumDone / sumTotal * 100) : 0) + '%</td></tr></tbody></table></div>';
+      (sumTotal ? Math.round(sumDone / sumTotal * 100) : 0) + '%</td></tr></tbody></table></div></div>';
+
+  const streamCard = '<div class="card" style="margin-top:14px"><div class="card-header"><div class="card-title">Workstream</div></div>' +
+    '<div class="fg-hint">' + esc(ts.workstream || 'No streams to display at this moment') + '</div></div>';
+
+  /* ── PEOPLE (detail beyond the page) ── */
+  const detail = people.slice().sort((a, b) => pmUtilisation(b.id) - pmUtilisation(a.id)).map(p => {
+    const mine = state.pm.tasks.filter(t => (t.assignees || []).some(a => a.id === p.id));
+    return '<tr><td style="font-weight:700">' + esc(p.name) + '</td><td>' + esc(p.role || '—') + '</td>' +
+      '<td>' + (p.email ? '<a class="ext-link" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a>' : '—') + '</td>' +
+      '<td class="num" style="font-weight:800">' + mine.length + '</td><td class="num">' + mine.filter(t => num(t.progress) >= 100).length + '</td>' +
+      '<td class="num">' + mine.filter(pmIsLate).length + '</td><td class="num">' + new Set(mine.map(t => t.projectId)).size + '</td></tr>';
+  }).join('');
+  const peopleCard = '<div class="card" style="margin-top:14px"><div class="card-header"><div><div class="card-title">People</div>' +
+    '<div class="card-sub">beyond the Team Summary page: role, email and progress per person</div></div></div>' +
+    '<div class="table-wrap" style="border:0"><table><thead><tr><th>Person</th><th>Role</th><th>Email</th><th class="num">Utilisation</th>' +
+    '<th class="num">At 100%</th><th class="num">Past finish, not 100%</th><th class="num">Projects</th></tr></thead><tbody>' + detail + '</tbody></table></div></div>';
+
+  return '<div class="grid-3" style="margin-bottom:14px">' + tasksCard + workloadCard + scheduleCard + '</div>' +
+    '<div class="section-title" style="margin:6px 0 10px">Team breakdown</div>' +
+    '<div class="grid-2">' + dueCard + utilCard + '</div>' + pulseCard + streamCard + peopleCard;
 }
 
 function pmUtilisation(personId) {
