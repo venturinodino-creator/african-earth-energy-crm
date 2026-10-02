@@ -13,6 +13,8 @@ const PER_PAGE = 20;
 
 let state = {
   offtakers: [],
+  pm: null,              // ProjectManager.com copy (Projects page); null until loaded
+  pmTab: 'overview', pmProject: null, pmF: null,
   archived: [],          // shelved companies, Archive tab only
   archivedContacts: [],  // contacts that belong to them, kept out of every other list
   offArchive: false,     // Off-taker Prospects: false = priority list, true = Archive tab
@@ -371,6 +373,9 @@ async function load() {
     state.archivedContacts = allContacts.filter(c => shelved.has(c.offtakerId));
     state.deals = (deals || []).map(rowToDeal).filter(d => !shelved.has(d.offtakerId));
     state.interactions = (interactions || []).map(rowToInteraction).filter(i => !shelved.has(i.offtakerId));
+    /* The project plans are read under the same sign-in; a failure there must not
+       take the CRM down, so the loader catches its own errors. */
+    await loadProjectPlans();
     cacheLocally();
   } catch (e) {
     console.warn('Could not reach Supabase, falling back to the local cache:', e);
