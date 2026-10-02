@@ -24,7 +24,7 @@ Company site: <https://www.aeeg.co.za/en>
 | **Analytics** | Load by province and sector, fit distribution, where the pipeline value actually sits |
 | **Savings calculator** | Model a wheeled PPA against the buyer's current tariff over the contract life |
 | **Sectors** | 30 sectors with tier, PPA fit, load shape, deal structures, sales cycle and who to call. Each opens to its own page with qualifying questions and objections |
-| **Contact finder** | Queue a discovery run for the people missing from an account, and review what comes back before it lands in Contacts |
+| **Contact finder** | Pick a target (Mining by default, another sector with gaps, or the main municipalities), queue a discovery run, and review what comes back before it lands in Contacts |
 | **Regions** | Each generation site against the industrial load in its catchment, ordered by unsold capacity then by distance, with published contacts inline |
 | **Playbook** | Ranked shortlists, market context, cold emails, discovery script, objection handling, qualification checklist |
 
