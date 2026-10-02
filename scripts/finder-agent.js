@@ -195,7 +195,7 @@ function municipalities() {
 }
 
 async function offtakers() {
-  return rest('aee_offtakers?select=id,name,short,sector,province,city,website');
+  return rest('aee_offtakers?select=id,name,short,sector,province,city,website&archived=eq.false');
 }
 
 /* What the model needs to start researching one account: who it is,

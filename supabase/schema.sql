@@ -200,6 +200,12 @@ create index if not exists aee_found_contacts_offtaker_idx on public.aee_found_c
 -- Idempotent: re-running the whole file on a live project is safe.
 
 alter table public.aee_offtakers add column if not exists sf_stage text;
+
+-- Archived companies are kept, not deleted: the app loads them into a
+-- separate Archive list on Off-taker Prospects so any of them can be added
+-- back to the priority list. Everything not archived is the working book.
+alter table public.aee_offtakers add column if not exists archived boolean not null default false;
+create index if not exists aee_offtakers_archived_idx on public.aee_offtakers(archived);
 alter table public.aee_deals     add column if not exists prospect_id text;
 alter table public.aee_interactions add column if not exists prospect_id text;
 

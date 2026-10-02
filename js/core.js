@@ -13,6 +13,9 @@ const PER_PAGE = 20;
 
 let state = {
   offtakers: [],
+  archived: [],          // shelved companies, Archive tab only
+  archivedContacts: [],  // contacts that belong to them, kept out of every other list
+  offArchive: false,     // Off-taker Prospects: false = priority list, true = Archive tab
   contacts: [],
   deals: [],
   interactions: [],
@@ -351,21 +354,31 @@ async function load() {
   state.projects = JSON.parse(JSON.stringify(AEE_PROJECTS));
   try {
     const [offtakers, contacts, deals, interactions] = await Promise.all([
-      supaFetch('aee_offtakers?select=*&order=name'),
-      supaFetch('aee_contacts?select=*&order=last'),
+      supaFetchAll('aee_offtakers?select=*&order=name,id'),
+      supaFetchAll('aee_contacts?select=*&order=last,id'),
       supaFetch('aee_deals?select=*&order=mw.desc'),
       supaFetch('aee_interactions?select=*&order=date.desc'),
     ]);
-    state.offtakers = (offtakers || []).map(rowToOfftaker);
-    state.contacts = (contacts || []).map(rowToContact);
-    state.deals = (deals || []).map(rowToDeal);
-    state.interactions = (interactions || []).map(rowToInteraction);
+    const everyone = (offtakers || []).map(rowToOfftaker);
+    state.offtakers = everyone.filter(o => !o.archived);
+    state.archived = everyone.filter(o => o.archived);
+    /* Whatever hangs off an archived company goes with it. Contacts for a
+       shelved account would otherwise crowd the Contacts page and the
+       finder with people nobody is working. */
+    const shelved = new Set(state.archived.map(o => o.id));
+    const allContacts = (contacts || []).map(rowToContact);
+    state.contacts = allContacts.filter(c => !shelved.has(c.offtakerId));
+    state.archivedContacts = allContacts.filter(c => shelved.has(c.offtakerId));
+    state.deals = (deals || []).map(rowToDeal).filter(d => !shelved.has(d.offtakerId));
+    state.interactions = (interactions || []).map(rowToInteraction).filter(i => !shelved.has(i.offtakerId));
     cacheLocally();
   } catch (e) {
     console.warn('Could not reach Supabase, falling back to the local cache:', e);
     const cache = lsGet('cache', null);
     if (cache) {
       state.offtakers = cache.offtakers || [];
+      state.archived = cache.archived || [];
+      state.archivedContacts = cache.archivedContacts || [];
       state.contacts = cache.contacts || [];
       state.deals = (cache.deals || []).map(d => ({ ...d, stage: normalizeDealStage(d.stage) }));
       state.interactions = cache.interactions || [];
@@ -381,7 +394,8 @@ async function load() {
    instead of an empty app. Never written back to the server. */
 function cacheLocally() {
   lsSet('cache', {
-    offtakers: state.offtakers, contacts: state.contacts,
+    offtakers: state.offtakers, archived: state.archived,
+    contacts: state.contacts, archivedContacts: state.archivedContacts,
     deals: state.deals, interactions: state.interactions,
     at: new Date().toISOString(),
   });

@@ -122,7 +122,7 @@ async function main() {
   if (!(budget > 0)) { console.error('--budget must be a positive number'); process.exitCode = 1; return; }
 
   await signIn();
-  const offs = await rest('aee_offtakers?select=id,name,website,status&sector=in.(' + sectors.join(',') + ')');
+  const offs = await rest('aee_offtakers?select=id,name,website,status&archived=eq.false&sector=in.(' + sectors.join(',') + ')');
   const byId = Object.fromEntries(offs.map(o => [o.id, o]));
   const contacts = await rest('aee_contacts?select=id,offtaker_id,first,last,title,email,notes,status&or=(email.is.null,email.eq.)');
   let cands = contacts

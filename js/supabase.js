@@ -53,6 +53,20 @@ async function initSupabase() {
   return supabaseClient;
 }
 
+/* PostgREST hands back at most 1000 rows per request and says nothing when
+   it truncates, so a table that has grown past that silently loses its
+   tail. Page through with limit/offset until a short page comes back. */
+async function supaFetchAll(path, pageSize = 1000) {
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await supaFetch(path + '&limit=' + pageSize + '&offset=' + offset);
+    if (!page || !page.length) break;
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
+
 /* PostgREST call carrying the signed-in user's access token, so the
    database evaluates the request as that user rather than as `anon`. */
 async function supaFetch(path, opts = {}) {
@@ -89,6 +103,12 @@ function rowToOfftaker(r) {
     supply: r.supply || 'eskom', wheeling: r.wheeling || 'unknown',
     status: r.status || 'prospect', priority: r.priority || 'medium',
     sfStage: r.sf_stage || '',
+    /* Shelved, not deleted. Archived companies are split off at load time
+       into state.archived and shown only on the Archive tab of Off-taker
+       Prospects, so the rest of the app only ever sees the working book.
+       Deliberately absent from offtakerToRow: ordinary saves must never
+       flip it, only archiveOfftaker / restoreOfftaker do. */
+    archived: !!r.archived,
     /* Maintained by a trigger, never written from here. It is the weakest
        answer to "how long has this been sitting" and the only one an
        account nobody has touched can give. */
