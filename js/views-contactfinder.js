@@ -309,7 +309,7 @@ function finderRoleBar(scoped) {
     const on = state.cfRoles.includes(r);
     return '<button class="cf-chip" onclick="toggleFinderRole(\'' + r + '\')" style="' +
       'border-color:' + (on ? 'var(--accent)' : 'var(--border2)') + ';' +
-      'background:' + (on ? 'rgba(61,220,132,.13)' : 'transparent') + ';' +
+      'background:' + (on ? 'color-mix(in srgb,var(--accent) 13%,transparent)' : 'transparent') + ';' +
       'color:' + (on ? 'var(--accent)' : 'var(--muted)') + '">' +
       esc(ROLE_LABEL[r] || r) + '</button>';
   }).join('');

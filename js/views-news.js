@@ -7,7 +7,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
-function newsTopicOf(a) { return NEWS_TOPICS[a.topic] || { label: 'News', color: '#7a90a8' }; }
+function newsTopicOf(a) { return NEWS_TOPICS[a.topic] || { label: 'News', color: 'var(--muted)' }; }
 
 /* Everything matching the province and search filters. The topic chip is
    applied separately, so the summary can count across all topics while the
