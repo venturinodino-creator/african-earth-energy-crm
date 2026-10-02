@@ -81,14 +81,12 @@ first, or it can be added on the contact later.
 ## What a good find looks like
 
 Required: `offtakerId` (from `targets`), `first`, `last`, `title`,
-`role`, `source`, and **a work email or a work phone** — the validator
-refuses a find with neither, because a name alone cannot be followed up.
-An email is preferred: the desk writes before it phones, and a row with
-only a number is flagged *No email* in the review table (it can still be
-accepted; *Add email & accept* lets a reviewer type one first). That
-is the floor the script enforces; the two agent definitions are
-stricter in practice and tell the agent to skip a person it can only
-reach by phone. An
+`role`, `source`, and **a work email** — the validator refuses a find
+without one (standing rule, restated 2026-10-02: every contact must have
+an email address). Include a `phone` too whenever one is published, but
+it never stands in for the email. A named person with no findable email
+is not written; the agent lists them in its report so the email can be
+sourced another way. An
 email must look like an address and must not be a shared inbox
 (`info@`, `cosec@`, a privacy office) — the table is about named
 people, so find the individual's own address or skip them. Keep

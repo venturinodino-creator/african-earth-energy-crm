@@ -244,14 +244,14 @@ function checkFind(f) {
   if (f.seat && !SEATS.includes(f.seat)) problems.push('seat must be one of ' + SEATS.join(', '));
   if (!f.source) problems.push('source is required — the page you read it from');
   else if (!/^https?:\/\//i.test(String(f.source))) problems.push('source must be a URL you actually read');
-  /* A person needs a way to be reached: a work email or a work phone.
-     Email is what the desk wants — Accept all shows how many rows lack
-     one, and the reviewer can add it — but a named person with only a
-     published direct line is still a find, because the alternative is
-     no contact at that mine at all. What is never enough is a name on
-     its own, and an email that is an office inbox (checked below). */
-  if (!f.email && !f.phone) problems.push('a find with neither email nor phone cannot be contacted; skip it');
-  else if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) problems.push('email does not look like an address');
+  /* A work email is REQUIRED (the desk's standing rule, restated
+     2026-10-02: every contact must have an email address). A phone is
+     welcome beside it and should be included whenever one is published,
+     but it never stands in for the email. A name with only a phone is
+     not a find: skip it, and say in the run note that the seat is
+     named-but-unreachable so the email can be sourced another way. */
+  if (!f.email) problems.push('an email address is required - a find with only a phone or a name is not accepted; find the individual\'s own work email or skip them');
+  else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) problems.push('email does not look like an address');
   /* A shared inbox belongs to no named person, and this table is about
      named people. The reviewer cannot tell from the row, so it is
      refused here. The list grew after an agent filed a CEO under the
@@ -348,6 +348,40 @@ const commands = {
       }),
     });
     out({ ok: true, finished: rows[0] });
+  },
+
+  /* The names-to-enrich list: people already on file at a run's companies
+     who have no email. Read-only. Writes a CSV in the column order of
+     research/big-load-people-no-email.csv (the Apollo queue), so it can
+     be fed to scripts/finder-apollo.js or worked by hand. stdout is only
+     a summary - the personal data goes to the file, not the transcript. */
+  async enrich(id, outPath) {
+    if (!id) die('Usage: enrich <runId> [csvPath]');
+    const run = await getRun(id);
+    const ids = run.offtaker_ids || [];
+    if (!ids.length) die('Run ' + run.id + ' has no target companies.');
+    const inList = '(' + ids.map(encodeURIComponent).join(',') + ')';
+    const [people, companies] = await Promise.all([
+      rest('aee_contacts?offtaker_id=in.' + inList + '&select=*&order=offtaker_id,last'),
+      rest('aee_offtakers?id=in.' + inList + '&select=id,name'),
+    ]);
+    const name = Object.fromEntries(companies.map(c => [c.id, c.name]));
+    const todo = people.filter(p => !(p.email || '').trim() && p.status !== 'left');
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const header = 'first,last,title,department,company,email,phone,linkedin,notes';
+    const lines = todo.map(p => [
+      p.first, p.last, p.title, p.dept, name[p.offtaker_id] || p.offtaker_id, '', p.phone, '',
+      'Named on file; no email found. needs Apollo / email sourcing · run ' + run.id,
+    ].map(q).join(','));
+    const file = path.resolve(REPO, outPath || ('research/mining/names-to-enrich-' + run.id + '.csv'));
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, '﻿' + [header, ...lines].join('\n') + '\n', 'utf8');
+    const byCo = {};
+    todo.forEach(p => { const n = name[p.offtaker_id] || p.offtaker_id; byCo[n] = (byCo[n] || 0) + 1; });
+    out({
+      ok: true, runId: run.id, contactsAtTargets: people.length, withoutEmail: todo.length,
+      file: path.relative(REPO, file), perCompany: byCo,
+    });
   },
 
   /* A run that found nothing is done, not failed. `failed` is for a run
