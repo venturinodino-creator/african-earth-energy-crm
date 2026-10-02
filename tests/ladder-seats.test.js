@@ -42,6 +42,7 @@ const fills = (title, dept, ...seats) => assert.deepStrictEqual(seatsOf(person(t
 console.log('\nthe title alone (as before)');
 test('a Group Energy Manager fills Energy / utilities', () => fills('Group Energy Manager', '', 'energy'));
 test('a CFO fills CFO / finance', () => fills('Chief Financial Officer', '', 'finance'));
+test('"Chief Finance Officer" (Finance, not Financial) fills CFO / finance too', () => fills('Chief Finance Officer', '', 'finance'));
 test('a CEO fills CEO / MD', () => fills('Chief Executive Officer', '', 'exec'));
 test('a Chief Operating Officer fills Operations / site', () => fills('Chief Operating Officer', '', 'ops'));
 test('a buyer who runs the RFP fills Procurement only, not Energy', () =>

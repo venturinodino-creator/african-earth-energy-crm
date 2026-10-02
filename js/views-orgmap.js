@@ -37,7 +37,7 @@
 const AE_PROC_RE    = /\bprocure\w*\b|\bsupply\s+chain\b|\bcategory\s+manager\b|\bsourcing\b|\bcontracts?\s+manager\b|\bbuyer\b|\btender\w*\b/i;
 const AE_ENERGY_RE  = /\b(?:energy|utilit\w*|electricity|power)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|executive)\b|\b(?:director|head|chief|manager|lead|executive)\b[^,;|]{0,32}\b(?:energy|utilit\w*|electricity|power)\b/i;
 const AE_SUSTAIN_RE = /\bchief\s+sustainability\s+officer\b|\b(?:sustainab\w*|esg|carbon|decarbonis\w*|decarboniz\w*|climate|environment\w*|net[-\s]?zero|energy\s+transition)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|officer|executive|president)\b|\b(?:director|head|chief|manager|lead|officer|executive|president)\b[^,;|]{0,32}\b(?:sustainab\w*|esg|carbon|decarbonis\w*|climate|environment\w*|energy\s+transition)\b/i;
-const AE_FINANCE_RE = /\bchief\s+financial\s+officer\b|\bcfo\b|\bfinanc\w*\s+director\b|\bhead\s+of\s+financ\w*\b|\bfinancial\s+manager\b|\bgroup\s+financ\w*\b|\btreasur\w*\b/i;
+const AE_FINANCE_RE = /\bchief\s+financ(?:e|ial)\s+officer\b|\bcfo\b|\bfinanc\w*\s+director\b|\bhead\s+of\s+financ\w*\b|\bfinancial\s+manager\b|\bgroup\s+financ\w*\b|\btreasur\w*\b/i;
 /* The municipal alternatives are not decoration. A municipality's
    accounting officer is its Municipal Manager — the CEO seat in all but
    name, and the single most important person on the list — and without
