@@ -333,3 +333,65 @@ begin
       t || '_delete', t);
   end loop;
 end $$;
+
+-- ─── PROJECTMANAGER.COM COPY ───────────────────────────────────────
+-- A dated, read-only copy of the AEEG ProjectManager.com workspace, loaded by
+-- scripts/load-projectmanager.js and shown on the Projects page. Same access
+-- rule as the CRM tables: signed-in users with access read, admins write.
+-- It is kept here and not in a static file because files under data/ are
+-- served to the public by GitHub Pages.
+--
+-- aee_pm_projects and aee_pm_tasks were created in the database before the
+-- loader existed (laid out for a sync, empty), so the loader uses them as
+-- they are: the common fields in their columns and the complete record in
+-- `raw`, which the page reads.
+create table if not exists public.aee_pm_projects (
+  id text primary key, name text, description text, short_code text, status text,
+  start_date date, end_date date, planned_start date, planned_finish date,
+  priority text, manager text, members jsonb, percent_complete numeric, raw jsonb,
+  synced_at timestamptz not null default now()
+);
+create table if not exists public.aee_pm_tasks (
+  id text primary key, project_id text, name text, wbs text, status text,
+  start_date date, finish_date date, actual_start date, actual_finish date,
+  percent_complete numeric, priority text, is_milestone boolean, assignees jsonb, raw jsonb,
+  synced_at timestamptz not null default now()
+);
+create index if not exists aee_pm_tasks_project_idx on public.aee_pm_tasks(project_id);
+create table if not exists public.aee_pm_people (
+  id text primary key, name text, initials text, email text, role text, country text,
+  teams jsonb, skills jsonb, is_active boolean, default_planned_hours numeric, working_days jsonb
+);
+create table if not exists public.aee_pm_tags (id text primary key, name text, color text);
+create table if not exists public.aee_pm_activity (
+  id text primary key, sender_id text, type text, at timestamptz, subject text, message text,
+  task_id text, project_id text
+);
+create index if not exists aee_pm_activity_project_idx on public.aee_pm_activity(project_id);
+-- one row: when the copy was taken and what it could not include
+create table if not exists public.aee_pm_sync (
+  id int primary key default 1 check (id = 1), as_of date, source text, notes jsonb
+);
+
+alter table public.aee_pm_projects enable row level security;
+alter table public.aee_pm_tasks    enable row level security;
+alter table public.aee_pm_people   enable row level security;
+alter table public.aee_pm_tags     enable row level security;
+alter table public.aee_pm_activity enable row level security;
+alter table public.aee_pm_sync     enable row level security;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['aee_pm_projects','aee_pm_tasks','aee_pm_people','aee_pm_tags','aee_pm_activity','aee_pm_sync']
+  loop
+    execute format('drop policy if exists %I on public.%I', t || '_read',   t);
+    execute format('drop policy if exists %I on public.%I', t || '_insert', t);
+    execute format('drop policy if exists %I on public.%I', t || '_update', t);
+    execute format('drop policy if exists %I on public.%I', t || '_delete', t);
+    execute format('create policy %I on public.%I for select to authenticated using (public.has_crm_access())', t || '_read', t);
+    execute format('create policy %I on public.%I for insert to authenticated with check (public.is_crm_admin())', t || '_insert', t);
+    execute format('create policy %I on public.%I for update to authenticated using (public.is_crm_admin()) with check (public.is_crm_admin())', t || '_update', t);
+    execute format('create policy %I on public.%I for delete to authenticated using (public.is_crm_admin())', t || '_delete', t);
+  end loop;
+end $$;
