@@ -113,17 +113,21 @@ function industryLabel(key) {
   return SECTOR_LABEL[key] || SECTOR_GROUPS[key] || key;
 }
 
-/* An account needs people when nobody is on file and it is not parked —
-   a parked account is not being worked, so a gap there is not a gap.
-   withContacts is the set of account ids that have someone. */
+/* An account needs people when nobody is on file and it is still live —
+   a parked, rejected or lost account is not being worked, so a gap there
+   is not a gap. withContacts is the set of account ids that have someone. */
+const FINDER_DEAD_STATUSES = ['parked', 'rejected', 'lost'];
 function finderNeedsPeople(o, withContacts) {
-  return o.status !== 'parked' && !withContacts.has(o.id);
+  return !FINDER_DEAD_STATUSES.includes(o.status) && !withContacts.has(o.id);
 }
 
 /* What the selector offers: mining always, the selected target always,
    every other sector with at least one account needing people, and the
    main municipalities when the data holds any. Each carries how many of
-   its accounts need people. */
+   its accounts need people, and how many it has. The municipality
+   option's count is not shown as a gap: every main municipality has
+   someone on file, and what is missing there is ladder seats, which an
+   account-level count cannot see. */
 function finderTargetOptions(offtakers, withContacts, mainMunis, labelOf, selected) {
   const bySector = new Map();
   offtakers.forEach(o => {
@@ -190,7 +194,7 @@ function finderWithContacts() {
   return new Set(state.contacts
     .filter(c => !c.status || c.status === 'active').map(c => c.offtakerId));
 }
-function finderScopeOfftakers() {
+function finderScope() {
   return finderScopeAccounts(state.cfTarget, state.offtakers, finderMainMunis(), state.cfProvince);
 }
 
@@ -227,7 +231,7 @@ function renderContactFinder() {
   const pending = state.foundContacts.filter(f => f.status === 'pending');
   const accepted = state.foundContacts.filter(f => f.status === 'approved').length;
   const noEmail = pending.filter(f => !findHasEmail(f)).length;
-  const scoped = finderScopeOfftakers();
+  const scoped = finderScope();
 
   const findLabel = 'Find ' + industryLabel(state.cfTarget).toLowerCase() + ' contacts now';
 
@@ -278,7 +282,8 @@ function finderTargetBar() {
     '<select class="flt cf-flt" onchange="setFinderTarget(this.value)">' +
       options.map(o => '<option value="' + esc(o.key) + '"' +
         (state.cfTarget === o.key ? ' selected' : '') + '>' +
-        esc(o.label) + ' · ' + o.needs + ' need people</option>').join('') +
+        esc(o.label) + ' · ' + (finderIsMuni(o.key)
+          ? o.total + ' municipalities' : o.needs + ' need people') + '</option>').join('') +
     '</select>' +
   '</div>';
 }
@@ -372,7 +377,7 @@ function finderRunStrip() {
 
 function queueContactRun() {
   if (state.role !== 'admin') { toast('Read-only access — ask an admin to queue a run', 'warn'); return; }
-  const scoped = finderScopeOfftakers();
+  const scoped = finderScope();
   if (!scoped.length) { toast('Nothing matches this target', 'warn'); return; }
   if (!state.cfRoles.length) { toast('Pick at least one role to find', 'warn'); return; }
 
@@ -603,7 +608,7 @@ function discardFoundContact(id) {
 function exportFoundContacts() {
   const head = ['first_name', 'surname', 'title', 'role', 'company', 'industry', 'phone', 'email', 'source', 'status'];
   const rows = [head].concat(state.foundContacts.map(f => {
-    const o = getOfftaker(f.offtakerId);
+    const o = finderAccountOf(f.offtakerId);
     return [f.first, f.last, f.title || '', ROLE_LABEL[f.role] || f.role || '',
       o.name || '', industryLabel(finderIndustryOf(f) || 'all'),
       f.phone || '', f.email || '', f.source || '', FIND_STATUS_LABEL[f.status] || f.status];

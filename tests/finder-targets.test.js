@@ -72,6 +72,14 @@ test('a sector with a gap is offered with its count', () => {
 });
 test('a sector with no gaps is hidden', () => assert.ok(!keys('mining').includes('cement')));
 test('a parked account with no contact does not count', () => assert.ok(!keys('mining').includes('steel')));
+test('rejected and lost accounts with no contact do not count', () => {
+  const book = offtakers.concat([
+    { id: 'o_pap1', sector: 'paper', province: 'Gauteng', status: 'rejected' },
+    { id: 'o_pap2', sector: 'paper', province: 'Gauteng', status: 'lost' },
+  ]);
+  const k = f.finderTargetOptions(book, withContacts, munis, labelOf, 'mining').map(o => o.key);
+  assert.ok(!k.includes('paper'));
+});
 test('the selected target stays listed with no gaps', () => assert.ok(keys('cement').includes('cement')));
 test('the municipality target is offered', () => assert.ok(keys('mining').includes(f.FINDER_MUNI)));
 test('the municipality target is hidden when no main municipality exists', () => {
