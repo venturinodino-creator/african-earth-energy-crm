@@ -472,10 +472,12 @@ function renderDetail() {
        not an empty stage badge. It has no sales stage, and the page says
        so by not drawing one. */
     (working ? sfPathCardHtml(o) : '') +
-    overview +
-    /* No contacts list under it any more, so the panel's segments have
-       nothing on this page to narrow — they open the people instead. */
-    '<div style="margin-top:14px">' + contactMixHtml(o, people, { noList: true }) + '</div>');
+    /* Who is on file comes before the long overview: the ladder names the
+       person in each seat with their email, and the list under it is every
+       contact in full. The panel's segments filter that list. */
+    '<div style="margin-bottom:14px">' + contactMixHtml(o, people) + '</div>' +
+    '<div style="margin-bottom:14px">' + contactsCardHtml(o) + '</div>' +
+    overview);
 }
 
 /* Blank-line-separated text into real paragraphs. The blurbs were written
