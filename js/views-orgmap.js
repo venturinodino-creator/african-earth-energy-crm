@@ -132,6 +132,24 @@ function aeActiveFilter(oid) {
   return f;
 }
 
+/* An address the finder worked out from the company's format rather than
+   read off a page. scripts/infer-emails.js says so in the contact's notes;
+   the app repeats it beside the address so nobody mistakes a likely
+   address for a confirmed one. */
+function aeEmailInferred(c) { return /INFERRED/i.test((c && c.notes) || ''); }
+
+/* A contact's email as a mail link, tagged when it is inferred, or the
+   plain statement that there is none. Safe inside a clickable tile: the
+   click is kept from reaching the tile. */
+function aeEmailHtml(c) {
+  if (!c || !c.email) return '<span style="color:var(--c-amber)">no email on file</span>';
+  return '<a class="ext-link" href="mailto:' + esc(c.email) + '" onclick="event.stopPropagation()" ' +
+    'style="font-weight:600;overflow-wrap:anywhere">' + esc(c.email) + '</a>' +
+    (aeEmailInferred(c)
+      ? ' <span class="badge b-low" style="font-size:9px" title="Worked out from the company\'s address format - not confirmed">inferred</span>'
+      : '');
+}
+
 function aeNameKey(c) {
   return ((c.first || '') + ' ' + (c.last || '')).toLowerCase().replace(/\s+/g, ' ').trim();
 }
@@ -254,20 +272,29 @@ function contactMixHtml(o, contacts, opts) {
     const hits = people.filter(c => aeSeatMatch(seat, c));
     const on = f && f.kind === 'ladder' && f.value === seat.k;
     const held = hits.length > 0;
+    /* A held seat names the people in it - name, then their email - so the
+       ladder answers "who is it, and how do I reach them" without a click
+       through to the org map. Up to two are written out; the rest are a
+       count. */
     const who = held
-      ? esc(hits[0].first + ' ' + hits[0].last) + (hits.length > 1 ? ' +' + (hits.length - 1) : '')
-      : 'No one on file';
+      ? hits.slice(0, 2).map(c =>
+          '<span class="ia-prod-s" style="color:var(--c-green)">' + esc(c.first + ' ' + c.last) + '</span>' +
+          '<span class="ia-prod-r" style="margin-top:1px">' + aeEmailHtml(c) + '</span>').join('') +
+        (hits.length > 2 ? '<span class="ia-prod-r">+' + (hits.length - 2) + ' more</span>' : '')
+      : '<span class="ia-prod-s" style="color:var(--c-amber)">No one on file</span>';
     /* A held seat filters the list to that person. An empty one has
        nothing to filter to, so it stays inert and simply reads as the
-       gap it is — the panel never offers a click it cannot honour. */
+       gap it is - the panel never offers a click it cannot honour.
+       The held tile is a div, not a button: it holds links (the email
+       addresses), and a link inside a button is not valid markup. */
     const inner =
-      '<span class="ia-prod-n">' + esc(seat.label) + '</span>' +
-      '<span class="ia-prod-s" style="color:' + (held ? 'var(--c-green)' : 'var(--c-amber)') + '">' + who + '</span>' +
+      '<span class="ia-prod-n">' + esc(seat.label) + '</span>' + who +
       '<span class="' + (held ? 'ia-prod-r' : 'ia-prod-x') + '">' + esc(seat.why) + '</span>';
     return held
-      ? '<button class="ia-prod is-linked" style="background:color-mix(in srgb,var(--c-green) 10%,transparent);border-color:color-mix(in srgb,var(--c-green) 28%,transparent)" ' +
+      ? '<div class="ia-prod is-linked" role="button" tabindex="0" style="background:color-mix(in srgb,var(--c-green) 10%,transparent);border-color:color-mix(in srgb,var(--c-green) 28%,transparent)" ' +
         'aria-pressed="' + !!on + '" onclick="aeSetFilter(\'ladder\',\'' + seat.k + '\')" ' +
-        'title="' + (hasList ? 'Show only ' + esc(seat.label) + ' contacts' : 'Open the org map') + '">' + inner + '</button>'
+        'onkeydown="if(event.key===\'Enter\')aeSetFilter(\'ladder\',\'' + seat.k + '\')" ' +
+        'title="' + (hasList ? 'Show only ' + esc(seat.label) + ' contacts' : 'Open the org map') + '">' + inner + '</div>'
       : '<div class="ia-prod" style="background:color-mix(in srgb,var(--c-amber) 7%,transparent);border-color:color-mix(in srgb,var(--c-amber) 22%,transparent)">' + inner + '</div>';
   }).join('');
   const seatsHeld = AE_LADDER.filter(s => people.some(c => aeSeatMatch(s, c))).length;
@@ -412,7 +439,7 @@ function contactsCardHtml(o) {
         '<div class="person-title">' + esc(c.title) + (c.dept ? ' · ' + esc(c.dept) : '') + '</div>' +
         (tier.hex ? '<div class="cx-tier"><i style="background:' + tier.hex + '"></i>' + esc(tier.label) + '</div>' : '') +
         (c.email || c.phone ? '<div class="person-title" style="margin-top:2px">' +
-          (c.email ? '<a class="ext-link" href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a> ' : '') +
+          (c.email ? aeEmailHtml(c) + ' ' : '') +
           (c.phone ? esc(c.phone) : '') + '</div>' : '') +
       '</div>' +
       '<div class="person-actions">' +
