@@ -178,6 +178,32 @@ test('merging does not change the lists it was given', () => {
   assert.strictEqual(ex.length, 1); assert.strictEqual(fresh.length, 1);
 });
 
+test('a story with no usable date is dropped rather than kept forever', () => {
+  assert.strictEqual(merge([], [story(1, { date: undefined }), story(2, { date: 'soon' })]).length, 0);
+});
+
+console.log('\nfailing loudly, not silently');
+test('a page that is not an RSS feed is an error (a block or consent page)', () => {
+  assert.throws(() => scan.assertFeed('<html><body>Before you continue to Google</body></html>'), /not an RSS feed/);
+  assert.throws(() => scan.assertFeed(''), /not an RSS feed/);
+});
+test('a real feed with no items is fine', () => assert.doesNotThrow(() => scan.assertFeed('<rss version="2.0"><channel><title>x</title></channel></rss>')));
+test('links that were tried and none resolved means the decode is broken', () => assert.strictEqual(scan.resolutionBroken(12, 0, 0), true));
+test('some resolved, some expired, or nothing tried is healthy', () => {
+  assert.strictEqual(scan.resolutionBroken(12, 3, 0), false);
+  assert.strictEqual(scan.resolutionBroken(12, 0, 12), false);
+  assert.strictEqual(scan.resolutionBroken(0, 0, 0), false);
+});
+test('the saved stories file is read back as its list', () => {
+  const text = "'use strict';\nconst NEWS_AUTO = " + JSON.stringify([story(1)]) + ';\n';
+  assert.deepStrictEqual(scan.parseAutoFile(text).map(s => s.id), ['auto-1']);
+});
+test('a missing stories file is an empty list', () => assert.deepStrictEqual(scan.parseAutoFile(null), []));
+test('a corrupt stories file is an error, never an empty list', () => {
+  assert.throws(() => scan.parseAutoFile('<<<<<<< HEAD\nconst NEWS_AUTO = [\n'), /news-auto\.js/);
+  assert.throws(() => scan.parseAutoFile("'use strict';\nconst NEWS_AUTO = 5;\n"), /news-auto\.js/);
+});
+
 console.log('\nsearches');
 test('parseCompanies takes the name before the bar, skips comments and blanks, and drops repeats', () =>
   assert.deepStrictEqual(scan.parseCompanies('# note\n\nGold Fields | goldfields.com\nGold Fields | goldfields.com\nTharisa\n'), ['Gold Fields', 'Tharisa']));

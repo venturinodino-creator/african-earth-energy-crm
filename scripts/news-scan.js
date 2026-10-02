@@ -114,6 +114,25 @@ function parseFeed(xml) {
   return items;
 }
 
+/* A block, consent or captcha page is HTML, not a feed. Without this it parses to zero items and the run
+   would look healthy while quietly finding nothing. */
+function assertFeed(xml) {
+  if (typeof xml !== 'string' || !/<rss[\s>]/.test(xml)) throw new Error('not an RSS feed (blocked or changed by Google?)');
+}
+
+/* Links were attempted and not one resolved or was retired: Google's decode endpoint has changed. */
+function resolutionBroken(tried, resolved, expired) { return tried > 0 && resolved === 0 && expired === 0; }
+
+/* The saved stories file as a list. Only a missing file means "no stories yet"; a file that cannot be read
+   back is an error, so a bad merge or hand edit can never be replaced by an empty list. */
+function parseAutoFile(text) {
+  if (text == null) return [];
+  let list;
+  try { list = vm.runInNewContext(text + '\n;NEWS_AUTO'); } catch (e) { throw new Error('data/news-auto.js cannot be read: ' + e.message); }
+  if (!Array.isArray(list)) throw new Error('data/news-auto.js does not hold a list of stories');
+  return Array.from(list);   // an ordinary array: the sandbox's own Array has a different prototype
+}
+
 function daysBetween(a, b) { return Math.floor((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 864e5); }
 function isoDay(pubDate, today) {
   const t = Date.parse(pubDate);
@@ -180,7 +199,7 @@ function mergeStories(existing, fresh, opts) {
   const curatedTitles = new Set((opts.curated || []).map(a => norm(a.title)));
   const seenUrls = new Set(), seenTitles = new Set(), out = [];
   for (const s of [...existing, ...fresh]) {
-    if (!s || !s.url) continue;
+    if (!s || !s.url || isNaN(Date.parse(s.date))) continue;   // no link or no usable date: not a story we can keep honestly
     const u = normalizeUrl(s.url), t = norm(s.title);
     if (curatedUrls.has(u) || curatedTitles.has(t) || seenUrls.has(u) || seenTitles.has(t)) continue;
     if (daysBetween(opts.today, s.date) > WINDOW_DAYS) continue;
@@ -221,7 +240,9 @@ async function search(query) {
   const url = 'https://news.google.com/rss/search?q=' + encodeURIComponent(query) + '&hl=en-ZA&gl=ZA&ceid=ZA:en';
   const res = await fetchTimed(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AEE-CRM-NewsBot/1.0)' } });
   if (!res.ok) throw new Error('HTTP ' + res.status);
-  return parseFeed(await res.text());
+  const xml = await res.text();
+  assertFeed(xml);
+  return parseFeed(xml);
 }
 
 /* Google hands out its own redirect links. The way across is its decode endpoint: the article page carries a
@@ -259,7 +280,7 @@ async function resolvePublisherUrl(googleUrl) {
 
 function readJson(file, fallback) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return fallback; } }
 function readAutoStories() {
-  try { return vm.runInNewContext(fs.readFileSync(AUTO_FILE, 'utf8') + '\n;NEWS_AUTO') || []; } catch (e) { return []; }
+  return parseAutoFile(fs.existsSync(AUTO_FILE) ? fs.readFileSync(AUTO_FILE, 'utf8') : null);
 }
 function readCurated() {
   return vm.runInNewContext(fs.readFileSync(CURATED_FILE, 'utf8') + '\n;NEWS_ARTICLES');
@@ -307,6 +328,10 @@ async function main() {
     await sleep(REQUEST_DELAY_MS);
   }
   console.log(`[news-scan] resolved ${resolved}/${tried} publisher links` + (expired ? `, ${expired} retired by Google` : ''));
+  if (resolutionBroken(tried, resolved, expired)) {
+    console.error('[news-scan] none of the links could be resolved; Google\'s decode endpoint has probably changed. Failing so this is seen.');
+    process.exit(1);
+  }
 
   const list = mergeStories(existing, fresh, { today, curated });
   for (const k of Object.keys(seen)) if (daysBetween(today, seen[k]) > WINDOW_DAYS) delete seen[k];
@@ -317,6 +342,6 @@ async function main() {
   console.log(`[news-scan] ${list.length} automatic stories saved (${fresh.length} new)`);
 }
 
-module.exports = { parseFeed, classify, toStory, normalizeUrl, mergeStories, parseCompanies, queriesFor };
+module.exports = { assertFeed, resolutionBroken, parseAutoFile, parseFeed, classify, toStory, normalizeUrl, mergeStories, parseCompanies, queriesFor };
 
 if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
