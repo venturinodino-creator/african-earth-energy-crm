@@ -234,8 +234,8 @@ function findToRow(f) {
    rather than trusting whatever was cached. */
 async function fetchFinderData() {
   const [runs, finds] = await Promise.all([
-    supaFetch('aee_contact_runs?select=*&order=created.desc'),
-    supaFetch('aee_found_contacts?select=*&order=created_at.desc'),
+    supaFetchAll('aee_contact_runs?select=*&order=created.desc,id'),
+    supaFetchAll('aee_found_contacts?select=*&order=created_at.desc,id'),
   ]);
   return { runs: (runs || []).map(rowToRun), finds: (finds || []).map(rowToFind) };
 }
