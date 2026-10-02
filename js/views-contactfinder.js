@@ -73,6 +73,7 @@ async function refreshFinderFromServer(announce) {
        until something else happens to re-render it. The prospect list
        carries the pending count in its header for the same reason. */
     if (state.view === 'prospects') renderContactFinder();
+    else if (state.view === 'agenthq') renderAgentHQ();
     else if (state.view === 'dashboard') renderDashboard();
     else if (state.view === 'offtakers') renderOfftakers();
     applyRoleUI();
