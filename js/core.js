@@ -793,6 +793,7 @@ function render() {
     playbook: renderPlaybook,
     activity: renderActivity,
     news: renderNews,
+    agenthq: renderAgentHQ,
   };
   (views[state.view] || renderDashboard)();
   renderBackToMain();
