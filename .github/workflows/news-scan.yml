@@ -1,0 +1,50 @@
+name: Daily AEEG News Scan
+
+# Finds fresh mining, power and PPA stories and saves them to data/news-auto.js for the News page.
+# Needs no secrets. Curated stories in data/news.js are never touched.
+
+on:
+  schedule:
+    - cron: '30 4 * * *'   # 06:30 in South Africa
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: news-scan-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test the story rules
+        run: node tests/news-scan.test.js
+      - name: Run news scan
+        run: node scripts/news-scan.js
+      - name: Commit new stories
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add data/news-auto.js data/news-auto-state.json
+          if git diff --staged --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git commit -m "news-scan: auto-scan $(date +%Y-%m-%d)"
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push; then
+              echo "Pushed successfully"
+              exit 0
+            fi
+            echo "Push attempt $attempt failed (another push got in first), retrying"
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 5))
+          done
+          echo "::error::Could not push the news results after 3 attempts"
+          exit 1
