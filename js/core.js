@@ -358,8 +358,8 @@ async function load() {
     const [offtakers, contacts, deals, interactions] = await Promise.all([
       supaFetchAll('aee_offtakers?select=*&order=name,id'),
       supaFetchAll('aee_contacts?select=*&order=last,id'),
-      supaFetch('aee_deals?select=*&order=mw.desc'),
-      supaFetch('aee_interactions?select=*&order=date.desc'),
+      supaFetchAll('aee_deals?select=*&order=mw.desc,id'),
+      supaFetchAll('aee_interactions?select=*&order=date.desc,id'),
     ]);
     const everyone = (offtakers || []).map(rowToOfftaker);
     state.offtakers = everyone.filter(o => !o.archived);
