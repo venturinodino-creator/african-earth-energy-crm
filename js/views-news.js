@@ -9,12 +9,35 @@
 
 function newsTopicOf(a) { return NEWS_TOPICS[a.topic] || { label: 'News', color: 'var(--muted)' }; }
 
+/* The same link, whatever the tracking parameters, www, case or trailing slash. */
+function newsLinkKey(u) {
+  try {
+    const x = new URL(String(u));
+    [...x.searchParams.keys()].forEach(k => { if (/^(utm_|fbclid$|gclid$|mc_|ref$)/i.test(k)) x.searchParams.delete(k); });
+    const q = x.searchParams.toString();
+    return x.hostname.toLowerCase().replace(/^www\./, '') + x.pathname.replace(/\/+$/, '') + (q ? '?' + q : '');
+  } catch (e) { return String(u || ''); }
+}
+
+/* The desk's curated stories (data/news.js) beside the ones the Daily AEEG News Scan saves
+   (data/news-auto.js, tagged Auto). When both cover the same link, the curated one wins.
+   Neither list is changed. */
+function mergeNews(curated, auto) {
+  const have = new Set(curated.map(a => newsLinkKey(a.url)));
+  return curated.concat((auto || []).filter(a => a && a.url && !have.has(newsLinkKey(a.url))));
+}
+
+/* Every story the page shows. data/news-auto.js may not have loaded; the page then reads as it always did. */
+function allNews() {
+  return mergeNews(NEWS_ARTICLES, typeof NEWS_AUTO === 'undefined' ? [] : NEWS_AUTO);
+}
+
 /* Everything matching the province and search filters. The topic chip is
    applied separately, so the summary can count across all topics while the
    feed shows one. */
 function newsInScope() {
   const term = (state.newsSearch || '').toLowerCase();
-  return NEWS_ARTICLES.filter(a => {
+  return allNews().filter(a => {
     if (state.newsProvince && a.province !== state.newsProvince) return false;
     if (term && !(a.title + ' ' + a.summary + ' ' + (a.whyItMatters || '') + ' ' + a.province)
       .toLowerCase().includes(term)) return false;
@@ -33,9 +56,10 @@ function setNewsProvince(p) { state.newsProvince = p === state.newsProvince ? ''
 
 function renderNews() {
   const scope = newsInScope();
-  const sampleCount = NEWS_ARTICLES.filter(a => a.sample).length;
+  const news = allNews();
+  const sampleCount = news.filter(a => a.sample).length;
 
-  setPage('News', NEWS_ARTICLES.length + ' stories across ' + Object.keys(NEWS_TOPICS).length +
+  setPage('News', news.length + ' stories across ' + Object.keys(NEWS_TOPICS).length +
     ' topics · mining, power and PPA activity by province',
     '<button class="btn btn-outline btn-sm" onclick="exportNews()">' + icon('download', 14) + ' Export</button>');
 
@@ -101,6 +125,7 @@ function newsCardHtml(a) {
       '<span class="news-topic-tag" style="background:' + t.color + '22;color:' + t.color + ';border-color:' + t.color + '55">' +
         esc(t.label) + '</span>' +
       (a.sample ? '<span class="news-sample-tag">sample</span>' : '') +
+      (a.auto ? '<span class="news-auto-tag" title="Found by the Daily AEEG News Scan, not curated by the desk">Auto</span>' : '') +
       '<span class="news-date">' + esc(a.date) + '</span>' +
     '</div>' +
     '<h3>' + esc(a.title) + '</h3>' +
@@ -215,10 +240,10 @@ function countBy(list, keyFn) {
 }
 
 function exportNews() {
-  const head = ['date', 'topic', 'province', 'title', 'summary', 'why_it_matters', 'source', 'url', 'sample'];
+  const head = ['date', 'topic', 'province', 'title', 'summary', 'why_it_matters', 'source', 'url', 'sample', 'auto'];
   const rows = [head].concat(filteredNews().map(a => [
     a.date, newsTopicOf(a).label, a.province, a.title, a.summary,
-    a.whyItMatters || '', a.source || '', a.url || '', a.sample ? 'yes' : 'no',
+    a.whyItMatters || '', a.source || '', a.url || '', a.sample ? 'yes' : 'no', a.auto ? 'yes' : 'no',
   ]));
   downloadCSV('aee-news-' + todayISO() + '.csv', rows);
   toast('Exported ' + (rows.length - 1) + ' stories');
