@@ -164,6 +164,25 @@ POPIA applies to bought data exactly as it does to scraped data.
 `data/mining-companies.txt` is the desk's mining and smelting batch
 list, ready to run.
 
+## The listed off-takers
+
+`listed-offtaker-contact-finder` keeps the companies on the Off-taker Prospects
+page staffed (the priority list and the ones being worked, never the Archive).
+It works from gaps rather than a blank page:
+
+```
+node scripts/finder-gaps.js gaps              the listed companies, biggest gap first
+node scripts/finder-gaps.js company <id>      one company: its seven seats, who is on file
+node scripts/finder-gaps.js queue             queue a run for the biggest gaps
+```
+
+A seat is a gap when nobody fills it, or when whoever does has no email. The
+seat rules are the app's own (`js/views-orgmap.js`), so this report and the
+account page agree. An empty seat counts twice as much as a seat with a name
+but no address. The agent reads `company <id>` before searching, so it looks
+only for what is missing and never writes down someone already on file. Its
+finds still land in the review queue; nothing becomes a contact until accepted.
+
 ## Notes
 
 - **Never match a municipality by name.** Emalahleni exists twice:
