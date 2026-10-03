@@ -18,6 +18,8 @@ let _ahqFetched = false;
 
 /* The agent definitions in .claude/agents, in the order a reader looks. */
 const AHQ_ROSTER = [
+  { key: 'listed', name: 'Listed off-taker contact finder', icon: 'building', cls: 'amber',
+    what: 'Works the ladder gaps at the off-takers on the Prospects page; never the Archive' },
   { key: 'priority', name: 'Priority contact finder', icon: 'target', cls: 'purple',
     what: 'Deep multi-angle research for the priority list; email required on every find' },
   { key: 'offtakers', name: 'Offtaker contact finder', icon: 'building', cls: 'green',
@@ -43,6 +45,7 @@ function ahqMinutesSince(iso) {
 
 /* Which agent a run was aimed at, read off the ids it carries. */
 function ahqAgentOf(run) {
+  if (/^Gap run/.test(run.note || '')) return 'listed';
   const ids = run.offtakerIds || [];
   if (ids.some(id => String(id || '').startsWith('mun_'))) return 'municipal';
   const archived = id => (getOfftaker(id) || {}).archived;
@@ -163,4 +166,44 @@ function renderAgentHQ() {
   _ahqTimer = setTimeout(function tick() {
     if (state.view === 'agenthq') refreshFinderFromServer(false);
   }, AHQ_POLL_MS);
+}
+
+/* ─── THE CARD ON THE ACTIVITY PAGE ───────────────────────────────────
+   The same agents and the same queue as Agent HQ, in brief, so the first thing
+   on Activity is what is working for you right now. */
+function ahqNewsRowHtml() {
+  if (typeof NEWS_AUTO === 'undefined' || !NEWS_AUTO.length) return '';
+  const last = NEWS_AUTO.reduce((m, n) => (String(n.date) > m ? String(n.date) : m), '');
+  return '<div class="person-row" style="cursor:pointer" onclick="nav(\'news\')">' +
+    '<div class="stat-icon-box blue" style="width:32px;height:32px;border-radius:8px">' + icon('note', 15) + '</div>' +
+    '<div style="min-width:0;flex:1"><div class="person-name">Daily AEEG News Scan</div>' +
+    '<div class="person-title">Collects stories for the News page once a day, outside the browser</div>' +
+    '<div class="person-title">' + NEWS_AUTO.length + ' stories collected &middot; newest ' + esc(last) + '</div></div>' +
+    '<div class="person-actions"><span class="badge b-prospect">Scheduled daily</span></div></div>';
+}
+
+function ahqActivityCardHtml() {
+  if (!state.contactRuns) loadFinderCache();
+  if (!_ahqFetched) { _ahqFetched = true; refreshFinderFromServer(false); }
+  const runs = state.contactRuns || [];
+  const finds = state.foundContacts || [];
+  const active = runs.filter(r => ['Running', 'Stalled?', 'Queued'].includes(ahqStatus(r).label));
+  const running = runs.filter(r => ahqStatus(r).label === 'Running').length;
+  const stalled = runs.filter(r => ahqStatus(r).label === 'Stalled?').length;
+  const queued = runs.filter(r => r.status === 'queued').length;
+  const pending = finds.filter(f => f.status === 'pending').length;
+  const activeRows = active.slice(0, 4).map(r => {
+    const st = ahqStatus(r); const a = AHQ_ROSTER.find(x => x.key === ahqAgentOf(r));
+    return '<div class="mkt-row"><div style="min-width:0"><div style="font-weight:600"><span class="badge ' + st.cls + '">' + esc(st.label) + '</span> ' + esc(a ? a.name : 'Contact finder') + '</div>' +
+      '<div class="mkt-note">' + ahqTargetsHtml(r) + '</div></div>' +
+      '<div class="mkt-value">' + (finds.filter(f => f.runId === r.id).length || num(r.found)) + ' found</div></div>';
+  }).join('');
+  clearTimeout(_ahqTimer);
+  _ahqTimer = setTimeout(() => { if (state.view === 'activity') refreshFinderFromServer(false); }, AHQ_POLL_MS);
+  return '<div class="card" style="margin-bottom:14px"><div class="card-header"><div><div class="card-title">Agents in this repo</div>' +
+    '<div class="card-sub">' + (running ? '<b>' + running + ' running</b>' : 'none running') + (stalled ? ' &middot; ' + stalled + ' possibly stalled' : '') +
+    ' &middot; ' + queued + ' queued' + (pending ? ' &middot; <b>' + pending + ' found ' + (pending === 1 ? 'person' : 'people') + ' to review</b>' : '') + '</div></div>' +
+    '<button class="btn btn-ghost btn-xs" onclick="nav(\'agenthq\')">Agent HQ</button></div>' +
+    (activeRows ? '<div style="margin-bottom:8px">' + activeRows + '</div>' : '') +
+    AHQ_ROSTER.map(a => ahqRosterRowHtml(a, runs, finds)).join('') + ahqNewsRowHtml() + '</div>';
 }
