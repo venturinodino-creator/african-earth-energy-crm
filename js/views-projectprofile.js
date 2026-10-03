@@ -24,10 +24,9 @@ function projectPmFor(siteId) {
   return maybe ? { p: maybe, sure: false } : null;
 }
 
-function projectOpenPlan(pmId) {
-  state.pmProject = pmId; state.pmF = null; state.pmTab = 'plan'; state.projectsMode = 'plans';
-  nav('projects');
-}
+/* The Delivery card's button: the plan itself is a tab on this page. */
+function projectOpenPlan() { state.projectTab = 'plan'; renderProject(); }
+function projectSetTab(k) { state.projectTab = k; renderProject(); }
 
 /* The next things due on a plan: open leaf tasks, soonest finish first. */
 function projectUpNext(tasks, n) {
@@ -112,16 +111,23 @@ function projectNotesHtml(site) {
 }
 async function projectAddNote(pmId) { await pmAddNote(pmId); if (state.view === 'project') renderProject(); }
 
-function renderProject() {
-  const site = state.projects.find(p => p.id === state.projectId);
-  if (!site) { nav('projects'); return; }
+/* The site's complete ProjectManager.com plan, on the profile: the same Plan
+   table as on the Projects page (filters, Edit, + New task), fixed to this
+   site's project. Edits made here are the same edits, kept in the same place. */
+function projectPlanHtml(site) {
+  const m = projectPmFor(site.id);
+  if (!m) return '<div class="card"><div class="card-header"><div class="card-title">Project plan</div></div>' +
+    '<div class="fg-hint">No ProjectManager.com plan is linked to this site yet.</div></div>';
+  return '<div class="card"><div class="card-header"><div><div class="card-title">Project plan</div>' +
+    '<div class="card-sub">' + esc(m.p.name) + ' &middot; ProjectManager.com copy' + (m.sure ? '' : ' &middot; <b>probable match, not confirmed</b>') + '</div></div></div>' +
+    pmPlanTabHtml(m.p.id) + '</div>';
+}
+
+function projectOverviewHtml(site) {
   const committed = projectCommitted(site), signed = projectSigned(site);
   const pct = Math.min(100, committed / Math.max(1, num(site.mw)) * 100);
   const gwh = Math.round(num(site.mw) * 8760 * CAPACITY_FACTOR / 1000);
-  setPage(site.name, site.town + ', ' + site.province + ' · COD ' + site.cod, '');
-  setContent(
-    '<div style="margin-bottom:12px"><button class="btn btn-ghost btn-sm" onclick="nav(\'projects\')">&larr; All projects</button></div>' +
-    '<div class="stats-grid">' +
+  return '<div class="stats-grid">' +
       statTile('sun', 'amber', 'Capacity', fmtNum(site.mw) + ' MW', 'Solar PV + BESS') +
       statTile('pipeline', 'blue', 'Annual energy', fmtNum(gwh) + ' GWh', 'at the portfolio capacity factor') +
       statTile('check', 'green', 'Signed', fmtNum(signed) + ' MW', fmtNum(committed) + ' MW committed in all') +
@@ -134,6 +140,22 @@ function renderProject() {
       '<div class="mkt-note" style="margin-top:8px">' + esc(site.town) + ', ' + esc(site.province) + ' &middot; ' +
         (site.lat != null ? site.lat + ', ' + site.lng + ' &middot; ' : '') + 'status ' + esc(site.status || 'development') + '</div></div>' +
     '<div class="grid-2">' + projectDeliveryHtml(site) + projectBuyersHtml(site) + '</div>' +
-    '<div style="margin-top:14px">' + projectNearbyHtml(site) + '</div>' + projectNotesHtml(site));
+    '<div style="margin-top:14px">' + projectNearbyHtml(site) + '</div>' + projectNotesHtml(site);
+}
+
+function renderProject() {
+  const site = state.projects.find(p => p.id === state.projectId);
+  if (!site) { nav('projects'); return; }
+  /* each site opens on its overview; the tab is remembered only while you stay on that site */
+  if (state.projectTabFor !== site.id) { state.projectTabFor = site.id; state.projectTab = 'overview'; }
+  const tab = state.projectTab === 'plan' ? 'plan' : 'overview';
+  const m = projectPmFor(site.id);
+  const tabs = [['overview', 'Overview'], ['plan', 'Project plan' + (m ? ' (' + pmProjectTasks(m.p.id).filter(pmIsLeaf).length + ' tasks)' : '')]];
+  setPage(site.name, site.town + ', ' + site.province + ' \u00b7 COD ' + site.cod, '');
+  setContent(
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">' +
+      '<button class="btn btn-ghost btn-sm" onclick="nav(\'projects\')">&larr; All projects</button>' +
+      '<div class="view-toggle">' + tabs.map(([k, l]) => '<button class="vt-btn ' + (tab === k ? 'active' : '') + '" onclick="projectSetTab(\'' + k + '\')">' + esc(l) + '</button>').join('') + '</div></div>' +
+    (tab === 'plan' ? projectPlanHtml(site) : projectOverviewHtml(site)));
   growBars();
 }

@@ -27,7 +27,7 @@ function env({ role = 'admin' } = {}) {
     nav: (v, x) => navs.push([v, x && x.id]), CAPACITY_FACTOR: 0.30,
     getOfftaker: id => ({ sib: { id: 'sib', name: 'Sibanye-Stillwater' } }[id] || {}),
     PIPELINE_STAGES: [{ id: 'proposal', label: 'Proposal' }],
-    toast() {}, uid: p => p + '_1', pmAddNote: async () => {},
+    toast() {}, uid: p => p + '_1', pmAddNote: async () => {}, pmTaskNotes: () => [],
     state: {
       view: 'project', role, projectId: 'middelburg', projectsMode: 'sites',
       projects: [], offtakers: [
@@ -79,14 +79,37 @@ test('a site with a linked plan shows its sale, its delivery and its buyers', ()
   assert.ok(h.indexOf('Rezoning') < h.indexOf('Grid study'), 'soonest first');
 });
 
-test('the plan link is offered and goes to the plan tab for that project', () => {
-  const e = env(); const h = render(e, 'middelburg');
-  assert.ok(h.includes("projectOpenPlan('pm1')"));
+test('the plan is a tab on the profile: the complete task table, locked to the site, with edit controls for an admin', () => {
+  const e = env(); const overview = render(e, 'middelburg');
+  assert.ok(overview.includes('projectSetTab(\'plan\')') && overview.includes('Project plan (3 tasks)'), 'the tab is offered with its task count');
+  assert.ok(!overview.includes('Heritage Assessment</td>'), 'the table is not on the overview');
   vm.runInContext("projectOpenPlan('pm1')", e.ctx);
-  assert.strictEqual(e.ctx.state.pmProject, 'pm1');
-  assert.strictEqual(e.ctx.state.pmTab, 'plan');
-  assert.strictEqual(e.ctx.state.projectsMode, 'plans');
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(e.navs.pop())), ['projects', null]);
+  const plan = e.html;
+  assert.strictEqual(e.ctx.state.projectTab, 'plan');
+  assert.ok(plan.includes('Heritage Assessment') && plan.includes('Rezoning') && plan.includes('Grid study'), 'every task of the plan');
+  assert.ok(plan.includes('AEEG Middelburg 49MW Solar Farm'), 'it names the ProjectManager.com project');
+  assert.ok(plan.includes('pmOpenTask(') && plan.includes('+ New task'), 'Edit and New task for an admin');
+  assert.ok(!plan.includes('pmSetProject('), 'no project switcher: it is this site only');
+  assert.ok(plan.includes('pm-plan-results'), 'the filters have their results area');
+});
+
+test('a viewer sees the plan but no edit controls; the tab resets when you open another site', () => {
+  const v = env({ role: 'viewer' }); render(v, 'middelburg'); vm.runInContext("projectSetTab('plan')", v.ctx);
+  assert.ok(v.html.includes('Heritage Assessment') && !v.html.includes('pmOpenTask(') && !v.html.includes('+ New task'));
+  render(v, 'limpopo300');
+  assert.strictEqual(v.ctx.state.projectTab, 'overview');
+});
+
+test('editing from the profile redraws the profile', () => {
+  /* Saving, deleting or reverting a task ends in pmRefresh(). On the Projects page that
+     redraws #pm-section; on a site's profile there is no such element, so it has to
+     redraw the profile instead, or the person would not see their change. */
+  const e = env(); render(e, 'middelburg'); vm.runInContext("projectSetTab('plan')", e.ctx);
+  e.ctx.document = { getElementById: () => null };
+  vm.runInContext("state.pm.tasks.find(t => t.id === 't3').name = 'Rezoning (renamed)'", e.ctx);
+  assert.ok(!e.html.includes('renamed'), 'not drawn yet');
+  vm.runInContext('pmRefresh()', e.ctx);
+  assert.ok(e.html.includes('Rezoning (renamed)'), 'the profile was redrawn with the change');
 });
 
 test('a probable plan is labelled as unconfirmed, and a site with none says so', () => {

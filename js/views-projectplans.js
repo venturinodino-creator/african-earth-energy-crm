@@ -114,6 +114,7 @@ function pmSectionHtml() {
 function pmRefresh() {
   const el = document.getElementById('pm-section');
   if (el) { el.outerHTML = pmSectionHtml(); growBars(); }
+  else if (state.view === 'project') renderProject();   // the plan shown on a site's profile
 }
 function pmSetTab(k) { state.pmTab = k; pmRefresh(); }
 function pmOpen(pid) { state.pmProject = pid; state.pmF = null; state.pmTab = 'plan'; pmRefresh(); }
@@ -173,8 +174,10 @@ function pmPulse(tasks, who) {
 /* ─── PLAN ────────────────────────────────────────────────────────── */
 function pmFilters() { return state.pmF || (state.pmF = { q: '', status: '', who: '', tag: '', late: false, noPhases: false }); }
 
-function pmPlanTabHtml() {
+/* lockedProjectId: the plan shown on a site's own profile, fixed to that project. */
+function pmPlanTabHtml(lockedProjectId) {
   const projects = state.pm.projects;
+  if (lockedProjectId && state.pmProject !== lockedProjectId) { state.pmProject = lockedProjectId; state.pmF = null; }
   if (!state.pmProject || !projects.some(p => p.id === state.pmProject)) {
     const pick = projects.filter(p => !p.isTemplate).sort((a, b) => num(b.progress) - num(a.progress))[0] || projects[0];
     state.pmProject = pick && pick.id;
@@ -192,7 +195,7 @@ function pmPlanTabHtml() {
       '<div class="dh-metric"><div class="dh-metric-v">' + esc(p.status || '—') + '</div><div class="dh-metric-l">Status &middot; ' + esc(p.priority || 'no') + ' priority</div></div>' +
     '</div>' +
     '<div class="toolbar">' +
-      '<select class="flt" onchange="pmSetProject(this.value)">' + projects.map(x => opt(x.id, x.name, p.id)).join('') + '</select>' +
+      (lockedProjectId ? '' : '<select class="flt" onchange="pmSetProject(this.value)">' + projects.map(x => opt(x.id, x.name, p.id)).join('') + '</select>') +
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
         '<input placeholder="Search tasks, tags, dataroom notes..." value="' + esc(F.q) + '" oninput="pmFilter(\'q\',this.value)"></div>' +
       '<select class="flt" onchange="pmFilter(\'status\',this.value)">' + opt('', 'All statuses', F.status) + ['To Do', 'Doing', 'Done'].map(s => opt(s, s, F.status)).join('') + '</select>' +
