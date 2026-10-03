@@ -7,11 +7,12 @@
    FORMAT: once one person at exxaro.com is known to be
    first.last@exxaro.com, the rest almost certainly are too. This
    takes every address already held on a domain (contacts, finds, and
-   an evidence CSV a researcher produced), works out the format, and
-   writes the same format for the others at that company.
+   evidence CSVs a researcher produced), works out the format, and
+   proposes the same format for the others at that company.
 
      node scripts/infer-emails.js [--evidence file.csv]… [--sectors mining,…]
-          [--min-samples 1] [--fill-email] [--dry-run]
+          [--run <runId>] [--out review.csv] [--min-samples 1]
+          [--fill-email] [--dry-run]
 
    AN INFERRED ADDRESS IS A GUESS. Port 25 is blocked where this runs,
    so it cannot be checked against the mail server. By default the
@@ -23,6 +24,18 @@
    never overwrites an existing address. Two samples that agree are
    "likely"; one sample is "possible"; a domain whose samples disagree
    is skipped.
+
+   FOR REVIEW. --out writes a CSV of every person considered, with the
+   proposed address, how strong the evidence is, which published
+   address it was worked out from, and, for the ones it could not do,
+   why not. --out never writes to the database: it is the list a person
+   reads before deciding anything. --run limits it to the companies of
+   one finder run (the "names to enrich" list is that run's people with
+   no email).
+
+   Evidence CSVs take either column set: person_name,example_email, or
+   company,first,last,email (the second also tells the script which
+   company a domain belongs to, for companies with no website on file).
 
    Mail domains that differ from the website are mapped below — Northam
    writes to norplats.co.za, Kumba and De Beers to angloamerican.com. */
@@ -61,9 +74,21 @@ const FORMATS = {
    about the format. */
 const GENERIC = /^(info|admin|enquir|contact|sales|reception|office|help|support|cosec|company|secretar|ir|investor|privacy|popia|paia|legal|compliance|media|press|comms|marketing|procurement|tenders?|vendors?|hr|careers|jobs|whistle|ethics|tipoff|hotline|fraud|webmaster|noreply|no-reply|news|shareholder|sens|sustainab|esg|csi|cm|mm|mayor|city|municipal|metro|munman|infrastructure|managers|executivemayor|mmreception|proxy|web|queries|gold|responsible|general|sponsor)/i;
 
+/* A "name" that is a role or a team, not a person: the book holds a few of
+   these as placeholders ("Procurement Lead", "Cennergi Team"). Writing
+   procurement.lead@ for one of them would be nonsense. */
+const ROLE_NAME = /\b(team|lead|programme|program|engineering|procurement|department|office|desk|group|unit|division|services|operations|sustainability|energy|manager|officer|head|director)\b/i;
+
+/* How an inferred address is marked in a contact's notes: this script writes
+   "Likely address (inferred, ...", the earlier loads wrote "... is INFERRED from". */
+const INFERRED_TAG = /Likely address \(inferred|\bINFERRED\b/;
+
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');
 const domainOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
 const mailDomainFor = o => { const d = domainOf(o.website); return MAIL_DOMAIN[d] || d; };
+const isRoleName = (first, last) => ROLE_NAME.test(String(first || '') + ' ' + String(last || ''));
+/* "Valterra Platinum — Mogalakwena" and "Valterra Platinum" are the same group. */
+const companyKey = s => norm(String(s || '').replace(/\(.*?\)/g, '').split(/\s[—–-]\s/)[0]);
 
 function loadDotEnv() {
   const p = path.join(REPO, '.env');
@@ -77,6 +102,7 @@ function loadDotEnv() {
   });
 }
 function parseCsv(text) {
+  text = text.replace(/^﻿/, '');
   const rows = []; let row = []; let cell = ''; let q = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
@@ -90,6 +116,7 @@ function parseCsv(text) {
   const head = (rows.shift() || []).map(h => h.trim().toLowerCase());
   return rows.filter(r => r.some(x => x.trim())).map(r => { const o = {}; head.forEach((h, i) => { o[h] = (r[i] || '').trim(); }); return o; });
 }
+const csvCell = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
 
 let token = null;
 async function signIn() {
@@ -131,10 +158,13 @@ function classifyByShape(local) {
 async function main() {
   loadDotEnv();
   const args = process.argv.slice(2);
-  const DRY = args.includes('--dry-run');
+  const val = flag => (args.includes(flag) ? args[args.indexOf(flag) + 1] : null);
+  const OUT = val('--out');
+  const DRY = args.includes('--dry-run') || !!OUT;   // a review file never writes to the database
   const FILL = args.includes('--fill-email');
-  const minSamples = Number((args[args.indexOf('--min-samples') + 1] || 1));
-  const sectors = args.includes('--sectors') ? args[args.indexOf('--sectors') + 1].split(',') : MINING;
+  const minSamples = Number(val('--min-samples') || 1);
+  const sectors = val('--sectors') ? val('--sectors').split(',') : MINING;
+  const RUN = val('--run');
   const evidenceFiles = args.map((a, i) => (a === '--evidence' ? args[i + 1] : null)).filter(Boolean);
 
   await signIn();
@@ -145,8 +175,9 @@ async function main() {
     ...(await rest('aee_found_contacts?select=first,last,email&email=not.is.null')),
   ];
 
-  /* domain -> format -> set of example addresses */
+  /* domain -> format -> set of example addresses; company -> mail domain */
   const ev = {};
+  const evCompany = {};
   const add = (dom, fmt, ex) => { if (!dom || !fmt) return; (ev[dom] = ev[dom] || {}); (ev[dom][fmt] = ev[dom][fmt] || new Set()).add(ex); };
   for (const k of known) {
     const [local, dom] = String(k.email).toLowerCase().split('@');
@@ -155,11 +186,13 @@ async function main() {
   }
   for (const f of evidenceFiles) {
     for (const r of parseCsv(fs.readFileSync(f, 'utf8'))) {
-      const [local, dom] = String(r.example_email || '').toLowerCase().split('@');
+      const [local, dom] = String(r.example_email || r.email || '').toLowerCase().split('@');
       if (!dom || GENERIC.test(local)) continue;
-      const parts = String(r.person_name || '').trim().split(/\s+/);
+      const name = r.person_name || [r.first, r.last].filter(Boolean).join(' ');
+      const parts = String(name).trim().split(/\s+/);
       const fmt = parts.length >= 2 ? classify(local, parts[0], parts[parts.length - 1]) : null;
       add(dom, fmt || classifyByShape(local), local + '@' + dom);
+      if (r.company) evCompany[companyKey(r.company)] = dom;
     }
   }
   const formatFor = dom => {
@@ -169,36 +202,108 @@ async function main() {
     const conflicting = ranked.length > 1 && ranked[1][1].size >= set.size;
     return { fmt, samples: set.size, conflicting, examples: [...set].slice(0, 2) };
   };
+  /* The mail domain: from the website when there is one, else from an evidence
+     row for the same company. */
+  const domainFor = o => mailDomainFor(o) || evCompany[companyKey(o.name)] || '';
 
-  const inScope = new Set(offs.filter(o => sectors.includes(o.sector) && o.status !== 'parked').map(o => o.id));
-  const contacts = (await rest('aee_contacts?select=id,offtaker_id,first,last,title,email,notes,status&or=(email.is.null,email.eq.)'))
-    .filter(c => inScope.has(c.offtaker_id) && (c.status || 'active') === 'active');
+  let inScope;
+  if (RUN) {
+    const [run] = await rest('aee_contact_runs?id=eq.' + encodeURIComponent(RUN) + '&select=offtaker_ids');
+    if (!run) throw new Error('No run ' + RUN);
+    inScope = new Set(run.offtaker_ids || []);
+  } else {
+    inScope = new Set(offs.filter(o => sectors.includes(o.sector) && o.status !== 'parked').map(o => o.id));
+  }
+  /* "No email" is decided here, not in the query: a blank can be null, '' or
+     stray whitespace, and the query only matches the first two. */
+  const everyone = [];
+  for (let o = 0; ; o += 1000) {
+    const page = await rest('aee_contacts?select=id,offtaker_id,first,last,title,email,notes,status&order=offtaker_id,last,id&limit=1000&offset=' + o);
+    everyone.push(...page);
+    if (page.length < 1000) break;
+  }
+  const contacts = everyone.filter(c => inScope.has(c.offtaker_id) && !String(c.email || '').trim() && (c.status || 'active') === 'active');
 
-  const tally = { candidates: contacts.length, noDomain: 0, noEvidence: 0, conflicting: 0, thin: 0, badName: 0, written: 0, likely: 0, possible: 0 };
+  const tally = { candidates: contacts.length, noDomain: 0, noEvidence: 0, conflicting: 0, thin: 0, badName: 0, roleName: 0, written: 0, likely: 0, possible: 0 };
+  const review = [];
+  const skip = (c, o, key, reason) => { tally[key]++; review.push({ company: o ? o.name : c.offtaker_id, c, email: '', strength: '', fmt: '', basis: '', reason }); };
   for (const c of contacts) {
     const o = byId[c.offtaker_id];
-    const dom = mailDomainFor(o);
-    if (!dom) { tally.noDomain++; continue; }
+    if (!o) continue;
+    if (isRoleName(c.first, c.last)) { skip(c, o, 'roleName', 'not a person: the name is a role or team'); continue; }
+    const dom = domainFor(o);
+    if (!dom) { skip(c, o, 'noDomain', 'no mail domain: no website on file and no published address for this company'); continue; }
     const f = formatFor(dom);
-    if (!f) { tally.noEvidence++; continue; }
-    if (f.conflicting) { tally.conflicting++; continue; }
-    if (f.samples < minSamples) { tally.thin++; continue; }
+    if (!f) { skip(c, o, 'noEvidence', 'no published address at ' + dom + ' to show the format'); continue; }
+    if (f.conflicting) { skip(c, o, 'conflicting', 'published addresses at ' + dom + ' follow different formats'); continue; }
+    if (f.samples < minSamples) { skip(c, o, 'thin', 'too few published addresses at ' + dom); continue; }
     const first = norm(String(c.first).split(/\s+/)[0]), last = norm(String(c.last).split(/\s+/).pop());
-    if (first.length < 2 || last.length < 2) { tally.badName++; continue; }
+    if (first.length < 2 || last.length < 2) { skip(c, o, 'badName', 'name too short to build an address'); continue; }
     const email = FORMATS[f.fmt](first, last) + '@' + dom;
     const strength = f.samples >= 2 ? 'likely' : 'possible';
+    if (INFERRED_TAG.test(c.notes || '')) { tally.alreadyNoted = (tally.alreadyNoted || 0) + 1; if (!OUT) continue; }
     tally.written++; tally[strength]++;
-    if (/Likely address \(inferred/.test(c.notes || '')) { tally.written--; tally[strength]--; tally.alreadyNoted = (tally.alreadyNoted || 0) + 1; continue; }
+    review.push({ company: o.name, c, email, strength, fmt: f.fmt + '@' + dom, basis: f.examples.join('; '), reason: '' });
     const tag = 'Likely address (inferred, unverified, ' + strength + '): ' + email + ' — ' + f.fmt + '@' + dom + ' from ' + f.samples + ' known address' + (f.samples === 1 ? '' : 'es') + ' (e.g. ' + f.examples[0] + ').';
     const patch = { notes: ((c.notes || '').trim() + ' ' + tag).trim(), updated_at: new Date().toISOString() };
     /* The email column is for addresses somebody read off a page; a
        guess goes in the notes, where a rep can see it is a guess. The
        column is filled only when the operator says so, in so many words. */
     if (FILL) patch.email = email;
-    console.log((DRY ? '[dry] ' : '') + strength.padEnd(8) + c.first + ' ' + c.last + ' @ ' + o.name + ' -> ' + email + (FILL ? '' : ' (notes only)'));
+    if (!OUT) console.log((DRY ? '[dry] ' : '') + strength.padEnd(8) + c.first + ' ' + c.last + ' @ ' + o.name + ' -> ' + email + (FILL ? '' : ' (notes only)'));
     if (!DRY) await rest('aee_contacts?id=eq.' + encodeURIComponent(c.id), { method: 'PATCH', body: JSON.stringify(patch) });
+  }
+
+  if (OUT) {
+    const order = { likely: 0, possible: 1, '': 2 };
+    review.sort((a, b) => order[a.strength] - order[b.strength] || a.company.localeCompare(b.company) || String(a.c.last).localeCompare(String(b.c.last)));
+    const head = 'company,first,last,title,proposed_email,strength,format,worked_out_from,review,reason_not_proposed';
+    const lines = review.map(r => [r.company, r.c.first, r.c.last, r.c.title, r.email, r.strength, r.fmt, r.basis,
+      r.email ? 'needs review' : '', r.reason].map(csvCell).join(','));
+    const file = path.resolve(REPO, OUT);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, '﻿' + [head, ...lines].join('\n') + '\n', 'utf8');
+    tally.file = path.relative(REPO, file);
+  }
+  /* The format list: one row per mail domain, with the format the published
+     addresses agree on, how many there are, and what depends on it. This is
+     the thing to check by eye: if a format here is wrong, every address
+     built from it is wrong. */
+  const FORMATS_OUT = val('--formats-out');
+  if (FORMATS_OUT) {
+    const rows = [];
+    const doms = new Set([...Object.keys(ev)]);
+    for (const dom of doms) {
+      const fmts = ev[dom];
+      const ranked = Object.entries(fmts).sort((a, b) => b[1].size - a[1].size);
+      const f = formatFor(dom);
+      const cos = offs.filter(o => inScope.has(o.id) && domainFor(o) === dom).map(o => o.name);
+      const mine = review.filter(r => r.fmt.endsWith('@' + dom));
+      const blank = contacts.filter(c => { const o = byId[c.offtaker_id]; return o && domainFor(o) === dom; }).length;
+      // addresses of people already on file at this domain that carry an inferred note
+      const filled = everyone.filter(c => { const o = byId[c.offtaker_id]; return o && inScope.has(c.offtaker_id) && domainFor(o) === dom && INFERRED_TAG.test(c.notes || '') && String(c.email || '').trim(); }).length;
+      rows.push({
+        dom, fmt: f.fmt, strength: f.conflicting ? 'CONFLICT' : f.samples >= 2 ? 'likely' : 'possible', samples: f.samples,
+        others: ranked.slice(1).map(([k, s]) => k + ' (' + s.size + ')').join('; '),
+        examples: [...ranked[0][1]].slice(0, 4).join('; '),
+        companies: [...new Set(cos)].slice(0, 6).join('; ') + (cos.length > 6 ? ' +' + (cos.length - 6) + ' more' : ''),
+        filled, proposed: mine.length, blank,
+      });
+    }
+    /* Only the domains this run's companies write to; the CRM holds addresses
+       from every sector and the rest are not what is being reviewed. */
+    for (let i = rows.length - 1; i >= 0; i--) if (!rows[i].companies && !rows[i].filled && !rows[i].proposed) rows.splice(i, 1);
+    rows.sort((a, b) => (b.filled + b.proposed) - (a.filled + a.proposed) || a.dom.localeCompare(b.dom));
+    const head = 'mail_domain,format,strength,published_addresses_agreeing,other_formats_seen,published_examples,companies_on_this_domain,people_already_given_an_inferred_address,people_proposed_now,people_still_without_email,review';
+    const lines = rows.map(r => [r.dom, r.fmt + '@' + r.dom, r.strength, r.samples, r.others, r.examples, r.companies, r.filled, r.proposed, r.blank, 'needs review'].map(csvCell).join(','));
+    const file = path.resolve(REPO, FORMATS_OUT);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, '﻿' + [head, ...lines].join('\n') + '\n', 'utf8');
+    tally.formatsFile = path.relative(REPO, file);
+    tally.formats = rows.length;
   }
   console.log(JSON.stringify(tally));
 }
 
-main().catch(e => { console.error(e.message); process.exitCode = 1; });
+if (require.main === module) main().catch(e => { console.error(e.message); process.exitCode = 1; });
+module.exports = { norm, isRoleName, companyKey, classify, classifyByShape, parseCsv, FORMATS, GENERIC };
