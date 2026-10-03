@@ -193,7 +193,7 @@ function pmPlanTabHtml(lockedProjectId) {
       '<div class="dh-metric"><div class="dh-metric-v">' + pmShortDate(p.plannedStart) + ' &ndash; ' + pmShortDate(p.plannedFinish) + '</div><div class="dh-metric-l">Planned</div></div>' +
       '<div class="dh-metric"><div class="dh-metric-v">' + esc(p.manager || '—') + '</div><div class="dh-metric-l">Manager &middot; ' + (p.members || []).length + ' members</div></div>' +
       '<div class="dh-metric"><div class="dh-metric-v">' + esc(p.status || '—') + '</div><div class="dh-metric-l">Status &middot; ' + esc(p.priority || 'no') + ' priority</div></div>' +
-    '</div>' +
+    '</div>' + pmPlanBoardHtml(p.id) +
     '<div class="toolbar">' +
       (lockedProjectId ? '' : '<select class="flt" onchange="pmSetProject(this.value)">' + projects.map(x => opt(x.id, x.name, p.id)).join('') + '</select>') +
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
@@ -207,6 +207,53 @@ function pmPlanTabHtml(lockedProjectId) {
     '</div><div id="pm-plan-results">' + pmPlanResultsHtml() + '</div>';
 }
 
+/* ─── PLAN BOARD ──────────────────────────────────────────────────────
+   What you see on opening a plan: where it stands against the calendar, which
+   phases are behind, and the tasks to pick up first. Every tile and phase
+   narrows the table below; the chips say what is applied. */
+const PM_VIEW_LABEL = { overdue: 'Overdue', soon: 'Due in 14 days', inprogress: 'In progress', notstarted: 'Not started', done: 'Done' };
+function pmViewMatch(t, v, today) { return v === 'overdue' || v === 'soon' ? paHealth(t, today) === v : paStage(t) === v; }
+function pmQuick(k, v) { const F = pmFilters(); F[k] = F[k] === v ? '' : v; pmRefresh(); }
+
+function pmPlanBoardHtml(pid) {
+  const F = pmFilters(), today = paNow();
+  const leaf = pmProjectTasks(pid).filter(paIsLeaf);
+  const s = paSummary(leaf, today), planned = paPlannedPct(leaf, today);
+  const idx = planned > 0 ? s.progress / planned : null;
+  const verdict = idx == null ? ['not started', 'var(--muted)'] : idx >= 0.95 ? ['on plan', 'var(--c-green)'] : idx >= 0.75 ? ['slightly behind', 'var(--c-amber)'] : ['behind plan', 'var(--danger)'];
+  const tile = (label, value, sub, view, color) => '<div class="pa-tile' + (view ? ' click' + (F.view === view ? ' on' : '') : '') + '"' +
+    (view ? ' onclick="pmQuick(\'view\',\'' + view + '\')"' : '') + '><div class="pa-tile-l">' + label + '</div><div class="pa-tile-v"' + (color ? ' style="color:' + color + '"' : '') + '>' + value + '</div><div class="pa-tile-s">' + sub + '</div></div>';
+  const phases = paByPhase(state.pm.tasks, pid, today);
+  const phaseRow = p => '<div class="pa-hb' + (F.phase === p.key ? ' on' : '') + '" onclick="pmQuick(\'phase\',\'' + esc(p.key) + '\')">' +
+    '<span class="pa-hb-l" title="' + esc(p.wbs + ' ' + p.name) + '">' + esc(p.wbs + ' ' + p.name) + '</span>' +
+    '<span class="pa-hb-t"><span style="width:' + p.progress + '%;background:var(--c-green)"></span></span>' +
+    '<b>' + p.progress + '%' + (p.overdue ? ' <span style="color:var(--danger);font-weight:600">' + p.overdue + ' late</span>' : '') + '</b></div>';
+  const taskRow = (t, right, color) => '<div class="mkt-row"><div style="min-width:0"><div style="font-weight:600">' + esc(t.wbs + ' ' + t.name) + '</div>' +
+    '<div class="mkt-note">' + esc((t.assignees || []).map(a => a.name).join(', ') || 'unassigned') + '</div></div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0"><span class="mkt-value"' + (color ? ' style="color:' + color + '"' : '') + '>' + right + '</span>' +
+    (pmCanEdit() ? '<button class="btn btn-ghost btn-xs" onclick="pmOpenTask(\'' + esc(t.id) + '\')">Edit</button>' : '') + '</div></div>';
+  const late = paOverdue(leaf, today, 5), next = paUpcoming(leaf, today, 30, 5);
+  const chips = [['', 'All tasks', s.total]].concat(['overdue', 'soon', 'inprogress', 'notstarted', 'done'].map(v => [v, PM_VIEW_LABEL[v], leaf.filter(t => pmViewMatch(t, v, today)).length]));
+  const phaseName = F.phase ? (phases.find(p => p.key === F.phase) || {}) : null;
+  return '<div class="pa-tiles" style="margin-top:0">' +
+      tile('Complete', s.progress + '%', 'planned by today: ' + planned + '%') +
+      tile('Schedule', '<span style="font-size:19px">' + verdict[0] + '</span>', idx == null ? 'no plan dates yet' : 'index ' + idx.toFixed(2) + ' (1.00 = on plan)', '', verdict[1]) +
+      tile('Overdue', fmtNum(s.overdue), 'past planned finish', 'overdue', s.overdue ? 'var(--danger)' : '') +
+      tile('Due in 14 days', fmtNum(s.soon), 'coming up', 'soon', 'var(--c-amber)') +
+      tile('In progress', fmtNum(s.inprogress), fmtNum(s.notstarted) + ' not started', 'inprogress') +
+      tile('Done', fmtNum(s.done), 'of ' + fmtNum(s.total) + ' tasks', 'done', 'var(--c-green)') +
+    '</div>' +
+    '<div class="pa-row" style="margin-bottom:14px">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Phases</div><div class="card-sub">progress per phase; click one to list its tasks</div></div></div>' +
+        (phases.length ? phases.map(phaseRow).join('') : '<div class="fg-hint">This plan has no phases.</div>') + '</div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Start here</div><div class="card-sub">most overdue first, then what is due next</div></div></div>' +
+        (late.map(o => taskRow(o.t, o.late + ' d late', 'var(--danger)')).join('') || '<div class="fg-hint">Nothing is overdue.</div>') +
+        (next.length ? '<div class="section-title" style="margin:10px 0 4px">Due next</div>' + next.map(t => taskRow(t, pmShortDate(t.plannedFinish))).join('') : '') + '</div>' +
+    '</div>' +
+    '<div class="toolbar" style="margin-bottom:10px">' + chips.map(([v, l, n]) => '<button class="btn btn-sm ' + ((F.view || '') === v ? 'btn-primary' : 'btn-outline') + '" onclick="pmQuick(\'view\',\'' + v + '\')">' + esc(l) + ' <b>' + fmtNum(n) + '</b></button>').join('') +
+      (phaseName ? '<span class="pa-chip">Phase: <b>' + esc((phaseName.wbs || '') + ' ' + (phaseName.name || '')) + '</b><button title="Remove this filter" onclick="pmQuick(\'phase\',\'' + esc(F.phase) + '\')">&times;</button></span>' : '') + '</div>';
+}
+
 function pmSetProject(pid) { state.pmProject = pid; state.pmF = null; pmRefresh(); }
 function pmFilter(k, v) { pmFilters()[k] = v; const el = document.getElementById('pm-plan-results'); if (el) el.innerHTML = pmPlanResultsHtml(); }
 
@@ -214,10 +261,13 @@ function pmPlanResultsHtml() {
   const F = pmFilters();
   const ts = pmProjectTasks(state.pmProject);
   const q = F.q.trim().toLowerCase();
-  const filtering = !!(q || F.status || F.who || F.tag || F.late);
+  const filtering = !!(q || F.status || F.who || F.tag || F.late || F.view || F.phase);
+  const today = paNow();
   const matches = t => {
     if (F.noPhases && t.isSummary) return false;
     if (filtering && t.isSummary) return false;      // a phase row is a heading, not a match
+    if (F.view && !pmViewMatch(t, F.view, today)) return false;
+    if (F.phase && paPhaseKey(t) !== F.phase) return false;
     if (F.status && t.status !== F.status) return false;
     if (F.who && !(t.assignees || []).some(a => a.id === F.who)) return false;
     if (F.tag && !(t.tags || []).includes(F.tag)) return false;
@@ -234,7 +284,7 @@ function pmPlanResultsHtml() {
   const statusBadge = s => '<span class="badge ' + (s === 'Done' ? 'b-contracted' : s === 'Doing' ? 'b-engaged' : 'b-prospect') + '">' + esc(s || '—') + '</span>';
   const body = shown.map(t => {
     const late = pmIsLate(t);
-    return '<tr' + (t.isSummary ? ' style="background:var(--bg3)"' : '') + '>' +
+    return '<tr' + (t.isSummary ? ' style="background:var(--bg3)"' : late ? ' style="background:color-mix(in srgb,var(--danger) 6%,transparent)"' : '') + '>' +
       '<td class="num" style="text-align:left;color:var(--muted)">' + esc(t.wbs) + '</td>' +
       '<td style="padding-left:' + (14 + (Math.max(1, num(t.level)) - 1) * 18) + 'px;font-weight:' + (t.isSummary ? 800 : 500) + '">' + esc(t.name) +
         (t.isMilestone ? ' <span class="badge b-solar">milestone</span>' : '') +
@@ -243,7 +293,7 @@ function pmPlanResultsHtml() {
       '<td>' + statusBadge(t.status) + '</td>' +
       '<td class="num">' + pmShortDate(t.plannedStart) + '</td>' +
       '<td class="num"' + (late ? ' style="color:var(--danger);font-weight:700" title="Past its planned finish and not 100% complete"' : '') + '>' + pmShortDate(t.plannedFinish) + '</td>' +
-      '<td class="num" style="font-weight:700">' + num(t.progress) + '%</td>' +
+      '<td class="num" style="font-weight:700;min-width:84px">' + num(t.progress) + '%<div class="fit-bar" style="margin:3px 0 0;height:4px"><span style="width:' + Math.min(100, num(t.progress)) + '%;background:' + (late ? 'var(--danger)' : 'var(--c-green)') + '"></span></div></td>' +
       '<td class="num">' + (t.plannedEffortMin ? fmtNum(Math.round(t.plannedEffortMin / 60 * 10) / 10) + ' h' : '—') + '</td>' +
       '<td style="color:var(--muted2)">' + esc((t.assignees || []).map(a => a.name).join(', ')) + '</td>' +
       '<td>' + (t.tags || []).map(g => '<span class="badge ' + (g === 'Risk' ? 'b-high' : g === 'Issue' ? 'b-medium' : 'b-low') + '">' + esc(g) + '</span>').join(' ') + '</td>' +

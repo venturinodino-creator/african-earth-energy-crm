@@ -129,7 +129,15 @@ function projectAnalyticsHtml(site, m) {
   return paHtml({ lockProject: m.p.id });
 }
 
-function projectOverviewHtml(site) {
+/* The delivery analytics sit at the head of the Overview, under the guide card;
+   the commercial picture and the rest follow. A site with no plan has none. */
+function projectOverviewHtml(site, m) {
+  return (m ? '<div class="section-title" style="margin:2px 0 6px">Delivery analytics</div>' + projectAnalyticsHtml(site, m) +
+      '<div class="section-title" style="margin:22px 0 10px">The site and its buyers</div>' : '') +
+    projectSiteHtml(site);
+}
+
+function projectSiteHtml(site) {
   const committed = projectCommitted(site), signed = projectSigned(site);
   const pct = Math.min(100, committed / Math.max(1, num(site.mw)) * 100);
   const gwh = Math.round(num(site.mw) * 8760 * CAPACITY_FACTOR / 1000);
@@ -162,7 +170,7 @@ const PROJECT_GUIDE = {
     ['Prospects in ' + site.province, 'Companies on your list in the same province, largest load first: the natural next calls.'],
     ['Notes', 'What your team and the agents have noted on the project and its tasks.'],
   ],
-  analytics: () => [
+  overviewAnalytics: () => [
     ['Everything is clickable', 'A tile, a slice, a bar, a person, a month or a phase filters the task list at the bottom. The chips show what is applied; the \u00d7 on a chip removes it.'],
     ['Progress against plan', 'The line is how much should be done by each date if every task ran evenly from its start to its finish; the green dot is where the site actually is. The schedule index is actual divided by planned: 1.00 is on plan, below 0.75 is behind.'],
     ['Schedule health', 'Overdue means past the planned finish and not 100%. Due in 14 days, Scheduled later and No date make up the rest; finished tasks are Done.'],
@@ -170,6 +178,8 @@ const PROJECT_GUIDE = {
     ['Complete %', 'Weighted by effort, so a long task counts for more than a short one.'],
   ],
   plan: () => [
+    ['At a glance', 'The strip at the top gives progress against plan, what is overdue and what is due soon. Click a tile or a phase to list just those tasks; the chips show what is applied.'],
+    ['Start here', 'The most overdue tasks and the next ones due, each with an Edit button, so you can begin working the plan straight away.'],
     ['The complete plan', 'Every phase and task for this site from ProjectManager.com: status, planned dates, percent done, effort, who and tags.'],
     ['Changing it', (pmCanEdit() ? 'Edit changes a task and + New task adds one. ' : 'Only admins can change tasks. ') +
       'Changes are saved here with a history; the ProjectManager.com copy underneath is not touched, and changed rows are tagged \u201cedited\u201d.'],
@@ -191,9 +201,10 @@ function projectGuideHtml(site, tab, m) {
     delivery = 'No delivery plan is linked to this site yet, so only the commercial picture is shown.';
   }
   const asOf = state.pm && state.pm.sync && state.pm.sync.as_of ? state.pm.sync.as_of : '';
-  /* a site with no plan has no Delivery card or notes to explain */
-  const items = (PROJECT_GUIDE[tab] || PROJECT_GUIDE.overview)(site).filter(([k]) => m || !['Delivery', 'Notes'].includes(k));
-  return guideCardHtml((tab === 'plan' ? 'The Project plan tab' : tab === 'analytics' ? 'The Analytics tab' : 'The Overview tab') + ' of ' + site.name,
+  /* the Overview explains its analytics first, then the commercial cards; a site with no plan has no delivery cards or notes to explain */
+  const raw = tab === 'plan' ? PROJECT_GUIDE.plan(site) : (m ? PROJECT_GUIDE.overviewAnalytics() : []).concat(PROJECT_GUIDE.overview(site));
+  const items = raw.filter(([k]) => m || !['Delivery', 'Notes'].includes(k));
+  return guideCardHtml((tab === 'plan' ? 'The Project plan tab' : 'The Overview tab') + ' of ' + site.name,
     ['This is the page for <b>' + esc(site.name) + '</b>, a ' + fmtNum(site.mw) + ' MW solar and battery site at ' + esc(site.town) + ', ' + esc(site.province) +
       ', planned to reach commercial operation in ' + esc(site.cod) + '. It puts the two sides of the site together: the <b>commercial</b> side (how much is sold, and to whom) and the <b>delivery</b> side (how the build is progressing).',
      '<b>Right now:</b> ' + esc(commercial) + ' ' + esc(delivery)],
@@ -207,15 +218,15 @@ function renderProject() {
   if (!site) { nav('projects'); return; }
   /* each site opens on its overview; the tab is remembered only while you stay on that site */
   if (state.projectTabFor !== site.id) { state.projectTabFor = site.id; state.projectTab = 'overview'; state.paF = {}; state.paAll = false; }
-  const tab = state.projectTab === 'plan' ? 'plan' : state.projectTab === 'analytics' ? 'analytics' : 'overview';
+  const tab = state.projectTab === 'plan' ? 'plan' : 'overview';
   const m = projectPmFor(site.id);
-  const tabs = [['overview', 'Overview'], ['analytics', 'Analytics'], ['plan', 'Project plan' + (m ? ' (' + pmProjectTasks(m.p.id).filter(pmIsLeaf).length + ' tasks)' : '')]];
+  const tabs = [['overview', 'Overview'], ['plan', 'Project plan' + (m ? ' (' + pmProjectTasks(m.p.id).filter(pmIsLeaf).length + ' tasks)' : '')]];
   setPage(site.name, site.town + ', ' + site.province + ' \u00b7 COD ' + site.cod, '');
   setContent(
     projectGuideHtml(site, tab, m) +
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">' +
       '<button class="btn btn-ghost btn-sm" onclick="nav(\'projects\')">&larr; All projects</button>' +
       '<div class="view-toggle">' + tabs.map(([k, l]) => '<button class="vt-btn ' + (tab === k ? 'active' : '') + '" onclick="projectSetTab(\'' + k + '\')">' + esc(l) + '</button>').join('') + '</div></div>' +
-    (tab === 'plan' ? projectPlanHtml(site) : tab === 'analytics' ? projectAnalyticsHtml(site, m) : projectOverviewHtml(site)));
+    (tab === 'plan' ? projectPlanHtml(site) : projectOverviewHtml(site, m)));
   growBars();
 }

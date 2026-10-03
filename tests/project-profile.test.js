@@ -88,7 +88,7 @@ test('a site with a linked plan shows its sale, its delivery and its buyers', ()
 test('the plan is a tab on the profile: the complete task table, locked to the site, with edit controls for an admin', () => {
   const e = env(); const overview = render(e, 'middelburg');
   assert.ok(overview.includes('projectSetTab(\'plan\')') && overview.includes('Project plan (3 tasks)'), 'the tab is offered with its task count');
-  assert.ok(!overview.includes('Heritage Assessment</td>'), 'the table is not on the overview');
+  assert.ok(!overview.includes('pm-plan-results'), 'the plan table with its filters is not on the overview');
   vm.runInContext("projectOpenPlan('pm1')", e.ctx);
   const plan = e.html;
   assert.strictEqual(e.ctx.state.projectTab, 'plan');
@@ -165,11 +165,31 @@ test('a guide card sits above the tabs and says what the page is, with the site\
 test('the guide explains whichever tab you are on', () => {
   const e = env(); render(e, 'middelburg');
   assert.ok(e.html.includes('The Overview tab') && e.html.includes('Prospects in Mpumalanga') && e.html.includes('Signed and still to sell'));
-  vm.runInContext("projectSetTab('analytics')", e.ctx);
-  assert.ok(e.html.includes('The Analytics tab') && e.html.includes('Progress against plan') && e.html.includes('Schedule health') && e.html.includes('Everything is clickable'));
+  assert.ok(e.html.includes('Progress against plan') && e.html.includes('Schedule health') && e.html.includes('Everything is clickable'), 'the analytics are explained on the overview');
   vm.runInContext("projectSetTab('plan')", e.ctx);
-  assert.ok(e.html.includes('The Project plan tab') && e.html.includes('The complete plan') && e.html.includes('Changing it') && e.html.includes('can disagree'));
+  assert.ok(e.html.includes('The Project plan tab') && e.html.includes('The complete plan') && e.html.includes('Changing it') && e.html.includes('can disagree') && e.html.includes('Start here'));
   assert.ok(!e.html.includes('Prospects in Mpumalanga</b>'), 'the overview explanations are not repeated on another tab');
+});
+
+test('the analytics are on the overview, under the guide card and above the site and its buyers; there is no Analytics tab', () => {
+  const e = env(); const h = render(e, 'middelburg');
+  assert.ok(!h.includes("projectSetTab('analytics')"), 'no separate Analytics button');
+  const at = h.indexOf('Delivery analytics');
+  assert.ok(at > h.indexOf('What you are looking at') && at > h.indexOf('All projects'), 'after the guide card');
+  assert.ok(h.indexOf('Progress against plan</div>') > at && h.indexOf('Progress against plan</div>') < h.indexOf('The site and its buyers'), 'the charts come before the commercial cards');
+  assert.ok(h.indexOf('The site and its buyers') < h.indexOf('Sibanye-Stillwater'), 'the buyers follow');
+  assert.ok(!/Delivery analytics/.test(render(e, 'mokopane')), 'a site with no plan has none');
+});
+
+test('the plan opens on a board: where it stands, phases, and the tasks to start with; its tiles narrow the table', () => {
+  const e = env(); render(e, 'middelburg'); vm.runInContext("projectSetTab('plan')", e.ctx);
+  e.ctx.document = { getElementById: () => null };
+  assert.ok(e.html.includes('Start here') && e.html.includes('>Phases<') && e.html.includes("pmQuick('view','overdue')"), 'the board');
+  assert.ok(e.html.indexOf('Start here') < e.html.indexOf('pm-plan-results'), 'above the table');
+  vm.runInContext("pmQuick('view','overdue')", e.ctx);
+  assert.ok(e.html.includes('Rezoning') && !e.html.includes('Heritage Assessment</td>'), 'only the late task is listed');
+  vm.runInContext("pmQuick('view','overdue')", e.ctx);
+  assert.ok(e.html.includes('Heritage Assessment'), 'clicking again clears it');
 });
 
 test('the guide says where the data comes from, and flags a plan that is only a probable match', () => {
@@ -199,7 +219,7 @@ test('the guide can be hidden, stays hidden for the next site, and can be brough
 
 test('every site\'s guide renders on every tab', () => {
   const e = env();
-  e.ctx.state.projects.forEach(p => ['overview', 'analytics', 'plan'].forEach(tab => {
+  e.ctx.state.projects.forEach(p => ['overview', 'plan'].forEach(tab => {
     e.ctx.state.projectId = p.id; e.ctx.state.projectTabFor = p.id; e.ctx.state.projectTab = tab;
     vm.runInContext('renderProject()', e.ctx);
     assert.ok(e.html.includes('What you are looking at') && !/undefined|NaN/.test(e.html.slice(0, e.html.indexOf('All projects'))), p.id + ' / ' + tab);

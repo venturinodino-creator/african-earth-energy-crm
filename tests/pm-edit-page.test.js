@@ -50,7 +50,7 @@ function makeEnv(role) {
     refreshed: 0, avatarColor: () => '#000', statTile: () => '', openProject() {},
   };
   vm.createContext(ctx);
-  vm.runInContext(read('pmedit-core.js') + '\n' + read('views-projectplans.js') + '\n' + read('views-pmedit.js') +
+  vm.runInContext(read('pmedit-core.js') + '\n' + read('pmanalytics-core.js') + '\n' + read('views-projectplans.js') + '\n' + read('views-pmedit.js') +
     '\npmRefresh = function () { refreshed++; };', ctx);
   return { ctx, writes, els, checked, doc };
 }
