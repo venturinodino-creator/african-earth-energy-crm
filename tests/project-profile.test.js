@@ -28,12 +28,15 @@ function env({ role = 'admin' } = {}) {
     getOfftaker: id => ({ sib: { id: 'sib', name: 'Sibanye-Stillwater' } }[id] || {}),
     PIPELINE_STAGES: [{ id: 'proposal', label: 'Proposal' }],
     toast() {}, uid: p => p + '_1', pmAddNote: async () => {}, pmTaskNotes: () => [],
+    /* js/core.js's own helper (tested in core-utils.test.js): a company in several provinces is in each. */
+    inProvince: (o, p) => String((o && o.province) || '').split('/').map(s => s.trim()).includes(p),
     state: {
       view: 'project', role, projectId: 'middelburg', projectsMode: 'sites',
       projects: [], offtakers: [
         { id: 'a', name: 'Big Smelter', province: 'Mpumalanga', city: 'Middelburg', peakMw: 120 },
         { id: 'b', name: 'Small Mill', province: 'Mpumalanga', city: 'Witbank', peakMw: 12 },
         { id: 'c', name: 'Cape Co', province: 'Western Cape', peakMw: 99 },
+        { id: 'd', name: 'Two Province Steel', province: 'Gauteng / Mpumalanga', city: 'Springs', peakMw: 60 },
       ],
       deals: [{ id: 'd1', projectId: 'middelburg', offtakerId: 'sib', mw: 20, stage: 'proposal', closeDate: '2027-01-31' }],
       pm: {
@@ -125,6 +128,8 @@ test('prospects in the same province are listed, biggest first, and others left 
   assert.ok(h.includes('Big Smelter') && h.includes('Small Mill'));
   assert.ok(h.indexOf('Big Smelter') < h.indexOf('Small Mill'));
   assert.ok(!h.includes('Cape Co'));
+  assert.ok(h.includes('Two Province Steel'), 'a company in Gauteng and Mpumalanga is nearby a Mpumalanga site');
+  assert.ok(h.indexOf('Big Smelter') < h.indexOf('Two Province Steel') && h.indexOf('Two Province Steel') < h.indexOf('Small Mill'), 'ranked by load among them');
 });
 
 test('notes from agents show with an Agent badge; only an admin gets the note box', () => {

@@ -108,5 +108,15 @@ test('an account with nobody on file shows no such line and every seat empty', (
   assert.ok(!/fill no seat|fills no seat/.test(html));
 });
 
+test('someone marked as having left the company does not fill a seat', () => {
+  const html = panel([person('Chief Operations Officer', 'Operations', { first: 'Pat', last: 'Gone', status: 'left' })]);
+  assert.ok(/0 of 7 seats covered/.test(html), 'a departed COO leaves the operations seat empty');
+  assert.ok(!html.includes('Pat Gone'));
+});
+test('an inactive person still counts; only "left" removes someone', () => {
+  const html = panel([person('Chief Operations Officer', 'Operations', { first: 'Pat', last: 'Quiet', status: 'inactive' })]);
+  assert.ok(/1 of 7 seats covered/.test(html));
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

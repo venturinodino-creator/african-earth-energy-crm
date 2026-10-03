@@ -66,7 +66,7 @@ function renderDashboard() {
             (np ? esc(np.project.town) + ' ' + distanceLabel(np) : 'no nearby site') +
             (c ? ' · ' + esc(c.title) : '') + '</div>' +
           '</div>' +
-          '<div class="person-actions"><span class="badge b-' + o.status + '">' + (STATUS_LABEL[o.status] || o.status) + '</span></div>' +
+          '<div class="person-actions"><span class="badge b-' + esc(o.status) + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></div>' +
         '</div>';
       }).join('') : '<div class="empty"><h3>Nothing queued</h3><p>Add an offtaker to start building a call list.</p></div>') +
     '</div>';

@@ -82,7 +82,7 @@ function projectBuyersHtml(site) {
 
 /* Prospects in the same province, biggest load first: who to call next. */
 function projectNearbyHtml(site) {
-  const near = state.offtakers.filter(o => o.province === site.province && num(o.peakMw) > 0)
+  const near = state.offtakers.filter(o => inProvince(o, site.province) && num(o.peakMw) > 0)
     .sort((a, b) => num(b.peakMw) - num(a.peakMw)).slice(0, 6);
   return '<div class="card"><div class="card-header"><div><div class="card-title">Prospects in ' + esc(site.province) + '</div>' +
     '<div class="card-sub">largest peak load first</div></div></div>' +

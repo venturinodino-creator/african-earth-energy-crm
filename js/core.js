@@ -129,10 +129,24 @@ function esc(s) {
 /* Only http(s) links are ever emitted, so a pasted javascript: URL is inert. */
 function safeHref(url) { const u = String(url || '').trim(); return /^https?:\/\//i.test(u) ? u : ''; }
 function jsStr(v) { return esc(JSON.stringify(String(v == null ? '' : v))); }
-function num(v, d) { const n = Number(v); return Number.isFinite(n) ? n : (d === undefined ? 0 : d); }
+/* Numbers as people write them. The app prints "1 234 568" with spaces, South
+   African spreadsheets use a decimal comma ("3,5") and others a thousands comma
+   ("1,200"), so a typed or imported cell must survive all three. Number("1 200")
+   is NaN, which used to turn the cell into 0 without a word. */
+function numText(s) {
+  let t = String(s).trim().replace(/[\s\u00a0\u202f]/g, '');
+  if (/^-?\d+,\d{1,2}$/.test(t) || /^-?\d{1,3}(?:\.\d{3})+,\d+$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(t)) t = t.replace(/,/g, '');
+  return t;
+}
+function num(v, d) {
+  const n = typeof v === 'string' ? Number(numText(v)) : Number(v);
+  return Number.isFinite(n) ? n : (d === undefined ? 0 : d);
+}
 function fmtNum(n, dp) { return num(n).toLocaleString('en-ZA', { minimumFractionDigits: dp || 0, maximumFractionDigits: dp === undefined ? 0 : dp }); }
 function fmtR(n) {
   const v = num(n);
+  if (v < 0) return '-' + fmtR(-v);
   if (Math.abs(v) >= 1e9) return 'R' + (v / 1e9).toFixed(2) + 'bn';
   if (Math.abs(v) >= 1e6) return 'R' + (v / 1e6).toFixed(1) + 'm';
   if (Math.abs(v) >= 1e3) return 'R' + (v / 1e3).toFixed(0) + 'k';
@@ -969,7 +983,21 @@ function exportPipeline() {
 
 /* Import contacts from CSV. Header row is matched loosely so a list
    exported from LinkedIn, Apollo or a spreadsheet mostly just works. */
+/* The separator a file uses. Excel on South African settings saves "CSV" with
+   semicolons (the comma is its decimal mark) and some tools write tabs; read
+   it off the header line, ignoring anything inside quotes. */
+function csvDelimiter(text) {
+  let q = false; const n = { ',': 0, ';': 0, '\t': 0 };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') q = !q;
+    else if (!q) { if (ch === '\n') break; if (ch in n) n[ch]++; }
+  }
+  return n[';'] > n[','] && n[';'] >= n['\t'] ? ';' : n['\t'] > n[','] ? '\t' : ',';
+}
 function parseCSV(text) {
+  text = String(text).replace(/^\uFEFF/, '');
+  const sep = csvDelimiter(text);
   const rows = []; let row = [], cell = '', q = false;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
@@ -977,7 +1005,7 @@ function parseCSV(text) {
       if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
       else cell += ch;
     } else if (ch === '"') q = true;
-    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === sep) { row.push(cell); cell = ''; }
     else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
     else if (ch !== '\r') cell += ch;
   }
@@ -1052,6 +1080,16 @@ function provinceFromText(text) {
   if (!v) return '';
   return PROVINCE_ALIASES[v.toLowerCase().replace(/\s+/g, ' ')] || v;
 }
+
+/* A company can span provinces; its province then reads "Mpumalanga / Limpopo",
+   and the earlier loads wrote some of them with "KZN". Filters and "same
+   province" matching work on the individual provinces, so a company in two is
+   found under either, not stranded under a combination nobody would pick. */
+function provincesOf(text) {
+  return String(text || '').split('/').map(p => provinceFromText(p)).filter(Boolean);
+}
+function inProvince(o, province) { return provincesOf(o && o.province).includes(province); }
+function provinceChoices(list) { return [...new Set(list.flatMap(o => provincesOf(o.province)))].sort(); }
 
 /* A municipality named in a contact file's company column. Accepts what
    people actually write — "Polokwane", "Polokwane Local Municipality",

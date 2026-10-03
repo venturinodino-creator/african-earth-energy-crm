@@ -7,6 +7,9 @@
 
 function val(id) { return document.getElementById(id).value.trim(); }
 function setVal(id, v) { document.getElementById(id).value = v == null ? '' : v; }
+/* Names compared the way a person would: case, spaces and punctuation ignored. */
+function formKey(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+const FORM_EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/;
 
 /* ─── OFFTAKER ────────────────────────────────────────────────── */
 function openAddOfftaker() {
@@ -44,9 +47,18 @@ function openEditOfftaker(id) {
 function saveOfftaker() {
   const name = val('mo-name');
   if (!name) { toast('An offtaker needs a name', 'warn'); return; }
+  if (!state.editOfftakerId) {
+    const dupe = state.offtakers.concat(state.archived || []).find(o => formKey(o.name) === formKey(name));
+    if (dupe) {
+      toast(name + (dupe.archived ? ' is already in the Archive. Restore it from there instead of adding a second copy.' : ' is already on the list. Open that record instead.'), 'warn');
+      return;
+    }
+  }
+  let website = val('mo-website');
+  if (website && !/^https?:\/\//i.test(website)) website = 'https://' + website;
   const rec = {
     name, short: val('mo-short'), sector: val('mo-sector'), province: val('mo-province'),
-    city: val('mo-city'), website: val('mo-website'),
+    city: val('mo-city'), website,
     annualGwh: num(val('mo-gwh')), peakMw: num(val('mo-peak')), tariff: num(val('mo-tariff')),
     supply: val('mo-supply'), wheeling: val('mo-wheeling'), nmd: num(val('mo-nmd')),
     status: val('mo-status'), priority: val('mo-priority'), description: val('mo-desc'),
@@ -55,6 +67,7 @@ function saveOfftaker() {
   let saved;
   if (state.editOfftakerId) {
     const i = state.offtakers.findIndex(o => o.id === state.editOfftakerId);
+    if (i < 0) { toast('That offtaker is no longer in the list. Reload the page and try again.', 'warn'); return; }
     /* Keep the estimated flag and any coordinates already on the record. */
     saved = state.offtakers[i] = { ...state.offtakers[i], ...rec };
   } else {
@@ -118,6 +131,8 @@ function openEditContact(id) {
 function saveContact() {
   const first = val('mc-first'), last = val('mc-last');
   if (!first && !last) { toast('A contact needs a name', 'warn'); return; }
+  const email = val('mc-email');
+  if (email && !FORM_EMAIL_RE.test(email)) { toast('That does not look like an email address', 'warn'); return; }
   const rec = {
     offtakerId: val('mc-offtaker'), first, last, title: val('mc-jobtitle'), dept: val('mc-dept'),
     email: val('mc-email'), phone: val('mc-phone'), linkedin: val('mc-linkedin'),
@@ -126,8 +141,12 @@ function saveContact() {
   let saved;
   if (state.editContactId) {
     const i = state.contacts.findIndex(c => c.id === state.editContactId);
+    if (i < 0) { toast('That contact is no longer in the list. Reload the page and try again.', 'warn'); return; }
     saved = state.contacts[i] = { ...state.contacts[i], ...rec };
   } else {
+    /* The same person twice on one company is the commonest way a book goes wrong. */
+    const dupe = state.contacts.find(c => c.offtakerId === rec.offtakerId && formKey(c.first) === formKey(first) && formKey(c.last) === formKey(last));
+    if (dupe) { toast((first + ' ' + last).trim() + ' is already on file for this company. Edit that record instead.', 'warn'); return; }
     saved = { id: uid('c'), ...rec };
     state.contacts.push(saved);
   }
@@ -215,6 +234,9 @@ function saveDeal() {
   const acc = parseAccountKey(val('md-offtaker'));
   if (!acc.offtakerId) { toast('Pick an account for this opportunity', 'warn'); return; }
   const account = getOfftaker(acc.offtakerId).short || getOfftaker(acc.offtakerId).name;
+  if (!(num(val('md-mw')) > 0)) { toast('Enter the MW this opportunity covers (more than 0)', 'warn'); return; }
+  const prob = num(val('md-probability'));
+  if (prob < 0 || prob > 100) { toast('Probability is a percentage from 0 to 100', 'warn'); return; }
   const rec = {
     offtakerId: acc.offtakerId,
     projectId: val('md-project'), mw: num(val('md-mw')),
@@ -225,6 +247,7 @@ function saveDeal() {
   let saved;
   if (state.editDealId) {
     const i = state.deals.findIndex(d => d.id === state.editDealId);
+    if (i < 0) { toast('That opportunity is no longer in the list. Reload the page and try again.', 'warn'); return; }
     saved = state.deals[i] = { ...state.deals[i], ...rec };
   } else {
     saved = { id: uid('deal'), createdAt: todayISO(), ...rec };
