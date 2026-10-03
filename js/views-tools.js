@@ -91,7 +91,7 @@ function focusProjectCard() {
   }, 1600);
 }
 
-function openProject(id) { state.focusProjectId = id; nav('projects'); }
+function openProject(id) { nav('project', { id }); }
 
 /* Committed MW on a site, ignoring deals that have been lost. */
 function projectCommitted(p) {
@@ -109,7 +109,7 @@ function projectCardHtml(p) {
     const signed = projectSigned(p);
     const pct = Math.min(100, (committed / Math.max(1, p.mw)) * 100);
     const buyers = state.deals.filter(d => d.projectId === p.id).map(d => getOfftaker(d.offtakerId).short).filter(Boolean);
-    return '<div class="ec" style="cursor:default" data-project-id="' + esc(p.id) + '">' +
+    return '<div class="ec" style="cursor:pointer" data-project-id="' + esc(p.id) + '" onclick="openProject(\'' + esc(p.id) + '\')">' +
       '<div class="ec-head">' +
         '<div class="ec-icon">' + icon('sun', 18) + '</div>' +
         '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">' +
@@ -144,7 +144,7 @@ function projectTableHtml(list) {
       const committed = projectCommitted(p);
       const pct = Math.min(100, (committed / Math.max(1, num(p.mw))) * 100);
       const buyers = state.deals.filter(d => d.projectId === p.id).map(d => getOfftaker(d.offtakerId).short).filter(Boolean);
-      return '<tr data-project-id="' + esc(p.id) + '">' +
+      return '<tr data-project-id="' + esc(p.id) + '" style="cursor:pointer" onclick="openProject(\'' + esc(p.id) + '\')">' +
         '<td><div class="name-cell"><span style="opacity:.6;display:flex">' + icon('sun', 15) + '</span>' +
           '<div><div style="font-weight:700">' + esc(p.name) + '</div>' +
           '<div style="font-size:10.5px;color:var(--muted)">' + esc(p.town) + '</div></div></div></td>' +
