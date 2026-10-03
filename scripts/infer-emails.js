@@ -165,6 +165,9 @@ async function main() {
   const minSamples = Number(val('--min-samples') || 1);
   const sectors = val('--sectors') ? val('--sectors').split(',') : MINING;
   const RUN = val('--run');
+  /* --skip "First Last,First Last": people held back by hand, e.g. someone
+     reported to have left the company. */
+  const SKIP = new Set((val('--skip') || '').split(',').map(s => norm(s)).filter(Boolean));
   const evidenceFiles = args.map((a, i) => (a === '--evidence' ? args[i + 1] : null)).filter(Boolean);
 
   await signIn();
@@ -224,7 +227,7 @@ async function main() {
   }
   const contacts = everyone.filter(c => inScope.has(c.offtaker_id) && !String(c.email || '').trim() && (c.status || 'active') === 'active');
 
-  const tally = { candidates: contacts.length, noDomain: 0, noEvidence: 0, conflicting: 0, thin: 0, badName: 0, roleName: 0, written: 0, likely: 0, possible: 0 };
+  const tally = { candidates: contacts.length, noDomain: 0, noEvidence: 0, conflicting: 0, thin: 0, badName: 0, roleName: 0, heldBack: 0, written: 0, likely: 0, possible: 0 };
   const review = [];
   const skip = (c, o, key, reason) => { tally[key]++; review.push({ company: o ? o.name : c.offtaker_id, c, email: '', strength: '', fmt: '', basis: '', reason }); };
   for (const c of contacts) {
@@ -233,6 +236,7 @@ async function main() {
     if (isRoleName(c.first, c.last)) { skip(c, o, 'roleName', 'not a person: the name is a role or team'); continue; }
     /* "Xinneng (David) Li" writes to dli@, not xli@: with a bracketed preferred
        name the address could be built from either, so a person decides. */
+    if (SKIP.has(norm(c.first) + norm(c.last))) { skip(c, o, 'heldBack', 'held back by hand (--skip), e.g. reported to have left the company'); continue; }
     if (/[()]/.test(c.first) || /[()]/.test(c.last)) { skip(c, o, 'badName', 'the name has a bracketed preferred name; the address could be built from either'); continue; }
     const dom = domainFor(o);
     if (!dom) { skip(c, o, 'noDomain', 'no mail domain: no website on file and no published address for this company'); continue; }
