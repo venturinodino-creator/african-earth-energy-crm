@@ -360,8 +360,17 @@ function findHasEmail(f) { return FIND_EMAIL_RE.test(String(f.email || '').trim(
    interesting part is what came back, which is the table below. */
 function finderRunStrip() {
   if (!state.contactRuns.length) return '';
+  /* Only the newest few are shown, so deleting one pulls an older run into
+     view. Say how many are tucked away so the list visibly shrinks. */
+  const shown = state.cfShowAllRuns ? state.contactRuns : state.contactRuns.slice(0, 5);
+  const hidden = state.contactRuns.length - 5;
+  const more = hidden > 0
+    ? '<div class="cf-run"><button class="btn btn-xs" onclick="toggleAllRuns()">' +
+        (state.cfShowAllRuns ? 'Show newest 5 only' : 'Show ' + hidden + ' older run' + (hidden === 1 ? '' : 's')) +
+      '</button></div>'
+    : '';
   return '<div class="cf-runs">' +
-    state.contactRuns.slice(0, 5).map(r =>
+    shown.map(r =>
       '<div class="cf-run">' +
         '<span class="badge ' + (r.status === 'done' ? 'b-contracted' : r.status === 'failed' ? 'b-high' : 'b-medium') + '">' +
           esc(RUN_STATUS_LABEL[r.status] || r.status) + '</span>' +
@@ -373,8 +382,13 @@ function finderRunStrip() {
         '<span class="cf-run-m">' + esc(r.created) + '</span>' +
         '<button class="btn btn-xs btn-danger" data-admin-only onclick="deleteContactRun(\'' + r.id + '\')">' +
           icon('trash', 11) + '</button>' +
-      '</div>').join('') +
+      '</div>').join('') + more +
   '</div>';
+}
+
+function toggleAllRuns() {
+  state.cfShowAllRuns = !state.cfShowAllRuns;
+  renderContactFinder();
 }
 
 function queueContactRun() {
