@@ -32,11 +32,13 @@ function env({ role = 'admin', many = 0 } = {}) {
     task({ projectId: 'tpl', wbs: '1.1', name: 'Template task', plannedFinish: iso(30) }),
   ];
   for (let i = 0; i < many; i++) tasks.push(task({ projectId: 'p2', wbs: '9.' + i, name: 'Filler ' + i, plannedFinish: iso(40 + i) }));
-  const calls = { renders: 0, projects: 0 };
+  const calls = { renders: 0, projects: 0, analytics: 0, content: '' };
+  const store = {};
   const ctx = {
     console, esc, fmtNum: v => String(Math.round(Number(v) || 0)), pmShortDate: d => String(d || '').slice(0, 10), pmCanEdit: () => role === 'admin',
-    pmSiteIdFor: () => null, pmSiteGuessFor: () => null, nav() {}, setPage() {}, setContent() {}, projectsModeToggle: () => '',
-    renderProject() { calls.renders++; }, renderProjects() { calls.projects++; },
+    pmSiteIdFor: () => null, pmSiteGuessFor: () => null, nav() {}, setPage() {}, setContent(h) { calls.content = h; }, projectsModeToggle: () => '',
+    renderProject() { calls.renders++; }, renderProjects() { calls.projects++; }, renderAnalytics() { calls.analytics++; },
+    lsGet: (k, d) => (k in store ? store[k] : d), lsSet: (k, v) => { store[k] = v; },
     state: { view: 'projects', pm: {
       projects: [{ id: 'p1', name: 'AEEG Alpha Farm' }, { id: 'p2', name: 'AEEG Beta Farm' }, { id: 'tpl', name: 'Template', isTemplate: true }],
       people: [{ id: 'u1', name: 'Karen' }, { id: 'u2', name: 'Darrin' }], tasks } },
@@ -45,7 +47,7 @@ function env({ role = 'admin', many = 0 } = {}) {
   vm.runInContext(read('pmanalytics-core.js') + '\n' + read('views-projectanalytics.js'), ctx);
   const html = opts => vm.runInContext('paHtml(' + JSON.stringify(opts || null) + ')', ctx);
   const run = c => vm.runInContext(c, ctx);
-  return { ctx, html, run, calls };
+  return { ctx, html, run, calls, store };
 }
 const count = (h, re) => (h.match(re) || []).length;
 
@@ -157,6 +159,67 @@ test('no project plans loaded: a message, not an error', () => {
   assert.ok(e.html().includes('Loading the project plans'));
   e.run('state.pm = { error: true }');
   assert.ok(e.html().includes('could not be loaded'));
+});
+
+test('the Projects dashboard opens with a guide card that says what it is and where the portfolio stands', () => {
+  const e = env(); e.run('renderProjectAnalytics()');
+  const c = e.calls.content;
+  assert.ok(c.startsWith('<div class="card"') && c.includes('What you are looking at'), 'the card is first');
+  assert.ok(c.indexOf('What you are looking at') < c.indexOf('pa-bar'), 'above the filter bar and the dashboard');
+  assert.ok(c.includes('Projects › Analytics') && c.includes('2 projects') && c.includes('5 tasks'), 'the scope: templates are left out');
+  assert.ok(/of the work is done against \d+% planned; 2 tasks are overdue and 1 falls due in the next 14 days/.test(c), 'Rezoning and Survey late, Grid study due soon');
+  assert.ok(c.includes('Darrin holds the most open work: 3 tasks, 1 of them late'));
+  assert.ok(/The furthest behind is (Alpha|Beta) Farm/.test(c));
+  ['How to use it', 'The tiles', 'Progress against plan', 'Where the work stands', 'Timeline', 'Projects and workload', 'The task list', 'Where it comes from'].forEach(t => assert.ok(c.includes(t), t));
+});
+
+test('the portfolio guide describes the whole portfolio, however the dashboard is filtered', () => {
+  const e = env();
+  const before = e.run('paGuideHtml()');
+  e.run("paSet('health', 'overdue'); paSet('project', 'p1'); paSet('who', 'u1')");
+  assert.strictEqual(e.run('paGuideHtml()'), before);
+});
+
+test('a site\'s own dashboard does not get this guide: the site page carries its own', () => {
+  const e = env();
+  assert.ok(!e.html({ lockProject: 'p1' }).includes('What you are looking at'));
+});
+
+test('Hide collapses the guide to one link, it stays hidden, and the page redraws itself', () => {
+  const e = env(); e.run("state.view = 'projects'");
+  assert.ok(e.run('paGuideHtml()').includes('Hide'));
+  e.run('projectGuideToggle()');
+  assert.strictEqual(e.store.project_guide_hidden, true);
+  assert.ok(e.calls.projects >= 1, 'the Projects page redraws');
+  const hidden = e.run('paGuideHtml()');
+  assert.ok(hidden.includes('Show the guide to this page') && !hidden.includes('What you are looking at'));
+  e.run('projectGuideToggle()');
+  assert.ok(e.run('paGuideHtml()').includes('What you are looking at'));
+});
+
+test('the sidebar Analytics page gets a guide in the same style, about customers rather than sites', () => {
+  const e = env();
+  const h = e.run("analyticsPageGuideHtml({ companies: 57, gwh: 52000, avgFit: 48, fit80: 3, weighted: 'R3.31bn' })");
+  assert.ok(h.includes('What you are looking at'));
+  assert.ok(h.includes('57 companies') && h.includes('52000 GWh') && h.includes('48 out of 100') && h.includes('3 scoring 80 or more') && h.includes('R3.31bn'), 'the live figures');
+  assert.ok(h.includes('the <b>customers</b>') && h.includes('the <b>sites</b>'), 'how it differs from Projects');
+  ['Addressable load', 'Weighted average tariff', 'Fit score', 'Weighted pipeline', 'Load by province and by sector', 'Where the value is', 'Funnel health', 'Where it comes from'].forEach(t => assert.ok(h.includes(t), t));
+  assert.ok(h.includes('how flat it is') && h.includes('wheeling'), 'the fit score is explained by what goes into it');
+});
+
+test('hiding the guide on the Analytics page redraws that page, and the choice is shared with the other pages', () => {
+  const e = env(); e.run("state.view = 'analytics'");
+  e.run('projectGuideToggle()');
+  assert.ok(e.calls.analytics >= 1 && e.calls.projects === 0);
+  assert.ok(e.run("analyticsPageGuideHtml({ companies: 1, gwh: 1, avgFit: 1, fit80: 0, weighted: 'R0' })").includes('Show the guide to this page'));
+  assert.ok(e.run('paGuideHtml()').includes('Show the guide to this page'), 'the same setting hides it on the Projects dashboard');
+});
+
+test('one company reads naturally; no plans loaded gives no guide rather than an error', () => {
+  const e = env();
+  assert.ok(e.run("analyticsPageGuideHtml({ companies: 1, gwh: 10, avgFit: 5, fit80: 0, weighted: 'R0' })").includes('1 company'));
+  e.run('state.pm = null'); assert.strictEqual(e.run('paGuideHtml()'), '');
+  e.run('state.pm = { error: true }'); assert.strictEqual(e.run('paGuideHtml()'), '');
 });
 
 console.log('\n' + n + ' passed');

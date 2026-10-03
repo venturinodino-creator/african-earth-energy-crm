@@ -312,6 +312,7 @@ function renderAnalytics() {
     '</tbody></table></div></div>';
 
   setContent(
+    analyticsPageGuideHtml({ companies: state.offtakers.length, gwh: totalGwh, avgFit, fit80: buckets['80–100'], weighted: fmtR(weighted) }) +
     '<div class="stats-grid">' +
       statTile('bolt', 'green', 'Addressable load', fmtNum(totalGwh) + ' GWh', 'a year across tracked offtakers') +
       statTile('trending', 'amber', 'Weighted average tariff', 'R' + avgTariff.toFixed(2), 'consumption-weighted, per kWh') +
