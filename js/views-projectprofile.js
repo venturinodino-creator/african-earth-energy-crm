@@ -149,6 +149,68 @@ function projectOverviewHtml(site) {
     '<div style="margin-top:14px">' + projectNearbyHtml(site) + '</div>' + projectNotesHtml(site);
 }
 
+/* ─── THE GUIDE CARD ──────────────────────────────────────────────────
+   A plain-language card at the top of a site's page: what the page is, what
+   the numbers on it are right now, and what the current tab shows and how to
+   read it. It follows the tab you are on, can be hidden, and remembers that. */
+function projectGuideHidden() { try { return !!lsGet('project_guide_hidden', false); } catch (e) { return false; } }
+function projectGuideToggle() { try { lsSet('project_guide_hidden', !projectGuideHidden()); } catch (e) {} renderProject(); }
+
+const PROJECT_GUIDE = {
+  overview: site => [
+    ['Capacity and annual energy', 'The site\u2019s size in megawatts, and what it would generate in a year at the portfolio\u2019s ' + Math.round(CAPACITY_FACTOR * 100) + '% capacity factor.'],
+    ['Signed and still to sell', 'Signed is power under an executed PPA. Still to sell is what is left after signed deals and the deals being negotiated.'],
+    ['Delivery', 'How the build is going in ProjectManager.com: percent complete, tasks finished, tasks past their planned finish, the next five due, and the project manager.'],
+    ['Buyers', 'The deals on this site with the buyer, stage and MW. Click one to open the company.'],
+    ['Prospects in ' + site.province, 'Companies on your list in the same province, largest load first: the natural next calls.'],
+    ['Notes', 'What your team and the agents have noted on the project and its tasks.'],
+  ],
+  analytics: () => [
+    ['Everything is clickable', 'A tile, a slice, a bar, a person, a month or a phase filters the task list at the bottom. The chips show what is applied; the \u00d7 on a chip removes it.'],
+    ['Progress against plan', 'The line is how much should be done by each date if every task ran evenly from its start to its finish; the green dot is where the site actually is. The schedule index is actual divided by planned: 1.00 is on plan, below 0.75 is behind.'],
+    ['Schedule health', 'Overdue means past the planned finish and not 100%. Due in 14 days, Scheduled later and No date make up the rest; finished tasks are Done.'],
+    ['Timeline', 'Each bar runs from a phase\u2019s first start to its last finish; the filled part is progress and the red line is today.'],
+    ['Complete %', 'Weighted by effort, so a long task counts for more than a short one.'],
+  ],
+  plan: () => [
+    ['The complete plan', 'Every phase and task for this site from ProjectManager.com: status, planned dates, percent done, effort, who and tags.'],
+    ['Changing it', (pmCanEdit() ? 'Edit changes a task and + New task adds one. ' : 'Only admins can change tasks. ') +
+      'Changes are saved here with a history; the ProjectManager.com copy underneath is not touched, and changed rows are tagged \u201cedited\u201d.'],
+    ['Filtering', 'Search, status, person and tag narrow the list; \u201cpast finish, not 100%\u201d shows only what is late.'],
+    ['Status and percent can disagree', 'They are shown as ProjectManager.com holds them, so a task can read \u201cTo Do\u201d at 95%.'],
+  ],
+};
+
+function projectGuideHtml(site, tab, m) {
+  if (projectGuideHidden()) {
+    return '<div style="margin-bottom:12px"><button class="btn btn-ghost btn-xs" onclick="projectGuideToggle()">Show the guide to this page</button></div>';
+  }
+  const committed = projectCommitted(site), signed = projectSigned(site);
+  const commercial = fmtNum(signed) + ' MW signed, ' + fmtNum(Math.max(0, committed - signed)) + ' MW in discussion and ' + fmtNum(Math.max(0, num(site.mw) - committed)) + ' MW still to sell.';
+  let delivery;
+  if (m) {
+    const leaf = pmProjectTasks(m.p.id).filter(pmIsLeaf), today = paNow();
+    const s = paSummary(leaf, today), planned = paPlannedPct(leaf, today);
+    delivery = 'On the delivery side, ' + s.progress + '% of the work is done against ' + planned + '% planned; ' + fmtNum(s.overdue) + (s.overdue === 1 ? ' task is' : ' tasks are') + ' past ' + (s.overdue === 1 ? 'its' : 'their') + ' finish date and ' + fmtNum(s.soon) + ' fall' + (s.soon === 1 ? 's' : '') + ' due in the next 14 days.';
+  } else {
+    delivery = 'No delivery plan is linked to this site yet, so only the commercial picture is shown.';
+  }
+  const asOf = state.pm && state.pm.sync && state.pm.sync.as_of ? state.pm.sync.as_of : '';
+  /* a site with no plan has no Delivery card to explain */
+  const items = (PROJECT_GUIDE[tab] || PROJECT_GUIDE.overview)(site).filter(([k]) => m || !['Delivery', 'Notes'].includes(k));
+  return '<div class="card" style="margin-bottom:14px;border-left:3px solid var(--accent)">' +
+    '<div class="card-header"><div><div class="card-title">What you are looking at</div>' +
+    '<div class="card-sub">' + esc(tab === 'plan' ? 'The Project plan tab' : tab === 'analytics' ? 'The Analytics tab' : 'The Overview tab') + ' of ' + esc(site.name) + '</div></div>' +
+    '<button class="btn btn-ghost btn-xs" onclick="projectGuideToggle()">Hide</button></div>' +
+    '<p style="font-size:13px;line-height:1.65;margin:0 0 8px">This is the page for <b>' + esc(site.name) + '</b>, a ' + fmtNum(site.mw) + ' MW solar and battery site at ' + esc(site.town) + ', ' + esc(site.province) +
+      ', planned to reach commercial operation in ' + esc(site.cod) + '. It puts the two sides of the site together: the <b>commercial</b> side (how much is sold, and to whom) and the <b>delivery</b> side (how the build is progressing).</p>' +
+    '<p style="font-size:13px;line-height:1.65;margin:0 0 10px"><b>Right now:</b> ' + esc(commercial) + ' ' + esc(delivery) + '</p>' +
+    '<ul style="margin:0 0 10px;padding-left:18px;font-size:12.5px;line-height:1.6;color:var(--muted2)">' +
+      items.map(([k, v]) => '<li><b style="color:var(--text)">' + esc(k) + '</b> \u2014 ' + esc(v) + '</li>').join('') + '</ul>' +
+    '<div class="fg-hint">Where it comes from: the site\u2019s facts are AEE\u2019s portfolio; the deals are your pipeline' + (m ? '; the plan is the ProjectManager.com copy' + (asOf ? ' taken ' + esc(asOf) : '') +
+      ', with any edits made here layered on top' : '') + '.' + (m && !m.sure ? ' <b>This plan is a probable match for the site, not a confirmed one.</b>' : '') + '</div></div>';
+}
+
 function renderProject() {
   const site = state.projects.find(p => p.id === state.projectId);
   if (!site) { nav('projects'); return; }
@@ -159,6 +221,7 @@ function renderProject() {
   const tabs = [['overview', 'Overview'], ['analytics', 'Analytics'], ['plan', 'Project plan' + (m ? ' (' + pmProjectTasks(m.p.id).filter(pmIsLeaf).length + ' tasks)' : '')]];
   setPage(site.name, site.town + ', ' + site.province + ' \u00b7 COD ' + site.cod, '');
   setContent(
+    projectGuideHtml(site, tab, m) +
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">' +
       '<button class="btn btn-ghost btn-sm" onclick="nav(\'projects\')">&larr; All projects</button>' +
       '<div class="view-toggle">' + tabs.map(([k, l]) => '<button class="vt-btn ' + (tab === k ? 'active' : '') + '" onclick="projectSetTab(\'' + k + '\')">' + esc(l) + '</button>').join('') + '</div></div>' +

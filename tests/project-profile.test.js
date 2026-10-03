@@ -19,6 +19,7 @@ const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g,
 
 function env({ role = 'admin' } = {}) {
   let page = {}, html = '', navs = [];
+  const store = {};
   const today = new Date().toISOString().slice(0, 10);
   const ctx = {
     console, esc, num: v => Number(v) || 0, fmtNum: v => String(v), icon: () => '', growBars() {},
@@ -56,15 +57,17 @@ function env({ role = 'admin' } = {}) {
       },
     },
     pmWhen: () => '03 Oct', pmCanEdit: () => role === 'admin',
+    /* js/core.js's local-storage helpers, in memory; a test can read the store back */
+    lsGet: (k, d) => (k in store ? store[k] : d), lsSet: (k, v) => { store[k] = v; },
   };
   vm.createContext(ctx);
   vm.runInContext(root('data/seed.js') + '\nthis.SITES = AEE_PROJECTS;', ctx);
   ctx.state.projects = ctx.SITES;
-  vm.runInContext(root('js/views-projectplans.js') + '\n' + root('js/views-projectprofile.js') + `
+  vm.runInContext(root('js/pmanalytics-core.js') + '\n' + root('js/views-projectplans.js') + '\n' + root('js/views-projectanalytics.js') + '\n' + root('js/views-projectprofile.js') + `
     function projectCommitted(p) { return state.deals.filter(d => d.projectId === p.id && d.stage !== 'lost').reduce((s, d) => s + num(d.mw), 0); }
     function projectSigned(p) { return state.deals.filter(d => d.projectId === p.id && d.stage === 'closed').reduce((s, d) => s + num(d.mw), 0); }
     function allocationColor(pct) { return 'var(--accent)'; }`, ctx);
-  return { ctx, get html() { return html; }, get page() { return page; }, navs, today };
+  return { ctx, get html() { return html; }, get page() { return page; }, navs, today, store };
 }
 const render = (e, id) => { e.ctx.state.projectId = id; vm.runInContext('renderProject()', e.ctx); return e.html; };
 
@@ -148,6 +151,59 @@ test('every portfolio site renders without error', () => {
 test('an unknown site goes back to the list', () => {
   const e = env(); render(e, 'no-such-site');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(e.navs.pop())), ['projects', null]);
+});
+
+test('a guide card sits above the tabs and says what the page is, with the site\'s live figures', () => {
+  const e = env(); const h = render(e, 'middelburg');
+  assert.ok(h.includes('What you are looking at'));
+  assert.ok(h.indexOf('What you are looking at') < h.indexOf('All projects'), 'the card comes first, above the back button and tabs');
+  assert.ok(h.includes('Middelburg Solar Farm + BESS') && h.includes('49 MW') && h.includes('Mpumalanga') && h.includes('2029'), 'the site');
+  assert.ok(/0 MW signed, 20 MW in discussion and 29 MW still to sell/.test(h), 'the commercial position');
+  assert.ok(/of the work is done against \d+% planned; 1 task is past its finish date/.test(h), 'the delivery position: Rezoning is the one late task');
+});
+
+test('the guide explains whichever tab you are on', () => {
+  const e = env(); render(e, 'middelburg');
+  assert.ok(e.html.includes('The Overview tab') && e.html.includes('Prospects in Mpumalanga') && e.html.includes('Signed and still to sell'));
+  vm.runInContext("projectSetTab('analytics')", e.ctx);
+  assert.ok(e.html.includes('The Analytics tab') && e.html.includes('Progress against plan') && e.html.includes('Schedule health') && e.html.includes('Everything is clickable'));
+  vm.runInContext("projectSetTab('plan')", e.ctx);
+  assert.ok(e.html.includes('The Project plan tab') && e.html.includes('The complete plan') && e.html.includes('Changing it') && e.html.includes('can disagree'));
+  assert.ok(!e.html.includes('Prospects in Mpumalanga</b>'), 'the overview explanations are not repeated on another tab');
+});
+
+test('the guide says where the data comes from, and flags a plan that is only a probable match', () => {
+  const e = env(); const sure = render(e, 'middelburg');
+  assert.ok(/Where it comes from/.test(sure) && /ProjectManager\.com copy/.test(sure));
+  assert.ok(!sure.includes('probable match, not a confirmed one'));
+  const probable = render(e, 'limpopo300');
+  assert.ok(probable.includes('probable match for the site, not a confirmed one'));
+});
+
+test('a site with no plan says only the commercial picture is shown, and the card does not break', () => {
+  const e = env(); const h = render(e, 'mokopane');
+  assert.ok(h.includes('No delivery plan is linked to this site yet, so only the commercial picture is shown'));
+  assert.ok(!/undefined|NaN/.test(h));
+});
+
+test('the guide can be hidden, stays hidden for the next site, and can be brought back', () => {
+  const e = env(); render(e, 'middelburg');
+  vm.runInContext('projectGuideToggle()', e.ctx);
+  assert.ok(!e.html.includes('What you are looking at') && e.html.includes('Show the guide to this page'));
+  assert.strictEqual(e.store.project_guide_hidden, true, 'remembered');
+  render(e, 'oudtshoorn');
+  assert.ok(!e.html.includes('What you are looking at'), 'still hidden on another site');
+  vm.runInContext('projectGuideToggle()', e.ctx);
+  assert.ok(e.html.includes('What you are looking at'));
+});
+
+test('every site\'s guide renders on every tab', () => {
+  const e = env();
+  e.ctx.state.projects.forEach(p => ['overview', 'analytics', 'plan'].forEach(tab => {
+    e.ctx.state.projectId = p.id; e.ctx.state.projectTabFor = p.id; e.ctx.state.projectTab = tab;
+    vm.runInContext('renderProject()', e.ctx);
+    assert.ok(e.html.includes('What you are looking at') && !/undefined|NaN/.test(e.html.slice(0, e.html.indexOf('All projects'))), p.id + ' / ' + tab);
+  }));
 });
 
 console.log('\n' + n + ' passed');
