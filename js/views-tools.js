@@ -14,6 +14,7 @@ function renderProjects() {
   /* Arriving from a link to one site (a bar on the dashboard, a site name in
      the plans) always lands on the sites. */
   if (state.focusProjectId) state.projectsMode = 'sites';
+  if (state.projectsMode === 'analytics') { renderProjectAnalytics(); growBars(); return; }
   const plans = state.projectsMode === 'plans';
 
   setPage(plans ? 'Project plans' : 'Generation portfolio',
@@ -46,9 +47,10 @@ function renderProjects() {
    ProjectManager.com project plans. Both are one click from the top, because
    a plan hidden at the foot of the sites table was never found. */
 function projectsModeToggle() {
-  const on = state.projectsMode === 'plans' ? 'plans' : 'sites';
+  const on = state.projectsMode === 'plans' ? 'plans' : state.projectsMode === 'analytics' ? 'analytics' : 'sites';
   return '<div class="view-toggle">' +
     '<button class="vt-btn ' + (on === 'sites' ? 'active' : '') + '" onclick="setProjectsMode(\'sites\')">Sites</button>' +
+    '<button class="vt-btn ' + (on === 'analytics' ? 'active' : '') + '" onclick="setProjectsMode(\'analytics\')">Analytics</button>' +
     '<button class="vt-btn ' + (on === 'plans' ? 'active' : '') + '" onclick="setProjectsMode(\'plans\')">Project plans</button></div>';
 }
 function setProjectsMode(m) { state.projectsMode = m; renderProjects(); }
@@ -60,7 +62,8 @@ function pmBannerHtml() {
   return '<div class="card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">' +
     '<div><div class="card-title" style="font-size:13px">Project plans from ProjectManager.com</div>' +
     '<div class="card-sub">' + real + ' projects &middot; ' + fmtNum(state.pm.tasks.length) + ' tasks &middot; team summary, portfolio, plans and activity</div></div>' +
-    '<button class="btn btn-primary btn-sm" onclick="setProjectsMode(\'plans\')">Open the project plans</button></div>';
+    '<div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="setProjectsMode(\'analytics\')">Analytics</button>' +
+    '<button class="btn btn-primary btn-sm" onclick="setProjectsMode(\'plans\')">Open the project plans</button></div></div>';
 }
 
 /* Arriving from a bar on the dashboard, the site that was clicked is one
