@@ -395,3 +395,67 @@ begin
     execute format('create policy %I on public.%I for delete to authenticated using (public.is_crm_admin())', t || '_delete', t);
   end loop;
 end $$;
+
+-- Project plans: the CRM's working layer on top of the ProjectManager.com copy.
+-- aee_pm_tasks stays the untouched original. Edits, new tasks, deletions, notes
+-- and the change history live in their own tables, so a re-copy from
+-- ProjectManager.com never overwrites work done here and every change can be
+-- shown against what ProjectManager.com held.
+
+create table if not exists public.aee_pm_task_edits (
+  task_id    text primary key,           -- a ProjectManager.com task id, or crm_* for a task made here
+  project_id text,
+  patch      jsonb not null default '{}'::jsonb,   -- changed fields only (the whole task when is_new)
+  is_new     boolean not null default false,
+  is_deleted boolean not null default false,
+  updated_at timestamptz not null default now(),
+  updated_by text
+);
+create index if not exists aee_pm_task_edits_project_idx on public.aee_pm_task_edits(project_id);
+
+create table if not exists public.aee_pm_notes (
+  id          text primary key,
+  task_id     text,                       -- null when the note is on the project itself
+  project_id  text,
+  body        text not null,
+  author      text not null,              -- a person's login, or the agent's name
+  author_kind text not null default 'user' check (author_kind in ('user','agent')),
+  created_at  timestamptz not null default now()
+);
+create index if not exists aee_pm_notes_task_idx on public.aee_pm_notes(task_id);
+create index if not exists aee_pm_notes_project_idx on public.aee_pm_notes(project_id);
+
+create table if not exists public.aee_pm_history (
+  id         text primary key,
+  task_id    text,
+  project_id text,
+  field      text not null,
+  old_value  text,
+  new_value  text,
+  by         text not null,
+  kind       text not null default 'user' check (kind in ('user','agent')),
+  at         timestamptz not null default now()
+);
+create index if not exists aee_pm_history_task_idx on public.aee_pm_history(task_id);
+
+alter table public.aee_pm_task_edits enable row level security;
+alter table public.aee_pm_notes      enable row level security;
+alter table public.aee_pm_history    enable row level security;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['aee_pm_task_edits','aee_pm_notes','aee_pm_history']
+  loop
+    execute format('drop policy if exists %I on public.%I', t || '_read',   t);
+    execute format('drop policy if exists %I on public.%I', t || '_insert', t);
+    execute format('drop policy if exists %I on public.%I', t || '_update', t);
+    execute format('drop policy if exists %I on public.%I', t || '_delete', t);
+    execute format('create policy %I on public.%I for select to authenticated using (public.has_crm_access())', t || '_read', t);
+    execute format('create policy %I on public.%I for insert to authenticated with check (public.is_crm_admin())', t || '_insert', t);
+    execute format('create policy %I on public.%I for update to authenticated using (public.is_crm_admin()) with check (public.is_crm_admin())', t || '_update', t);
+    execute format('create policy %I on public.%I for delete to authenticated using (public.is_crm_admin())', t || '_delete', t);
+  end loop;
+end $$;
+
+notify pgrst, 'reload schema';
