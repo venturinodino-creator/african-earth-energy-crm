@@ -153,9 +153,6 @@ function projectOverviewHtml(site) {
    A plain-language card at the top of a site's page: what the page is, what
    the numbers on it are right now, and what the current tab shows and how to
    read it. It follows the tab you are on, can be hidden, and remembers that. */
-function projectGuideHidden() { try { return !!lsGet('project_guide_hidden', false); } catch (e) { return false; } }
-function projectGuideToggle() { try { lsSet('project_guide_hidden', !projectGuideHidden()); } catch (e) {} renderProject(); }
-
 const PROJECT_GUIDE = {
   overview: site => [
     ['Capacity and annual energy', 'The site\u2019s size in megawatts, and what it would generate in a year at the portfolio\u2019s ' + Math.round(CAPACITY_FACTOR * 100) + '% capacity factor.'],
@@ -182,9 +179,7 @@ const PROJECT_GUIDE = {
 };
 
 function projectGuideHtml(site, tab, m) {
-  if (projectGuideHidden()) {
-    return '<div style="margin-bottom:12px"><button class="btn btn-ghost btn-xs" onclick="projectGuideToggle()">Show the guide to this page</button></div>';
-  }
+  if (projectGuideHidden()) return guideCardHtml('', [], [], '');
   const committed = projectCommitted(site), signed = projectSigned(site);
   const commercial = fmtNum(signed) + ' MW signed, ' + fmtNum(Math.max(0, committed - signed)) + ' MW in discussion and ' + fmtNum(Math.max(0, num(site.mw) - committed)) + ' MW still to sell.';
   let delivery;
@@ -196,19 +191,15 @@ function projectGuideHtml(site, tab, m) {
     delivery = 'No delivery plan is linked to this site yet, so only the commercial picture is shown.';
   }
   const asOf = state.pm && state.pm.sync && state.pm.sync.as_of ? state.pm.sync.as_of : '';
-  /* a site with no plan has no Delivery card to explain */
+  /* a site with no plan has no Delivery card or notes to explain */
   const items = (PROJECT_GUIDE[tab] || PROJECT_GUIDE.overview)(site).filter(([k]) => m || !['Delivery', 'Notes'].includes(k));
-  return '<div class="card" style="margin-bottom:14px;border-left:3px solid var(--accent)">' +
-    '<div class="card-header"><div><div class="card-title">What you are looking at</div>' +
-    '<div class="card-sub">' + esc(tab === 'plan' ? 'The Project plan tab' : tab === 'analytics' ? 'The Analytics tab' : 'The Overview tab') + ' of ' + esc(site.name) + '</div></div>' +
-    '<button class="btn btn-ghost btn-xs" onclick="projectGuideToggle()">Hide</button></div>' +
-    '<p style="font-size:13px;line-height:1.65;margin:0 0 8px">This is the page for <b>' + esc(site.name) + '</b>, a ' + fmtNum(site.mw) + ' MW solar and battery site at ' + esc(site.town) + ', ' + esc(site.province) +
-      ', planned to reach commercial operation in ' + esc(site.cod) + '. It puts the two sides of the site together: the <b>commercial</b> side (how much is sold, and to whom) and the <b>delivery</b> side (how the build is progressing).</p>' +
-    '<p style="font-size:13px;line-height:1.65;margin:0 0 10px"><b>Right now:</b> ' + esc(commercial) + ' ' + esc(delivery) + '</p>' +
-    '<ul style="margin:0 0 10px;padding-left:18px;font-size:12.5px;line-height:1.6;color:var(--muted2)">' +
-      items.map(([k, v]) => '<li><b style="color:var(--text)">' + esc(k) + '</b> \u2014 ' + esc(v) + '</li>').join('') + '</ul>' +
-    '<div class="fg-hint">Where it comes from: the site\u2019s facts are AEE\u2019s portfolio; the deals are your pipeline' + (m ? '; the plan is the ProjectManager.com copy' + (asOf ? ' taken ' + esc(asOf) : '') +
-      ', with any edits made here layered on top' : '') + '.' + (m && !m.sure ? ' <b>This plan is a probable match for the site, not a confirmed one.</b>' : '') + '</div></div>';
+  return guideCardHtml((tab === 'plan' ? 'The Project plan tab' : tab === 'analytics' ? 'The Analytics tab' : 'The Overview tab') + ' of ' + site.name,
+    ['This is the page for <b>' + esc(site.name) + '</b>, a ' + fmtNum(site.mw) + ' MW solar and battery site at ' + esc(site.town) + ', ' + esc(site.province) +
+      ', planned to reach commercial operation in ' + esc(site.cod) + '. It puts the two sides of the site together: the <b>commercial</b> side (how much is sold, and to whom) and the <b>delivery</b> side (how the build is progressing).',
+     '<b>Right now:</b> ' + esc(commercial) + ' ' + esc(delivery)],
+    items,
+    'Where it comes from: the site\u2019s facts are AEE\u2019s portfolio; the deals are your pipeline' + (m ? '; the plan is the ProjectManager.com copy' + (asOf ? ' taken ' + esc(asOf) : '') +
+      ', with any edits made here layered on top' : '') + '.' + (m && !m.sure ? ' <b>This plan is a probable match for the site, not a confirmed one.</b>' : ''));
 }
 
 function renderProject() {

@@ -21,6 +21,80 @@ const PA_LABEL = {
 };
 const PA_FILTER_NAME = { project: 'Project', who: 'Person', stage: 'Stage', health: 'Schedule', month: 'Finishing', phase: 'Phase', tag: 'Tag' };
 
+/* ─── THE GUIDE CARD ──────────────────────────────────────────────────
+   A plain-language card at the top of a page: what it is, what the numbers say
+   right now, how to read each part, and where the data comes from. One builder
+   serves the site profile, this dashboard and the Analytics page; the Hide
+   choice is one setting, remembered, and applies to all of them. */
+function projectGuideHidden() { try { return !!lsGet('project_guide_hidden', false); } catch (e) { return false; } }
+function projectGuideToggle() {
+  try { lsSet('project_guide_hidden', !projectGuideHidden()); } catch (e) {}
+  if (state.view === 'project') renderProject();
+  else if (state.view === 'analytics') renderAnalytics();
+  else renderProjects();
+}
+/* sub: the line under the title. paragraphs: HTML, already escaped by the caller.
+   items: [term, explanation] pairs, plain text. source: HTML. */
+function guideCardHtml(sub, paragraphs, items, source) {
+  if (projectGuideHidden()) {
+    return '<div style="margin-bottom:12px"><button class="btn btn-ghost btn-xs" onclick="projectGuideToggle()">Show the guide to this page</button></div>';
+  }
+  return '<div class="card" style="margin-bottom:14px;border-left:3px solid var(--accent)">' +
+    '<div class="card-header"><div><div class="card-title">What you are looking at</div><div class="card-sub">' + esc(sub) + '</div></div>' +
+    '<button class="btn btn-ghost btn-xs" onclick="projectGuideToggle()">Hide</button></div>' +
+    paragraphs.map((p, i) => '<p style="font-size:13px;line-height:1.65;margin:0 0 ' + (i === paragraphs.length - 1 ? 10 : 8) + 'px">' + p + '</p>').join('') +
+    '<ul style="margin:0 0 10px;padding-left:18px;font-size:12.5px;line-height:1.6;color:var(--muted2)">' +
+      items.map(([k, v]) => '<li><b style="color:var(--text)">' + esc(k) + '</b> \u2014 ' + esc(v) + '</li>').join('') + '</ul>' +
+    '<div class="fg-hint">' + source + '</div></div>';
+}
+
+/* This dashboard's own guide: the whole portfolio, unfiltered, so the figures are stable as you click. */
+function paGuideHtml() {
+  if (!state.pm || state.pm.error) return '';
+  const today = paNow();
+  const real = state.pm.projects.filter(p => !p.isTemplate);
+  const ids = new Set(real.map(p => p.id));
+  const all = state.pm.tasks.filter(t => paIsLeaf(t) && ids.has(t.projectId));
+  const s = paSummary(all, today), planned = paPlannedPct(all, today);
+  const rows = paByProject(all, state.pm.projects, today).filter(r => r.total > 0);
+  const worst = rows.slice().sort((a, b) => (b.planned - b.progress) - (a.planned - a.progress))[0];
+  const busiest = paByPerson(all, today)[0];
+  const asOf = state.pm.sync && state.pm.sync.as_of ? state.pm.sync.as_of : '';
+  let now = '<b>Right now:</b> across the portfolio ' + s.progress + '% of the work is done against ' + planned + '% planned; ' + fmtNum(s.overdue) + (s.overdue === 1 ? ' task is' : ' tasks are') + ' overdue and ' + fmtNum(s.soon) + ' fall' + (s.soon === 1 ? 's' : '') + ' due in the next 14 days.';
+  if (worst && worst.planned > worst.progress) now += ' The furthest behind is ' + esc(worst.name.replace(/^AEEG\s*/, '')) + ' (' + worst.progress + '% against ' + worst.planned + '% planned).';
+  if (busiest) now += ' ' + esc(busiest.name) + ' holds the most open work: ' + fmtNum(busiest.open) + ' tasks' + (busiest.overdue ? ', ' + fmtNum(busiest.overdue) + ' of them late' : '') + '.';
+  return guideCardHtml('Projects \u203a Analytics',
+    ['This is the portfolio dashboard. It puts every ProjectManager.com plan (' + paCount(real.length, 'project', 'projects') + ', ' + paCount(all.length, 'task', 'tasks') + ') in one place so you can see the whole picture at a glance and track progress against plan.', now],
+    [
+      ['How to use it', 'Click anything: a tile, a slice, a bar, a project, a person, a month, a phase or a tag. It becomes a filter, shown as a chip under the filter bar (the \u00d7 removes one, Clear all removes them all). Filters stack, and the task list at the bottom is always exactly what they leave.'],
+      ['The tiles', 'Tasks, how much is complete (weighted by effort, so a long task counts for more), how many are done, overdue, or due within 14 days, and the planned effort in hours.'],
+      ['Progress against plan', 'The line is how much should be done by each date if every task ran evenly from its start to its finish; the green dot is where you actually are. The schedule index is actual divided by planned: 1.00 is on plan, below 0.75 is behind.'],
+      ['Where the work stands', 'The donut splits tasks into done, in progress and not started. The bar beneath it is schedule health: done, overdue (past the planned finish and not 100%), due in 14 days, scheduled later, and no date.'],
+      ['Timeline', 'One bar per project from its first start to its last finish; the filled part is progress and the red line is today. Click a project to filter to it, and the timeline switches to that project\u2019s phases.'],
+      ['Projects and workload', 'Each project\u2019s health bar with progress against planned; \u201copen\u201d jumps to its site page. Workload counts each person\u2019s open tasks, in red where they are late.'],
+      ['Months, tags and lists', 'Tasks finishing each month, the Risk / Issue / Knowledge tags, the most overdue tasks and the next 30 days.'],
+      ['The task list', 'Shows the first 40 tasks the filters leave, with Edit for admins.'],
+    ],
+    'Where it comes from: the ProjectManager.com copy' + (asOf ? ' taken ' + esc(asOf) : '') + ', with any edits made here layered on top. Template projects are left out, and dates and percentages are as ProjectManager.com holds them.');
+}
+
+/* The sidebar Analytics page: the customers, not the sites. Figures are passed in, already worked out there. */
+function analyticsPageGuideHtml(f) {
+  return guideCardHtml('Analytics',
+    ['This page looks across the ' + paCount(f.companies, 'company', 'companies') + ' you are tracking (the Prospects list and the pipeline; the Archive is not counted) to show where the electricity demand and the pipeline value sit. It is about the <b>customers</b>; the Projects page is about the <b>sites</b> you are building.',
+     '<b>Right now:</b> the companies use about ' + fmtNum(f.gwh) + ' GWh a year; the average fit score is ' + f.avgFit + ' out of 100, with ' + fmtNum(f.fit80) + ' scoring 80 or more; and the probability-weighted pipeline is worth ' + esc(f.weighted) + '.'],
+    [
+      ['Addressable load', 'The total electricity the tracked companies use in a year, in gigawatt-hours, as recorded on each company\u2019s page.'],
+      ['Weighted average tariff', 'What the companies pay per kWh now, weighted by how much each one uses, so a big user counts for more than a small one.'],
+      ['Fit score', 'A number from 0 to 100 for how good a match a company looks for AEE\u2019s sites. It weighs the size of the load, how flat it is, how much tariff headroom there is, whether wheeling is feasible, the distance to a site, and how well the sector suits a PPA. The bars show how many companies fall in each band.'],
+      ['Weighted pipeline', 'The value of the open opportunities across the contract life, each cut back by its probability of closing.'],
+      ['Load by province and by sector', 'Where the demand is and what the companies do, in GWh a year.'],
+      ['Where the value is', 'The biggest opportunities by weighted value. Click a row to open the company.'],
+      ['Funnel health', 'How many companies sit at each status. A healthy funnel keeps prospects flowing into Engaged; if Prospect dominates, the problem is outreach volume, not conversion.'],
+    ],
+    'Where it comes from: the companies and opportunities in your CRM, as they stand today.');
+}
+
 function paFilters() { return state.paF || (state.paF = {}); }
 function paRefresh() { if (state.view === 'project') renderProject(); else renderProjects(); }
 function paSet(k, v) { const F = paFilters(); F[k] = F[k] === v ? '' : v; state.paAll = false; paRefresh(); }
@@ -213,5 +287,5 @@ function renderProjectAnalytics() {
   setPage('Project analytics', 'portfolio overview and progress, from the ProjectManager.com plans', projectsModeToggle());
   if (state.paLock) paFilters().project = '';      // coming back from a site's own dashboard: start from the whole portfolio
   state.paLock = '';
-  setContent(paHtml());
+  setContent(paGuideHtml() + paHtml());
 }
