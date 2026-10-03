@@ -231,6 +231,9 @@ async function main() {
     const o = byId[c.offtaker_id];
     if (!o) continue;
     if (isRoleName(c.first, c.last)) { skip(c, o, 'roleName', 'not a person: the name is a role or team'); continue; }
+    /* "Xinneng (David) Li" writes to dli@, not xli@: with a bracketed preferred
+       name the address could be built from either, so a person decides. */
+    if (/[()]/.test(c.first) || /[()]/.test(c.last)) { skip(c, o, 'badName', 'the name has a bracketed preferred name; the address could be built from either'); continue; }
     const dom = domainFor(o);
     if (!dom) { skip(c, o, 'noDomain', 'no mail domain: no website on file and no published address for this company'); continue; }
     const f = formatFor(dom);
@@ -241,7 +244,19 @@ async function main() {
     if (first.length < 2 || last.length < 2) { skip(c, o, 'badName', 'name too short to build an address'); continue; }
     const email = FORMATS[f.fmt](first, last) + '@' + dom;
     const strength = f.samples >= 2 ? 'likely' : 'possible';
-    if (INFERRED_TAG.test(c.notes || '')) { tally.alreadyNoted = (tally.alreadyNoted || 0) + 1; if (!OUT) continue; }
+    if (INFERRED_TAG.test(c.notes || '')) {
+      tally.alreadyNoted = (tally.alreadyNoted || 0) + 1;
+      if (!OUT) {
+        /* An earlier run left the guess in the notes and the email column blank.
+           The note is already there; --fill-email only has the column to do. */
+        if (FILL) {
+          tally.filledFromNote = (tally.filledFromNote || 0) + 1;
+          console.log((DRY ? '[dry] ' : '') + strength.padEnd(8) + c.first + ' ' + c.last + ' @ ' + o.name + ' -> ' + email + ' (column only, note already there)');
+          if (!DRY) await rest('aee_contacts?id=eq.' + encodeURIComponent(c.id), { method: 'PATCH', body: JSON.stringify({ email, updated_at: new Date().toISOString() }) });
+        }
+        continue;
+      }
+    }
     tally.written++; tally[strength]++;
     review.push({ company: o.name, c, email, strength, fmt: f.fmt + '@' + dom, basis: f.examples.join('; '), reason: '' });
     const tag = 'Likely address (inferred, unverified, ' + strength + '): ' + email + ' — ' + f.fmt + '@' + dom + ' from ' + f.samples + ' known address' + (f.samples === 1 ? '' : 'es') + ' (e.g. ' + f.examples[0] + ').';
