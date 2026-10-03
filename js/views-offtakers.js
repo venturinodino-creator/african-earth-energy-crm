@@ -45,7 +45,7 @@ function filteredOfftakers() {
     if (term && !(o.name + ' ' + o.short + ' ' + o.city + ' ' + o.province + ' ' + o.description).toLowerCase().includes(term)) return false;
     if (state.offSector && o.sector !== state.offSector) return false;
     if (state.offStatus && o.status !== state.offStatus) return false;
-    if (state.offProvince && o.province !== state.offProvince) return false;
+    if (state.offProvince && !inProvince(o, state.offProvince)) return false;
     return true;
   });
   return sortBy(list, state.offSort, offSortVal);
@@ -76,7 +76,7 @@ function filteredArchive() {
   const list = state.archived.filter(o => {
     if (term && !(o.name + ' ' + o.short + ' ' + o.city + ' ' + o.province + ' ' + o.description).toLowerCase().includes(term)) return false;
     if (state.offSector && o.sector !== state.offSector) return false;
-    if (state.offProvince && o.province !== state.offProvince) return false;
+    if (state.offProvince && !inProvince(o, state.offProvince)) return false;
     return true;
   });
   return list.sort((a, b) => a.name.localeCompare(b.name));
@@ -90,7 +90,7 @@ const ARCHIVE_ROW_CAP = 200;
 function renderArchive() {
   const list = filteredArchive();
   const shown = list.slice(0, ARCHIVE_ROW_CAP);
-  const provinces = [...new Set(state.archived.map(o => o.province))].filter(Boolean).sort();
+  const provinces = provinceChoices(state.archived);
 
   setPage('Off-taker Prospects',
     state.archived.length + ' archived compan' + (state.archived.length === 1 ? 'y' : 'ies') +
@@ -214,7 +214,7 @@ function renderOfftakers() {
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
 
-  const provinces = [...new Set(leads.map(o => o.province))].filter(Boolean).sort();
+  const provinces = provinceChoices(leads);
   /* Only the statuses a lead can actually carry. Anything past 'prospect'
      puts a record in the pipeline by definition, so offering all six here
      would be five dead options and one live one. */
@@ -297,7 +297,7 @@ function offtakerCardHtml(o) {
       '<span>' + (np ? esc(np.project.town) + ' · ' + distanceLabel(np) : 'no nearby site') + '</span>' +
       /* No dwell chip: time-in-stage is a pipeline measurement and these
          records have no stage to have been sitting at. */
-      '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
+      '<span class="badge b-' + esc(o.status) + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
     '</div>' +
     '<div class="ec-footer" style="border-top:none;padding-top:0;margin-top:6px">' +
       '<span>' + icon('contacts', 13) + ' ' + cc + ' contact' + (cc === 1 ? '' : 's') + '</span>' +
@@ -355,7 +355,7 @@ function offtakerTableHtml(list) {
         '<td class="num">' + num(o.tariff).toFixed(2) + '</td>' +
         '<td>' + (np ? esc(np.project.town) + ' <span style="color:var(--muted)">' + distanceLabel(np) + '</span>' : '—') + '</td>' +
         '<td class="num" style="color:' + fitColor(f) + ';font-weight:800">' + f + '</td>' +
-        '<td><span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></td>' +
+        '<td><span class="badge b-' + esc(o.status) + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span></td>' +
         '<td class="num">' + contactsFor(o.id).length + '</td>' +
         '<td onclick="event.stopPropagation()" style="white-space:nowrap">' +
           workItButtonHtml(o) +
@@ -418,7 +418,7 @@ function renderDetail() {
           '<div class="dh-title">' + esc(o.name) + '</div>' +
           '<div class="dh-sub">' +
             sectorBadge(o.sector) +
-            '<span class="badge b-' + o.status + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
+            '<span class="badge b-' + esc(o.status) + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
             '<span class="badge b-' + o.priority + '">' + esc(o.priority) + ' priority</span>' +
             (o.estimated ? '<span class="chip" title="Load figures are desk estimates — verify with the customer">' + icon('alert', 11) + ' estimated load</span>' : '') +
             /* A parked account only comes back if the date that unparks it is

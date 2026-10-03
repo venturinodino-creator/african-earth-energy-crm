@@ -197,7 +197,10 @@ function aeMatches(c) {
    senior title first, then whichever carries an email, then a phone. */
 function aePeople(contacts) {
   const by = new Map();
-  contacts.forEach(c => {
+  /* Someone marked "Left the company" is no longer in a seat. They stay in the
+     Contacts list for the record, but a ladder that still counted them would
+     tell a rep the CFO seat was covered by a person who has gone. */
+  contacts.filter(c => c.status !== 'left').forEach(c => {
     const k = aeNameKey(c);
     const prev = by.get(k);
     if (!prev) { by.set(k, c); return; }
