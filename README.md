@@ -312,9 +312,14 @@ added to the repo.
 The tests are plain Node scripts with no framework and nothing to install:
 
 ```bash
-node tests/finder-agent.test.js     # the finder's validator, municipality loader, sign-in and CLI
-node tests/finder-apollo.test.js    # the Apollo helper: seat mapping, CSV shape, spend flags
+ls tests/*.test.js | xargs node --test    # all of them
+node tests/finder-agent.test.js           # or one: the finder's validator, loader, sign-in and CLI
 ```
+
+There are 16 files. They cover the contact finder (agent, Apollo helper, gap finder,
+targets, ladder seats, email inference, the Agent HQ activity card), the Projects area
+(analytics maths and page, site profile, plan editing), form validation, shared
+helpers, and the news merge and scan.
 
 ## Data and storage
 
@@ -417,6 +422,13 @@ js/views-regions.js         per-site catchment and the regional target list
 js/views-municipalities.js  the 257 as their own target list
 js/views-news.js            the news feed the desk reads before it dials
 js/views-tools.js           projects, map, analytics, calculator, playbook, activity
+js/views-agenthq.js         Agent HQ: the finder agents, their runs and results
+js/views-projectplans.js    project plans loaded from the ProjectManager copy
+js/views-projectprofile.js  one site: Overview, Analytics and Project plan tabs
+js/views-projectanalytics.js  interactive Projects analytics and the guide cards
+js/views-pmedit.js          editing tasks and notes on a plan
+js/pmanalytics-core.js      analytics maths, no DOM
+js/pmedit-core.js           plan edit rules, no DOM
 js/forms.js                 create / edit / delete
 js/forms-leads.js           into and back out of the pipeline, and the sales path
 scripts/serve.py            preview server with caching off
@@ -427,14 +439,18 @@ scripts/accept-finds.js     terminal "Accept all" for the finder queue
 scripts/enrich-offtakers.js fill blank offtaker fields from a research CSV, optional geocode
 scripts/apollo-enrich-contacts.js   Apollo match for contacts with no email (spends credits)
 scripts/infer-emails.js     infer an address from a domain's known format
+scripts/finder-gaps.js      list listed companies with empty seats, queue gap runs
+scripts/pm-agent.js         agents add notes and edits to project plans
+scripts/load-projectmanager.js  load a ProjectManager export into the plan tables
+scripts/news-scan.js        pull and merge mining news
 scripts/apply-found-emails.js       write researcher-found emails from a CSV into blank contacts
 scripts/dedupe-contacts.js  merge exact duplicate contacts
 scripts/merge-duplicate-offtakers.js  one-off, 2026-09-19
-tests/                      plain Node tests for the finder and the Apollo helper
+tests/                      plain Node tests, one file per area
 supabase/schema.sql         reference copy of the schema and the access rules
 docs/contact-finder-agents.md   how to run the finder agents
 docs/agents/                issue tracker, triage labels and domain-doc conventions
-.claude/agents/             the two contact finder agents (offtaker, municipality)
+.claude/agents/             the four contact finder agents (offtaker, priority, listed, municipality)
 research/                   desk-research CSVs and source documents, by lane
 CLAUDE.md                   project instructions for Claude Code
 ```

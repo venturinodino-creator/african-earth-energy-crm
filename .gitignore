@@ -21,6 +21,7 @@
 /$*
 /${*
 !/.gitignore
+!/.gitattributes
 !/*.html
 !/*.css
 !/*.js
