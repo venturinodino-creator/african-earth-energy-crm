@@ -67,6 +67,7 @@ let state = {
   contactPage: 1,
 
   sectorId: null,
+  projectId: null,
   sectorSearch: '', sectorTier: '', sectorGroup: '',
 
   prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '',
@@ -719,7 +720,7 @@ function dealAccount(d) {
 }
 
 /* ─── ROUTING ─────────────────────────────────────────────────── */
-const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map']);
+const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map', 'project']);
 
 function navUrlFor(view, id) {
   const p = new URLSearchParams(location.search);
@@ -733,9 +734,9 @@ function navUrlFor(view, id) {
 function nav(view, extra, fromHistory) {
   extra = extra || {};
   state.view = view;
-  if (extra.id) { if (view === 'sector') state.sectorId = extra.id; else state.detailId = extra.id; }
+  if (extra.id) { if (view === 'sector') state.sectorId = extra.id; else if (view === 'project') state.projectId = extra.id; else state.detailId = extra.id; }
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const target = document.querySelector('[data-view="' + view + '"]');
+  const target = document.querySelector('[data-view="' + (view === 'project' ? 'projects' : view) + '"]');
   if (target) target.classList.add('active');
   document.querySelector('.sb').classList.remove('open');
 
@@ -760,7 +761,8 @@ addEventListener('popstate', e => {
   }
   if ((view === 'detail' || view === 'org-map') && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
   if (view === 'sector' && !(id && sectorOf(id))) { view = 'sectors'; id = null; }
-  if (id) { if (view === 'sector') state.sectorId = id; else state.detailId = id; }
+  if (view === 'project' && !(id && state.projects.some(p => p.id === id))) { view = 'projects'; id = null; }
+  if (id) { if (view === 'sector') state.sectorId = id; else if (view === 'project') state.projectId = id; else state.detailId = id; }
   nav(view, id ? { id } : {}, true);
 });
 
@@ -793,6 +795,7 @@ function render() {
     playbook: renderPlaybook,
     activity: renderActivity,
     news: renderNews,
+    project: renderProject,
     agenthq: renderAgentHQ,
   };
   (views[state.view] || renderDashboard)();
@@ -1498,6 +1501,7 @@ async function onSignedIn(session) {
   const id = p.get('id');
   if ((view === 'detail' || view === 'org-map') && !getOfftaker(id).id) view = 'offtakers';
   if (view === 'sector' && !sectorOf(id)) view = 'sectors';
+  if (view === 'project' && !state.projects.some(p => p.id === id)) view = 'projects';
   nav(view, id ? { id } : {}, true);
 }
 

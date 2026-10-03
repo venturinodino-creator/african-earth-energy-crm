@@ -1,0 +1,139 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Project profile - one generation site on a page of its own.
+
+   Clicking a site anywhere (the portfolio table or cards, the dashboard bars,
+   a site name in the project plans) lands here. It puts together what the CRM
+   knows about the site: the capacity and how much of it is sold, who is in
+   discussion, how delivery is going in ProjectManager.com, what is due next,
+   the notes people and agents have left, and which prospects are nearby.
+
+   Nothing on it is stored here; it reads the same state as the pages it
+   links to, so it is always in step with them.
+   ═══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* The ProjectManager.com project for a site. A name match is certain; the
+   guesses (Mapela is probably the 300 MW Limpopo site) are offered, never
+   assumed. */
+function projectPmFor(siteId) {
+  if (!state.pm || state.pm.error) return null;
+  const real = state.pm.projects.filter(x => !x.isTemplate);
+  const sure = real.find(x => pmSiteIdFor(x) === siteId);
+  if (sure) return { p: sure, sure: true };
+  const maybe = real.find(x => pmSiteGuessFor(x) === siteId);
+  return maybe ? { p: maybe, sure: false } : null;
+}
+
+function projectOpenPlan(pmId) {
+  state.pmProject = pmId; state.pmF = null; state.pmTab = 'plan'; state.projectsMode = 'plans';
+  nav('projects');
+}
+
+/* The next things due on a plan: open leaf tasks, soonest finish first. */
+function projectUpNext(tasks, n) {
+  return tasks.filter(t => pmIsLeaf(t) && num(t.progress) < 100 && t.plannedFinish)
+    .sort((a, b) => String(a.plannedFinish).localeCompare(String(b.plannedFinish))).slice(0, n);
+}
+
+function projectDeliveryHtml(site) {
+  const m = projectPmFor(site.id);
+  if (!m) {
+    return '<div class="card"><div class="card-header"><div class="card-title">Delivery</div></div>' +
+      '<div class="fg-hint">No ProjectManager.com plan is linked to this site yet.</div></div>';
+  }
+  const p = m.p;
+  const ts = pmProjectTasks(p.id);
+  const leaf = ts.filter(pmIsLeaf);
+  const done = leaf.filter(t => num(t.progress) >= 100).length;
+  const late = leaf.filter(pmIsLate);
+  const next = projectUpNext(ts, 5);
+  const pct = num(p.progress);
+  return '<div class="card"><div class="card-header"><div><div class="card-title">Delivery</div>' +
+    '<div class="card-sub">' + esc(p.name) + ' &middot; ProjectManager.com' + (m.sure ? '' : ' &middot; <b>probable match, not confirmed</b>') + '</div></div>' +
+    '<button class="btn btn-ghost btn-xs" onclick="projectOpenPlan(\'' + esc(p.id) + '\')">Open the plan</button></div>' +
+    '<div class="fit-row"><span>Project progress</span><span>' + pct + '%</span></div>' +
+    '<div class="fit-bar"><span data-w="' + pct + '" style="background:var(--accent2)"></span></div>' +
+    '<div class="dh-metrics" style="margin:12px 0">' +
+      '<div class="dh-metric"><div class="dh-metric-v">' + done + ' / ' + leaf.length + '</div><div class="dh-metric-l">tasks done</div></div>' +
+      '<div class="dh-metric"><div class="dh-metric-v"' + (late.length ? ' style="color:var(--danger)"' : '') + '>' + late.length + '</div><div class="dh-metric-l">past finish, not 100%</div></div>' +
+      '<div class="dh-metric"><div class="dh-metric-v">' + pmShortDate(p.plannedStart) + ' &ndash; ' + pmShortDate(p.plannedFinish) + '</div><div class="dh-metric-l">planned</div></div>' +
+      '<div class="dh-metric"><div class="dh-metric-v">' + esc(p.manager || '—') + '</div><div class="dh-metric-l">manager &middot; ' + esc(p.status || '') + '</div></div>' +
+    '</div>' +
+    '<div class="section-title" style="margin:6px 0">Due next</div>' +
+    (next.length ? next.map(t => '<div class="mkt-row"><div style="min-width:0"><div style="font-weight:600">' + esc(t.wbs) + ' ' + esc(t.name) + '</div>' +
+      '<div class="mkt-note">' + esc((t.assignees || []).map(a => a.name).join(', ') || 'unassigned') + '</div></div>' +
+      '<div class="mkt-value"' + (pmIsLate(t) ? ' style="color:var(--danger)"' : '') + '>' + pmShortDate(t.plannedFinish) + '</div></div>').join('')
+      : '<div class="fg-hint">Nothing outstanding.</div>') + '</div>';
+}
+
+function projectBuyersHtml(site) {
+  const deals = state.deals.filter(d => d.projectId === site.id).sort((a, b) => num(b.mw) - num(a.mw));
+  const stage = id => ((typeof PIPELINE_STAGES !== 'undefined' && PIPELINE_STAGES.find(s => s.id === id)) || {}).label || id;
+  return '<div class="card"><div class="card-header"><div><div class="card-title">Buyers</div>' +
+    '<div class="card-sub">' + deals.length + ' deal' + (deals.length === 1 ? '' : 's') + ' on this site</div></div>' +
+    '<button class="btn btn-ghost btn-xs" onclick="nav(\'pipeline\')">Pipeline</button></div>' +
+    (deals.length ? deals.map(d => {
+      const o = getOfftaker(d.offtakerId);
+      return '<div class="mkt-row" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + esc(d.offtakerId) + '\'})"><div style="min-width:0">' +
+        '<div style="font-weight:700">' + esc(o.name || d.name || 'Unknown') + '</div>' +
+        '<div class="mkt-note">' + esc(stage(d.stage)) + (d.closeDate ? ' &middot; close ' + esc(d.closeDate) : '') + '</div></div>' +
+        '<div class="mkt-value">' + fmtNum(d.mw) + ' MW</div></div>';
+    }).join('') : '<div class="fg-hint">No one is in discussion for this site yet.</div>') + '</div>';
+}
+
+/* Prospects in the same province, biggest load first: who to call next. */
+function projectNearbyHtml(site) {
+  const near = state.offtakers.filter(o => o.province === site.province && num(o.peakMw) > 0)
+    .sort((a, b) => num(b.peakMw) - num(a.peakMw)).slice(0, 6);
+  return '<div class="card"><div class="card-header"><div><div class="card-title">Prospects in ' + esc(site.province) + '</div>' +
+    '<div class="card-sub">largest peak load first</div></div></div>' +
+    (near.length ? near.map(o => '<div class="mkt-row" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + esc(o.id) + '\'})"><div style="min-width:0">' +
+      '<div style="font-weight:700">' + esc(o.name) + '</div><div class="mkt-note">' + esc(o.city || o.province) + '</div></div>' +
+      '<div class="mkt-value">' + fmtNum(o.peakMw) + ' MW</div></div>').join('')
+      : '<div class="fg-hint">No prospects with a recorded load in this province.</div>') + '</div>';
+}
+
+function projectNotesHtml(site) {
+  const m = projectPmFor(site.id);
+  if (!m || !state.pm.notes) return '';
+  const pmId = m.p.id;
+  const notes = state.pm.notes.filter(n => n.project_id === pmId).slice(0, 6);
+  const name = id => { const t = state.pm.tasks.find(x => x.id === id); return t ? t.name : ''; };
+  return '<div class="card" style="margin-top:14px"><div class="card-header"><div><div class="card-title">Notes</div>' +
+    '<div class="card-sub">from people and agents, on the project and its tasks</div></div></div>' +
+    (notes.length ? notes.map(n => '<div class="mkt-row" style="align-items:flex-start"><div style="min-width:0">' +
+      (n.task_id ? '<div class="mkt-note">' + esc(name(n.task_id)) + '</div>' : '') +
+      '<div style="white-space:pre-wrap">' + esc(n.body) + '</div>' +
+      '<div class="mkt-note">' + esc(n.author) + ' &middot; ' + esc(pmWhen(n.created_at)) + '</div></div>' +
+      '<span class="badge ' + (n.author_kind === 'agent' ? 'b-engaged' : 'b-low') + '">' + (n.author_kind === 'agent' ? 'Agent' : 'Person') + '</span></div>').join('')
+      : '<div class="fg-hint">No notes yet.</div>') +
+    (pmCanEdit() ? '<div style="display:flex;gap:8px;margin-top:10px"><textarea id="pn-body" placeholder="Add a project note..." style="flex:1;min-height:48px"></textarea>' +
+      '<button class="btn btn-primary" style="align-self:flex-end" onclick="projectAddNote(\'' + esc(pmId) + '\')">Add</button></div>' : '') + '</div>';
+}
+async function projectAddNote(pmId) { await pmAddNote(pmId); if (state.view === 'project') renderProject(); }
+
+function renderProject() {
+  const site = state.projects.find(p => p.id === state.projectId);
+  if (!site) { nav('projects'); return; }
+  const committed = projectCommitted(site), signed = projectSigned(site);
+  const pct = Math.min(100, committed / Math.max(1, num(site.mw)) * 100);
+  const gwh = Math.round(num(site.mw) * 8760 * CAPACITY_FACTOR / 1000);
+  setPage(site.name, site.town + ', ' + site.province + ' · COD ' + site.cod, '');
+  setContent(
+    '<div style="margin-bottom:12px"><button class="btn btn-ghost btn-sm" onclick="nav(\'projects\')">&larr; All projects</button></div>' +
+    '<div class="stats-grid">' +
+      statTile('sun', 'amber', 'Capacity', fmtNum(site.mw) + ' MW', 'Solar PV + BESS') +
+      statTile('pipeline', 'blue', 'Annual energy', fmtNum(gwh) + ' GWh', 'at the portfolio capacity factor') +
+      statTile('check', 'green', 'Signed', fmtNum(signed) + ' MW', fmtNum(committed) + ' MW committed in all') +
+      statTile('target', 'purple', 'Still to sell', fmtNum(Math.max(0, num(site.mw) - committed)) + ' MW', Math.round(pct) + '% allocated') +
+    '</div>' +
+    '<div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">The site</div></div>' +
+      '<div class="fit-row"><span>Allocated</span><span style="color:' + allocationColor(pct) + '">' + Math.round(pct) + '%</span></div>' +
+      '<div class="fit-bar"><span data-w="' + pct + '" style="background:' + allocationColor(pct) + '"></span></div>' +
+      '<div style="font-size:12.5px;color:var(--muted2);line-height:1.6;margin-top:10px">' + esc(site.note) + '</div>' +
+      '<div class="mkt-note" style="margin-top:8px">' + esc(site.town) + ', ' + esc(site.province) + ' &middot; ' +
+        (site.lat != null ? site.lat + ', ' + site.lng + ' &middot; ' : '') + 'status ' + esc(site.status || 'development') + '</div></div>' +
+    '<div class="grid-2">' + projectDeliveryHtml(site) + projectBuyersHtml(site) + '</div>' +
+    '<div style="margin-top:14px">' + projectNearbyHtml(site) + '</div>' + projectNotesHtml(site));
+  growBars();
+}
