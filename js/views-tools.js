@@ -628,9 +628,10 @@ function renderActivity() {
     logBody + '</div>';
 
   /* The table wants the full width; the timeline reads fine in a column. */
-  setContent(!dueHtml ? logHtml
+  const body = !dueHtml ? logHtml
     : state.activityView === 'table' ? logHtml + dueHtml
-    : '<div class="cols-2">' + logHtml + dueHtml + '</div>');
+    : '<div class="cols-2">' + logHtml + dueHtml + '</div>';
+  setContent(ahqActivityCardHtml() + body);
 }
 
 /* The log read as a register rather than a timeline — newest first either
