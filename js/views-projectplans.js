@@ -50,6 +50,7 @@ async function loadProjectPlans() {
       tasks: tk.map(r => r.raw).filter(Boolean).sort((a, b) => natural(a.projectId, b.projectId) || natural(a.wbs, b.wbs)),
       people: pe, tags: tg, activity: ac, sync: (sy && sy[0]) || {},
     };
+    await pmLoadEdits(state.pm);
   } catch (e) {
     console.warn('Project plans unavailable:', e);
     state.pm = { error: true };
@@ -83,7 +84,7 @@ function pmProjectFor(siteId) {
 /* ─── SECTION ─────────────────────────────────────────────────────── */
 function pmSectionHtml() {
   const pm = state.pm;
-  const tabs = [['team', 'Team summary'], ['overview', 'Portfolio summary'], ['plan', 'Plan'], ['activity', 'Activity']];
+  const tabs = [['team', 'Team summary'], ['overview', 'Portfolio summary'], ['plan', 'Plan'], ['notes', 'Notes & changes'], ['activity', 'Activity']];
   state.pmTab = state.pmTab || 'team';
   let body;
   if (!pm) body = '<div class="empty" style="padding:30px"><h3>Loading the project plans&hellip;</h3></div>';
@@ -93,6 +94,7 @@ function pmSectionHtml() {
   } else {
     body = state.pmTab === 'plan' ? pmPlanTabHtml()
       : state.pmTab === 'team' ? pmTeamTabHtml()
+      : state.pmTab === 'notes' ? pmNotesTabHtml()
       : state.pmTab === 'activity' ? pmActivityTabHtml()
       : pmOverviewHtml();
   }
@@ -105,6 +107,7 @@ function pmSectionHtml() {
     '</div></div>' + body +
     '<div class="fg-hint" style="margin-top:12px">A dated copy, not a live feed. Status and % are shown as ProjectManager.com holds them and ' +
     'do not always agree (for example 5 tasks per project are marked Done while the project sits at 0%). ' +
+    'Changes made on this page are kept in the CRM and marked <i>edited</i>; the ProjectManager.com copy underneath is not touched. ' +
     'Cost and budget are not included: the account used to copy it has no permission for them.</div></div>';
 }
 
@@ -197,6 +200,7 @@ function pmPlanTabHtml() {
       (tags.length ? '<select class="flt" onchange="pmFilter(\'tag\',this.value)">' + opt('', 'Any tag', F.tag) + tags.map(g => opt(g, g, F.tag)).join('') + '</select>' : '') +
       '<label class="result-count" style="cursor:pointer"><input type="checkbox" ' + (F.late ? 'checked ' : '') + 'onchange="pmFilter(\'late\',this.checked)"> past finish, not 100%</label>' +
       '<label class="result-count" style="cursor:pointer"><input type="checkbox" ' + (F.noPhases ? 'checked ' : '') + 'onchange="pmFilter(\'noPhases\',this.checked)"> hide phase rows</label>' +
+      (pmCanEdit() ? '<button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="pmOpenTask(\'new\')">+ New task</button>' : '') +
     '</div><div id="pm-plan-results">' + pmPlanResultsHtml() + '</div>';
 }
 
@@ -230,7 +234,9 @@ function pmPlanResultsHtml() {
     return '<tr' + (t.isSummary ? ' style="background:var(--bg3)"' : '') + '>' +
       '<td class="num" style="text-align:left;color:var(--muted)">' + esc(t.wbs) + '</td>' +
       '<td style="padding-left:' + (14 + (Math.max(1, num(t.level)) - 1) * 18) + 'px;font-weight:' + (t.isSummary ? 800 : 500) + '">' + esc(t.name) +
-        (t.isMilestone ? ' <span class="badge b-solar">milestone</span>' : '') + '</td>' +
+        (t.isMilestone ? ' <span class="badge b-solar">milestone</span>' : '') +
+        (t._new ? ' <span class="badge b-engaged">new</span>' : t._edited ? ' <span class="badge b-medium" title="Changed here; ProjectManager.com holds the original">edited</span>' : '') +
+        (pmTaskNotes(t.id).length ? ' <span class="badge b-low" title="Notes on this task">' + pmTaskNotes(t.id).length + ' note' + (pmTaskNotes(t.id).length === 1 ? '' : 's') + '</span>' : '') + '</td>' +
       '<td>' + statusBadge(t.status) + '</td>' +
       '<td class="num">' + pmShortDate(t.plannedStart) + '</td>' +
       '<td class="num"' + (late ? ' style="color:var(--danger);font-weight:700" title="Past its planned finish and not 100% complete"' : '') + '>' + pmShortDate(t.plannedFinish) + '</td>' +
@@ -239,14 +245,15 @@ function pmPlanResultsHtml() {
       '<td style="color:var(--muted2)">' + esc((t.assignees || []).map(a => a.name).join(', ')) + '</td>' +
       '<td>' + (t.tags || []).map(g => '<span class="badge ' + (g === 'Risk' ? 'b-high' : g === 'Issue' ? 'b-medium' : 'b-low') + '">' + esc(g) + '</span>').join(' ') + '</td>' +
       fieldNames.map(n => { const v = pmField(t, n); return '<td style="max-width:240px;color:var(--muted2)" title="' + esc(v) + '">' + esc(v.length > 70 ? v.slice(0, 68) + '…' : v) + '</td>'; }).join('') +
+      '<td>' + (pmCanEdit() && !t.isSummary ? '<button class="btn btn-ghost btn-xs" onclick="pmOpenTask(\'' + esc(t.id) + '\')">Edit</button>' : '') + '</td>' +
       '</tr>';
   }).join('');
   return '<div class="result-count" style="margin:2px 0 8px">' + shown.filter(pmIsLeaf).length + ' of ' + ts.filter(pmIsLeaf).length +
       ' tasks' + (filtering ? ' match' : '') + '</div>' +
     '<div class="table-wrap" style="border:0;max-height:620px"><table><thead><tr><th>WBS</th><th>Task</th><th>Status</th>' +
     '<th class="num">Start</th><th class="num">Finish</th><th class="num">Done</th><th class="num">Effort</th><th>Who</th><th>Tags</th>' +
-    fieldNames.map(n => '<th>' + esc(n) + '</th>').join('') + '</tr></thead><tbody>' +
-    (body || '<tr><td colspan="' + (9 + fieldNames.length) + '" style="text-align:center;color:var(--muted);padding:26px">Nothing matches those filters.</td></tr>') +
+    fieldNames.map(n => '<th>' + esc(n) + '</th>').join('') + '<th></th></tr></thead><tbody>' +
+    (body || '<tr><td colspan="' + (10 + fieldNames.length) + '" style="text-align:center;color:var(--muted);padding:26px">Nothing matches those filters.</td></tr>') +
     '</tbody></table></div>';
 }
 
