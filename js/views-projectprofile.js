@@ -123,6 +123,12 @@ function projectPlanHtml(site) {
     pmPlanTabHtml(m.p.id) + '</div>';
 }
 
+/* The same dashboard as Projects > Analytics, locked to this site's project. */
+function projectAnalyticsHtml(site, m) {
+  if (!m) return '<div class="card"><div class="card-header"><div class="card-title">Analytics</div></div><div class="fg-hint">No ProjectManager.com plan is linked to this site yet, so there is nothing to analyse.</div></div>';
+  return paHtml({ lockProject: m.p.id });
+}
+
 function projectOverviewHtml(site) {
   const committed = projectCommitted(site), signed = projectSigned(site);
   const pct = Math.min(100, committed / Math.max(1, num(site.mw)) * 100);
@@ -147,15 +153,15 @@ function renderProject() {
   const site = state.projects.find(p => p.id === state.projectId);
   if (!site) { nav('projects'); return; }
   /* each site opens on its overview; the tab is remembered only while you stay on that site */
-  if (state.projectTabFor !== site.id) { state.projectTabFor = site.id; state.projectTab = 'overview'; }
-  const tab = state.projectTab === 'plan' ? 'plan' : 'overview';
+  if (state.projectTabFor !== site.id) { state.projectTabFor = site.id; state.projectTab = 'overview'; state.paF = {}; state.paAll = false; }
+  const tab = state.projectTab === 'plan' ? 'plan' : state.projectTab === 'analytics' ? 'analytics' : 'overview';
   const m = projectPmFor(site.id);
-  const tabs = [['overview', 'Overview'], ['plan', 'Project plan' + (m ? ' (' + pmProjectTasks(m.p.id).filter(pmIsLeaf).length + ' tasks)' : '')]];
+  const tabs = [['overview', 'Overview'], ['analytics', 'Analytics'], ['plan', 'Project plan' + (m ? ' (' + pmProjectTasks(m.p.id).filter(pmIsLeaf).length + ' tasks)' : '')]];
   setPage(site.name, site.town + ', ' + site.province + ' \u00b7 COD ' + site.cod, '');
   setContent(
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">' +
       '<button class="btn btn-ghost btn-sm" onclick="nav(\'projects\')">&larr; All projects</button>' +
       '<div class="view-toggle">' + tabs.map(([k, l]) => '<button class="vt-btn ' + (tab === k ? 'active' : '') + '" onclick="projectSetTab(\'' + k + '\')">' + esc(l) + '</button>').join('') + '</div></div>' +
-    (tab === 'plan' ? projectPlanHtml(site) : projectOverviewHtml(site)));
+    (tab === 'plan' ? projectPlanHtml(site) : tab === 'analytics' ? projectAnalyticsHtml(site, m) : projectOverviewHtml(site)));
   growBars();
 }
