@@ -164,6 +164,27 @@ POPIA applies to bought data exactly as it does to scraped data.
 `data/mining-companies.txt` is the desk's mining and smelting batch
 list, ready to run.
 
+### The daily ingestion
+
+`scripts/apollo-daily.js` runs the Apollo source on a schedule, with no
+list to maintain. Each run it takes the listed off-takers (never the
+Archive) with the biggest ladder gaps, searches Apollo for the empty
+seats, reveals one work email per open seat, and files the results as
+pending finds in a run whose note starts "Apollo daily". A person still
+accepts or rejects each one on the Contact finder page.
+
+```
+node scripts/apollo-daily.js --dry            plan only: searches, no credits, writes nothing
+node scripts/apollo-daily.js                  15 reveals, 8 companies, 14-day cooldown
+node scripts/apollo-daily.js --budget 5 --companies 3 --cooldown 30
+```
+
+`.github/workflows/apollo-daily.yml` runs it every day at 05:00 UTC (07:00
+in South Africa) and on demand from the Actions tab (with a dry-run
+switch). It needs three repository secrets: `AEE_APOLLO_KEY` (a master
+key), `AEE_EMAIL` and `AEE_PASSWORD` (a CRM admin). The cooldown means a
+company Apollo has nobody for is not paid for every night.
+
 ## The listed off-takers
 
 `listed-offtaker-contact-finder` keeps the companies on the Off-taker Prospects

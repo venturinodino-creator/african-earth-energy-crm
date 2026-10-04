@@ -44,7 +44,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO = path.dirname(__dirname);
-const API = process.env.AEE_APOLLO_URL || 'https://api.apollo.io/v1';
+const API = process.env.AEE_APOLLO_URL || 'https://api.apollo.io/api/v1';
 
 /* ─── .env ── same tiny reader as finder-agent.js, same precedence:
    a real environment variable beats the file. */
@@ -194,14 +194,16 @@ async function searchCompany(name, domain) {
   };
   if (domain) body.q_organization_domains = domain;
   else body.q_organization_name = name;
-  const r = await apollo('/mixed_people/search', body);
+  /* api_search is Apollo's current people search (the old /mixed_people/search
+     is retired). It never returns emails and hides surnames until enrichment. */
+  const r = await apollo('/mixed_people/api_search', body);
   return (r && r.people) || [];
 }
 
 /* Reveal one person's work email. THE credit-spending call. */
 async function enrich(p, company, domain) {
   const r = await apollo('/people/match', {
-    first_name: p.first_name, last_name: p.last_name,
+    id: p.id || undefined, first_name: p.first_name, last_name: p.last_name,
     organization_name: company, domain: domain || undefined,
     reveal_personal_emails: false,
   });
@@ -308,4 +310,4 @@ if (require.main === module) {
   main().catch(e => die(e && e.message ? e.message : String(e)));
 }
 
-module.exports = { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, SEATS, SEAT_ROLE };
+module.exports = { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, searchCompany, enrich, SEATS, SEAT_ROLE };
