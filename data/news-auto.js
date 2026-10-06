@@ -4,6 +4,30 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-ax6b0h",
+    "topic": "renewable_energy",
+    "province": "Gauteng",
+    "date": "2026-10-05",
+    "title": "Research shows feasibility of industrial rooftop solar with storage to reduce diesel price shocks in Johannesburg",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "UJ News",
+    "url": "https://news.uj.ac.za/news/research-shows-feasibility-of-industrial-rooftop-solar-with-storage-to-reduce-diesel-price-shocks-in-johannesburg/",
+    "auto": true
+  },
+  {
+    "id": "auto-g9ld6z",
+    "topic": "mine_expansion",
+    "province": "Multiple",
+    "date": "2026-10-05",
+    "title": "KGHM, South32 launch $1.04 billion Sierra Gorda expansion",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Mining.com.au",
+    "url": "https://mining.com.au/kghm-south32-launch-1-04-billion-sierra-gorda-expansion/",
+    "auto": true
+  },
+  {
     "id": "auto-9bh74f",
     "topic": "ppa_contracts",
     "province": "Multiple",
