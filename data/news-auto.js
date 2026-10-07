@@ -4,6 +4,30 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-43z8ty",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-07",
+    "title": "Eskom seeks strategic partners for up to 6 GW renewable energy and storage pipeline by 2030",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Green Building Africa",
+    "url": "https://www.greenbuildingafrica.co.za/eskom-seeks-strategic-partners-for-up-to-6-gw-renewable-energy-and-storage-pipeline-by-2030/",
+    "auto": true
+  },
+  {
+    "id": "auto-biidz6",
+    "topic": "ppa_contracts",
+    "province": "Multiple",
+    "date": "2026-10-06",
+    "title": "Vodacom and Eskom virtual wheeling: a year of refunds",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "tech dot africa",
+    "url": "https://tech.africa/vodacom-eskom-virtual-wheeling-first-year/",
+    "auto": true
+  },
+  {
     "id": "auto-ax6b0h",
     "topic": "renewable_energy",
     "province": "Gauteng",
