@@ -16,6 +16,30 @@ const NEWS_AUTO = [
     "auto": true
   },
   {
+    "id": "auto-a4wj0a",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-07",
+    "title": "South Africa front-loads 4,600MW of battery storage to beat curtailment",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "ESI-Africa.com",
+    "url": "https://www.esi-africa.com/news/south-africa-front-loads-4600mw-of-battery-storage-to-beat-curtailment/",
+    "auto": true
+  },
+  {
+    "id": "auto-ebtwh4",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-07",
+    "title": "South Africa prioritises IRP procurement of 4600 MW of battery storage and 5000 MW of gas to power",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Green Building Africa",
+    "url": "https://www.greenbuildingafrica.co.za/south-africa-prioritises-irp-procurement-of-4600-mw-of-battery-storage-and-5000-mw-of-gas-to-power/",
+    "auto": true
+  },
+  {
     "id": "auto-biidz6",
     "topic": "ppa_contracts",
     "province": "Multiple",
@@ -109,6 +133,18 @@ const NEWS_AUTO = [
     "whyItMatters": "",
     "source": "Green Building Africa",
     "url": "https://www.greenbuildingafrica.co.za/solarafricas-114-mw-suncentral-1-solar-plant-reaches-commercial-operation-in-south-africa/",
+    "auto": true
+  },
+  {
+    "id": "auto-pmq3mw",
+    "topic": "ppa_contracts",
+    "province": "Multiple",
+    "date": "2026-10-01",
+    "title": "Vodacom and Eskom mark first anniversary of South Africa’s virtual wheeling mechanism",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "MyBroadband",
+    "url": "https://mybroadband.co.za/news/industrynews/670198-vodacom-and-eskom-mark-first-anniversary-of-south-africas-virtual-wheeling-mechanism.html",
     "auto": true
   },
   {
