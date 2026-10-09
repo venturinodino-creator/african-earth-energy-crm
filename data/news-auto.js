@@ -4,6 +4,66 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-2bftxz",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-09",
+    "title": "Eskom Holdings launches strategic partners selection process for up to 6GW utility-scale renewable energy projects",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Polity.org.za",
+    "url": "https://www.polity.org.za/article/eskom-holdings-launches-strategic-partners-selection-process-for-up-to-6gw-utility-scale-renewable-energy-projects-2026-10-09",
+    "auto": true
+  },
+  {
+    "id": "auto-5cgcwy",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-09",
+    "title": "South African Energy Storage Association (SAESA) welcomes 4,600 MW battery storage prioritisation and calls for integrated energy planning",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Africa.com",
+    "url": "http://www.africa.com/apo/south-african-energy-storage-association-saesa-welcomes-4600-mw-battery-storage-prioritisation-and-calls-for-integrated-energy-planning",
+    "auto": true
+  },
+  {
+    "id": "auto-6d9chw",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-08",
+    "title": "South Africa to procure 4.6 GW of battery storage",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "pv magazine Global",
+    "url": "https://www.pv-magazine.com/2026/10/08/south-africa-to-procure-4-6-gw-of-battery-storage/",
+    "auto": true
+  },
+  {
+    "id": "auto-i8pni",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-08",
+    "title": "South Africa Plans 4,600 MW Battery Storage Under 2026–2037 Energy Procurement Strategy",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "SolarQuarter",
+    "url": "https://solarquarter.com/2026/10/08/south-africa-plans-4600-mw-battery-storage-under-2026-2037-energy-procurement-strategy/",
+    "auto": true
+  },
+  {
+    "id": "auto-jwan1i",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-08",
+    "title": "Yellow door energy breaks ground on 49 MWP Lion thorn solar park as South Africa’s private power market expands",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Africa Sustainability Matters",
+    "url": "https://africasustainabilitymatters.com/yellow-door-energy-breaks-ground-on-49-mwp-lion-thorn-solar-park-as-south-africas-private-power-market-expands/",
+    "auto": true
+  },
+  {
     "id": "auto-43z8ty",
     "topic": "renewable_energy",
     "province": "Multiple",
