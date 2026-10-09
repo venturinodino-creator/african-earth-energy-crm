@@ -29,7 +29,7 @@ const sandbox = vm.createContext({
 const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views-contactfinder.js'), 'utf8');
 const f = vm.runInContext(src + `
 ;({ finderTargetOptions, finderScopeAccounts, finderProvinces, finderRunRecord,
-    industryLabel, FINDER_DEFAULT_TARGET, FINDER_MUNI })`, sandbox);
+    industryLabel, FINDER_DEFAULT_TARGET, FINDER_MUNI, contactIsFind })`, sandbox);
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -141,6 +141,22 @@ test('a sector id reads as its readable name', () => assert.strictEqual(f.indust
 test('an old sector-group key still reads', () => assert.strictEqual(f.industryLabel('heavy-industry'), 'Heavy industry'));
 test('an unknown key falls back to the key', () => assert.strictEqual(f.industryLabel('zzz'), 'zzz'));
 test('all reads as All industries', () => assert.strictEqual(f.industryLabel('all'), 'All industries'));
+
+console.log('\ncontactIsFind');
+test('the same name matches however it is punctuated', () => assert.ok(f.contactIsFind({ first: 'Jo-Anne', last: "O'Neil" }, { first: 'Jo Anne', last: 'ONeil' })));
+test('a bracketed first name matches the plain one', () => {
+  assert.ok(f.contactIsFind({ first: 'Xinneng (David)', last: 'Li' }, { first: 'David', last: 'Li' }));
+  assert.ok(f.contactIsFind({ first: 'David', last: 'Li' }, { first: 'Xinneng (David)', last: 'Li' }));
+  assert.ok(f.contactIsFind({ first: 'Xinneng', last: 'Li' }, { first: 'Xinneng (David)', last: 'Li' }));
+});
+test('the same email is the same person even under a different name', () => {
+  assert.ok(f.contactIsFind({ first: 'Bob', last: 'Smith', email: 'Robert.Smith@acme.co.za' }, { first: 'Robert', last: 'Smith', email: 'robert.smith@acme.co.za ' }));
+});
+test('different people are kept apart', () => {
+  assert.ok(!f.contactIsFind({ first: 'David', last: 'Li' }, { first: 'David', last: 'Lim' }));
+  assert.ok(!f.contactIsFind({ first: 'Anna', last: 'Roe', email: 'a@x.co.za' }, { first: 'Ben', last: 'Roe', email: 'b@x.co.za' }));
+});
+test('blank emails never match each other', () => assert.ok(!f.contactIsFind({ first: 'A', last: 'B', email: '' }, { first: 'C', last: 'D', email: '' })));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

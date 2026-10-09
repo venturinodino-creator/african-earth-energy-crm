@@ -59,6 +59,22 @@ async function rest(q, opts = {}) {
 }
 
 const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+/* Same rules as contactIsFind() in js/views-contactfinder.js: a bracketed first
+   name ("Xinneng (David) Li") counts as a first name, and one work email is
+   one person. */
+function nameKeys(first, last) {
+  const raw = String(first || '');
+  const nick = (/\(([^)]+)\)/.exec(raw) || [])[1];
+  const firsts = [key(raw), key(raw.replace(/\([^)]*\)/g, ''))];
+  if (nick) firsts.push(key(nick));
+  return firsts.filter(Boolean).map(f => f + '|' + key(last));
+}
+function isSamePerson(c, f) {
+  const em = s => String(s || '').trim().toLowerCase();
+  if (em(c.email) && em(c.email) === em(f.email)) return true;
+  const theirs = nameKeys(f.first, f.last);
+  return nameKeys(c.first, c.last).some(k => theirs.includes(k));
+}
 const uid = p => p + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
 
 /* Mirrors foundToContact() in js/views-contactfinder.js. */
@@ -90,7 +106,7 @@ async function main() {
   const q = 'aee_found_contacts?status=eq.pending&select=*' + (ALL ? '' : '&run_id=in.(' + runIds.map(encodeURIComponent).join(',') + ')');
   const finds = await rest(q);
   const contacts = await rest('aee_contacts?select=id,offtaker_id,first,last,title,email,phone,notes');
-  const onFile = (f) => contacts.find(c => c.offtaker_id === f.offtaker_id && key(c.first) === key(f.first) && key(c.last) === key(f.last)) || null;
+  const onFile = (f) => contacts.find(c => c.offtaker_id === f.offtaker_id && isSamePerson(c, f)) || null;
 
   const tally = { pending: finds.length, held: 0, created: 0, reused: 0 };
   for (const f of finds) {
