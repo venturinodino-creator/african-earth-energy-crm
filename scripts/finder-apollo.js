@@ -60,9 +60,17 @@ function loadDotEnv() {
   });
 }
 
+/* Thrown by die() once the failure has been printed, so the top level can
+   tell "already reported, stop here" from a genuine crash. process.exit()
+   used to do the stopping, but exiting while fetch's sockets are still
+   closing aborts the process on Windows (libuv "UV_HANDLE_CLOSING"
+   assertion) and replaces the exit code. Setting exitCode and throwing
+   lets Node finish its own teardown. */
+class Bail extends Error {}
 function die(msg, extra) {
   console.log(JSON.stringify({ ok: false, error: msg, ...(extra || {}) }, null, 2));
-  process.exit(1);
+  process.exitCode = 1;
+  throw new Bail(msg);
 }
 function out(obj) { console.log(JSON.stringify(obj, null, 2)); }
 
@@ -283,7 +291,10 @@ const commands = {
         const finds = await pullCompany(name, { ...a, domain: domain || a.domain }, spend);
         all.push(...finds);
         await new Promise(r => setTimeout(r, 800));
-      } catch (e) { skipped.push({ company: name, why: String(e && e.message || e).slice(0, 120) }); }
+      } catch (e) {
+        if (e instanceof Bail) throw e;   // a rejected key or plan stops the batch; it is not one company's problem
+        skipped.push({ company: name, why: String(e && e.message || e).slice(0, 120) });
+      }
     }
     finish(all, a, spend, skipped);
   },
@@ -307,7 +318,11 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(e => die(e && e.message ? e.message : String(e)));
+  main().catch(e => {
+    if (e instanceof Bail) return;
+    out({ ok: false, error: e && e.message ? e.message : String(e) });
+    process.exitCode = 1;
+  });
 }
 
-module.exports = { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, searchCompany, enrich, SEATS, SEAT_ROLE };
+module.exports = { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, searchCompany, enrich, Bail, SEATS, SEAT_ROLE };

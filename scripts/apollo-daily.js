@@ -115,7 +115,10 @@ async function main() {
   for (const row of queue) {
     const domain = domainOf(row.website);
     let people = [];
-    try { people = await apollo.searchCompany(row.name, domain); } catch (e) { report.push({ company: row.name, error: String(e.message || e).slice(0, 100) }); continue; }
+    try { people = await apollo.searchCompany(row.name, domain); } catch (e) {
+      if (e instanceof apollo.Bail) throw e;   // key or plan problem: stop, do not repeat it for every company
+      report.push({ company: row.name, error: String(e.message || e).slice(0, 100) }); continue;
+    }
     const picks = chooseCandidates(row, people);
     const entry = { company: row.name, gap: row.gap, candidates: picks.map(p => ({ seat: p.seat, title: p.person.title })), filed: 0 };
     for (const { person, seat } of picks) {
@@ -152,5 +155,5 @@ async function main() {
   console.log(JSON.stringify({ ok: true, dry: o.dry, runId, companies: queue.length, creditsSpent: spent, filed: finds.length, report }, null, 2));
 }
 
-if (require.main === module) main().catch(e => { if (e.message !== 'bail') { console.log(JSON.stringify({ ok: false, error: String(e.message || e) })); process.exitCode = 1; } });
+if (require.main === module) main().catch(e => { if (e.message !== 'bail' && !(e instanceof apollo.Bail)) { console.log(JSON.stringify({ ok: false, error: String(e.message || e) })); process.exitCode = 1; } });
 module.exports = { chooseCandidates, toFind, sameName, domainOf, parseFlags };
