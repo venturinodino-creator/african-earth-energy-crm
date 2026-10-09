@@ -489,14 +489,34 @@ function foundToContact(f) {
   };
 }
 
-/* The person a find describes, if they are already in the book on the
-   same account. Matched on name rather than email: the imports that
-   put most of the book there carried no email, and supplying one is
-   the whole point of the find. */
-function contactOnFileFor(f) {
+/* The ways a person's name can be written, as comparable keys. A company
+   page that lists "Xinneng (David) Li" means the person a news release
+   calls "David Li", so the bracketed name counts as a first name too. */
+function contactNameKeys(first, last) {
   const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  return state.contacts.find(c => c.offtakerId === f.offtakerId &&
-    key(c.first) === key(f.first) && key(c.last) === key(f.last)) || null;
+  const raw = String(first || '');
+  const nick = (/\(([^)]+)\)/.exec(raw) || [])[1];
+  const firsts = [key(raw), key(raw.replace(/\([^)]*\)/g, ''))];
+  if (nick) firsts.push(key(nick));
+  return firsts.filter(Boolean).map(f => f + '|' + key(last));
+}
+
+/* Is this find the same person as this contact? Same name, allowing for a
+   bracketed first name, or the same work email: one address belongs to
+   one person, whatever the two records call them. */
+function contactIsFind(c, f) {
+  const em = s => String(s || '').trim().toLowerCase();
+  if (em(c.email) && em(c.email) === em(f.email)) return true;
+  const theirs = contactNameKeys(f.first, f.last);
+  return contactNameKeys(c.first, c.last).some(k => theirs.includes(k));
+}
+
+/* The person a find describes, if they are already in the book on the
+   same account. Matched on name before email: the imports that put most
+   of the book there carried no email, and supplying one is the whole
+   point of the find. */
+function contactOnFileFor(f) {
+  return state.contacts.find(c => c.offtakerId === f.offtakerId && contactIsFind(c, f)) || null;
 }
 
 /* What accepting a find does to the book: a new contact, or — when the
