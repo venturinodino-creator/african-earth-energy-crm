@@ -44,7 +44,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO = path.dirname(__dirname);
-const API = process.env.AEE_APOLLO_URL || 'https://api.apollo.io/v1';
+const API = process.env.AEE_APOLLO_URL || 'https://api.apollo.io/api/v1';
 
 /* ─── .env ── same tiny reader as finder-agent.js, same precedence:
    a real environment variable beats the file. */
@@ -60,9 +60,17 @@ function loadDotEnv() {
   });
 }
 
+/* Thrown by die() once the failure has been printed, so the top level can
+   tell "already reported, stop here" from a genuine crash. process.exit()
+   used to do the stopping, but exiting while fetch's sockets are still
+   closing aborts the process on Windows (libuv "UV_HANDLE_CLOSING"
+   assertion) and replaces the exit code. Setting exitCode and throwing
+   lets Node finish its own teardown. */
+class Bail extends Error {}
 function die(msg, extra) {
   console.log(JSON.stringify({ ok: false, error: msg, ...(extra || {}) }, null, 2));
-  process.exit(1);
+  process.exitCode = 1;
+  throw new Bail(msg);
 }
 function out(obj) { console.log(JSON.stringify(obj, null, 2)); }
 
@@ -194,14 +202,16 @@ async function searchCompany(name, domain) {
   };
   if (domain) body.q_organization_domains = domain;
   else body.q_organization_name = name;
-  const r = await apollo('/mixed_people/search', body);
+  /* api_search is Apollo's current people search (the old /mixed_people/search
+     is retired). It never returns emails and hides surnames until enrichment. */
+  const r = await apollo('/mixed_people/api_search', body);
   return (r && r.people) || [];
 }
 
 /* Reveal one person's work email. THE credit-spending call. */
 async function enrich(p, company, domain) {
   const r = await apollo('/people/match', {
-    first_name: p.first_name, last_name: p.last_name,
+    id: p.id || undefined, first_name: p.first_name, last_name: p.last_name,
     organization_name: company, domain: domain || undefined,
     reveal_personal_emails: false,
   });
@@ -281,7 +291,10 @@ const commands = {
         const finds = await pullCompany(name, { ...a, domain: domain || a.domain }, spend);
         all.push(...finds);
         await new Promise(r => setTimeout(r, 800));
-      } catch (e) { skipped.push({ company: name, why: String(e && e.message || e).slice(0, 120) }); }
+      } catch (e) {
+        if (e instanceof Bail) throw e;   // a rejected key or plan stops the batch; it is not one company's problem
+        skipped.push({ company: name, why: String(e && e.message || e).slice(0, 120) });
+      }
     }
     finish(all, a, spend, skipped);
   },
@@ -305,7 +318,11 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(e => die(e && e.message ? e.message : String(e)));
+  main().catch(e => {
+    if (e instanceof Bail) return;
+    out({ ok: false, error: e && e.message ? e.message : String(e) });
+    process.exitCode = 1;
+  });
 }
 
-module.exports = { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, SEATS, SEAT_ROLE };
+module.exports = { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, searchCompany, enrich, Bail, SEATS, SEAT_ROLE };

@@ -10,7 +10,7 @@
 'use strict';
 
 const assert = require('assert');
-const { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs } = require('../scripts/finder-apollo.js');
+const { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, Bail } = require('../scripts/finder-apollo.js');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -91,13 +91,14 @@ console.log('\nflags — the spending gates');
 test('--reveal without --budget parses (pull caps by --max)', () =>
   assert.deepStrictEqual(parseArgs(['X', '--reveal']), { _: ['X'], reveal: true }));
 test('a non-numeric --max is refused before any call is made', () => {
-  let died = false;
-  const realExit = process.exit, realLog = console.log;
-  process.exit = () => { died = true; throw new Error('exited'); };
+  let bailed = false;
+  const realLog = console.log, realCode = process.exitCode;
   console.log = () => {};
-  try { parseArgs(['X', '--max', 'lots']); } catch (e) { /* expected */ }
-  process.exit = realExit; console.log = realLog;
-  assert.ok(died, 'should refuse --max lots');
+  try { parseArgs(['X', '--max', 'lots']); } catch (e) { bailed = e instanceof Bail; }
+  const code = process.exitCode;
+  console.log = realLog; process.exitCode = realCode;
+  assert.ok(bailed, 'should refuse --max lots');
+  assert.strictEqual(code, 1, 'and say so in the exit code, without calling process.exit');
 });
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');

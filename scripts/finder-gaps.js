@@ -192,4 +192,4 @@ async function main() {
   await commands[cmd](args, flags);
 }
 if (require.main === module) main().catch(e => { if (e.message !== 'bail') { out({ ok: false, error: String(e.message || e) }); process.exitCode = 1; } });
-module.exports = { coverage, rankGaps, loadLadder };
+module.exports = { coverage, rankGaps, loadLadder, listedWithCoverage, rest, loadEnv };

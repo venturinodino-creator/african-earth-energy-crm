@@ -1,0 +1,57 @@
+name: Daily Apollo Ingestion
+
+# Fills the Contact finder review queue from Apollo, once a day: the listed
+# off-takers with the biggest stakeholder-ladder gaps, one reveal per empty seat,
+# capped by a credit budget. Nothing becomes a contact until a person accepts it
+# on the Contact finder page.
+#
+# Needs three repository secrets (Settings > Secrets and variables > Actions):
+#   AEE_APOLLO_KEY  an Apollo master API key
+#   AEE_EMAIL       a CRM admin login
+#   AEE_PASSWORD    that login's password
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # 07:00 in South Africa
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'Dry run: search and plan, spend nothing, write nothing'
+        type: boolean
+        default: false
+      budget:
+        description: 'Email reveals (Apollo credits) this run may spend'
+        default: '15'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apollo-daily
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test the selection rules
+        run: node tests/apollo-daily.test.js
+      - name: Run the ingestion
+        env:
+          AEE_APOLLO_KEY: ${{ secrets.AEE_APOLLO_KEY }}
+          AEE_EMAIL: ${{ secrets.AEE_EMAIL }}
+          AEE_PASSWORD: ${{ secrets.AEE_PASSWORD }}
+          DRY: ${{ inputs.dry }}
+          BUDGET: ${{ inputs.budget || '15' }}
+        run: |
+          for v in AEE_APOLLO_KEY AEE_EMAIL AEE_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::Repository secret $v is not set"; exit 1; fi
+          done
+          args="--budget $BUDGET"
+          if [ "$DRY" = "true" ]; then args="$args --dry"; fi
+          node scripts/apollo-daily.js $args
