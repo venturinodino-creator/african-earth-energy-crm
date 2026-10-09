@@ -53,6 +53,7 @@ test('a gap run is attributed to the listed-offtaker agent; other runs to theirs
   const ctx = env([], []);
   const of = run => vm.runInContext('ahqAgentOf(' + JSON.stringify(run) + ')', ctx);
   assert.strictEqual(of({ note: 'Gap run: 15 listed companies', offtakerIds: ['a'] }), 'listed');
+  assert.strictEqual(of({ note: 'Apollo daily: 8 listed companies, 12 emails revealed.', offtakerIds: ['a'] }), 'apollo');
   assert.strictEqual(of({ note: '', offtakerIds: ['mun_X'] }), 'municipal');
   assert.strictEqual(of({ note: '', offtakerIds: ['a'] }), 'priority');
 });

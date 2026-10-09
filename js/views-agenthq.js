@@ -18,6 +18,8 @@ let _ahqFetched = false;
 
 /* The agent definitions in .claude/agents, in the order a reader looks. */
 const AHQ_ROSTER = [
+  { key: 'apollo', name: 'Apollo daily ingestion', icon: 'target', cls: 'amber',
+    what: 'Reveals one work email per open ladder seat from Apollo each morning, within a credit budget' },
   { key: 'listed', name: 'Listed off-taker contact finder', icon: 'building', cls: 'amber',
     what: 'Works the ladder gaps at the off-takers on the Prospects page; never the Archive' },
   { key: 'priority', name: 'Priority contact finder', icon: 'target', cls: 'purple',
@@ -45,6 +47,7 @@ function ahqMinutesSince(iso) {
 
 /* Which agent a run was aimed at, read off the ids it carries. */
 function ahqAgentOf(run) {
+  if (/^Apollo daily/.test(run.note || '')) return 'apollo';
   if (/^Gap run/.test(run.note || '')) return 'listed';
   const ids = run.offtakerIds || [];
   if (ids.some(id => String(id || '').startsWith('mun_'))) return 'municipal';
