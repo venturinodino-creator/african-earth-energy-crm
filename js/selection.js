@@ -69,14 +69,17 @@ function selectionHeadCellHtml(kind, ids) {
     esc(JSON.stringify(ids)) + ', this.checked)"></th>';
 }
 
-/* Redraw the bar and the header box after a tick, without redrawing the page. */
+/* Redraw the bar, the row boxes and the header box after a tick, without redrawing the page.
+   The row boxes are set from the selection, not trusted: the header box and Clear change
+   many rows at once, and what is on screen must be what Export selected will export. */
 function selectionRefresh() {
   const slot = document.getElementById('sel-bar');
   if (slot) slot.innerHTML = selectionBarHtml();
+  const boxes = Array.from(document.querySelectorAll('input.sel-row'));
+  boxes.forEach(b => { b.checked = SELECTION.ids.has(b.dataset.id); });
   const head = document.querySelectorAll('input.sel-head')[0];
   if (!head) return;
-  const ids = Array.from(document.querySelectorAll('input.sel-row')).map(b => b.dataset.id);
-  const st = selectionPageState(ids);
+  const st = selectionPageState(boxes.map(b => b.dataset.id));
   head.checked = st === 'all';
   head.indeterminate = st === 'some';
 }

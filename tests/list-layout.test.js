@@ -112,6 +112,17 @@ console.log('\nOff-taker Prospects');
     assert.ok(out.content.includes('Showing 1 of 1 leads') || out.content.includes('Showing 1 of 1 lead'), out.content.match(/Showing[^<]*/));
     assert.ok(out.content.includes('filters hide 2 of 3'));
   });
+  test('the table has an avatar tile, a header box and a box on every row', () => {
+    const { out } = env(Object.assign({ offView: 'table' }, book)).run('renderOfftakers');
+    assert.strictEqual((out.content.match(/class="nm-tile"/g) || []).length, 3, 'a tile on each lead');
+    assert.ok(out.content.includes('class="sel-head"') && (out.content.match(/class="sel-row"/g) || []).length === 3);
+    assert.ok(out.content.includes('id="sel-bar"'));
+  });
+  test('the page Export names the leads the filters leave, and exports exactly them', () => {
+    const { out } = env(Object.assign({ offSearch: 'alp' }, book)).run('renderOfftakers');
+    assert.ok(/Export <span class="btn-n">1<\/span>/.test(out.page.a), out.page.a);
+    assert.ok(out.page.a.includes('exportOfftakers(filteredOfftakers())'));
+  });
   test('the Archive tab is active in the archive, with its own footer', () => {
     const { out } = env(Object.assign({ offArchive: true }, book)).run('renderOfftakers');
     assert.ok(/view-tab active"[^>]*onclick="setOffArchive\(true\)">Archive/.test(out.content));
@@ -150,6 +161,19 @@ console.log('\nContacts');
     const { out } = env(Object.assign({ contactView: 'grid' }, book)).run('renderContacts');
     assert.ok(out.content.includes('class="table-foot standalone"') && out.content.includes('Showing 1–20 of 45 contacts'));
     assert.ok(!out.content.includes('class="table-card"'), 'a grid is not inside a table card');
+    assert.ok(!out.content.includes('id="sel-bar"'), 'rows are only selectable in the table');
+  });
+  test('the table has a header box, a box on every row, the bar slot, and group heads that span the new column', () => {
+    const { out } = env(book).run('renderContacts');
+    assert.ok(out.content.includes('class="sel-head"'), 'header box');
+    assert.strictEqual((out.content.match(/class="sel-row"/g) || []).length, 20, 'a box on each of the 20 rows');
+    assert.ok(out.content.includes('id="sel-bar"') && out.content.indexOf('id="sel-bar"') < out.content.indexOf('class="table-card"'), 'bar above the card');
+    assert.ok(out.content.includes('colspan="9"') && !out.content.includes('colspan="8"'));
+  });
+  test('the page Export names the contacts the filters leave, and exports exactly them', () => {
+    const { out } = env(Object.assign({ contactRole: 'technical' }, book)).run('renderContacts');
+    assert.ok(/Export <span class="btn-n">11<\/span>/.test(out.page.a), out.page.a);
+    assert.ok(out.page.a.includes('exportContacts(contactsFiltered().list)'));
   });
 }
 

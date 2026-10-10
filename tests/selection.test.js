@@ -187,6 +187,48 @@ test('the header cell is a box that is checked only when every row is', () => {
   assert.ok(!isChecked(run(c, "selectionHeadCellHtml('offtakers', ['o1','o2','o3'])")));
 });
 
+console.log('\nThe boxes on the page follow the selection');
+/* A tiny page: three row boxes, a header box and the bar slot, as the DOM would hold them. */
+function pageSandbox() {
+  const c = sandbox();
+  const rowBoxes = ['o1', 'o2', 'o3'].map(id => ({ dataset: { id }, checked: false }));
+  const head = { checked: false, indeterminate: false };
+  const slot = { innerHTML: '' };
+  c.document.getElementById = id => (id === 'sel-bar' ? slot : null);
+  c.document.querySelectorAll = sel => (sel === 'input.sel-row' ? rowBoxes : sel === 'input.sel-head' ? [head] : []);
+  return { c, rowBoxes, head, slot };
+}
+test('the header box ticks every row box on the page, and unticking it clears them', () => {
+  const { c, rowBoxes, head, slot } = pageSandbox();
+  run(c, "selectionSync('offtakers', 'a'); selectionTogglePage('offtakers', ['o1','o2','o3'], true)");
+  assert.deepStrictEqual(rowBoxes.map(b => b.checked), [true, true, true]);
+  assert.strictEqual(head.checked, true);
+  assert.ok(/<b>3<\/b> selected/.test(slot.innerHTML));
+  run(c, "selectionTogglePage('offtakers', ['o1','o2','o3'], false)");
+  assert.deepStrictEqual(rowBoxes.map(b => b.checked), [false, false, false]);
+  assert.strictEqual(slot.innerHTML, '');
+});
+test('ticking some rows leaves the header box half-ticked, not ticked', () => {
+  const { c, head } = pageSandbox();
+  run(c, "selectionSync('offtakers', 'a'); selectionToggle('offtakers', 'o2', true)");
+  assert.strictEqual(head.checked, false);
+  assert.strictEqual(head.indeterminate, true);
+});
+test('Clear unticks every box, whatever the boxes said before', () => {
+  const { c, rowBoxes, head } = pageSandbox();
+  run(c, "selectionSync('offtakers', 'a'); selectionTogglePage('offtakers', ['o1','o2','o3'], true); selectionClear()");
+  assert.deepStrictEqual(rowBoxes.map(b => b.checked), [false, false, false]);
+  assert.strictEqual(head.checked, false);
+  assert.strictEqual(head.indeterminate, false);
+});
+test('a box ticked by hand that the selection does not hold is put right, so the screen never lies', () => {
+  const { c, rowBoxes } = pageSandbox();
+  run(c, "selectionSync('offtakers', 'a')");
+  rowBoxes[1].checked = true;
+  run(c, 'selectionRefresh()');
+  assert.strictEqual(rowBoxes[1].checked, false);
+});
+
 console.log('\nWhen the selection is dropped');
 test('changing the list drops it', () => {
   const c = sandbox();

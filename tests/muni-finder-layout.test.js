@@ -92,6 +92,19 @@ console.log('\nMunicipalities');
   test('a grid view keeps a footer and is not wrapped in a table card', () => {
     const { out } = env(MUNI, { muniView: 'grid' }).run('renderMunicipalities');
     assert.ok(out.content.includes('class="table-foot standalone"') && !out.content.includes('class="table-card"'));
+    assert.ok(!out.content.includes('id="sel-bar"'), 'rows are only selectable in the table');
+  });
+  test('the table has an avatar tile and a box on every row, a header box, and the bar slot above the card', () => {
+    const { out } = env(MUNI).run('renderMunicipalities');
+    assert.strictEqual((out.content.match(/class="nm-tile"/g) || []).length, 20);
+    assert.ok(out.content.includes('class="sel-head"') && (out.content.match(/class="sel-row"/g) || []).length === 20);
+    assert.ok(out.content.indexOf('id="sel-bar"') > -1 && out.content.indexOf('id="sel-bar"') < out.content.indexOf('class="table-card"'));
+  });
+  test('the page Export names the municipalities the filters leave, and exports exactly them', () => {
+    const { out } = env(MUNI, { muniCat: 'A' }).run('renderMunicipalities');
+    const metros = count("m.cat === 'A'");
+    assert.ok(new RegExp('Export <span class="btn-n">' + metros + '</span>').test(out.page.a), out.page.a);
+    assert.ok(out.page.a.includes('exportMunicipalities(filteredMunicipalities())'));
   });
   test('searching for nothing says so and keeps the tabs', () => {
     const { out } = env(MUNI, { muniSearch: 'zzzzzz' }).run('renderMunicipalities');

@@ -93,6 +93,18 @@ test('the table is one card with a footer counting the accounts', () => {
   assert.strictEqual((o.content.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g) || []).length, 3);
 });
 
+test('the table has an avatar tile and a box on every account, a header box, and the bar slot above the card', () => {
+  const o = run({ pipeView: 'table' });
+  assert.strictEqual((o.content.match(/class="nm-tile"/g) || []).length, 3);
+  assert.ok(o.content.includes('class="sel-head"') && (o.content.match(/class="sel-row"/g) || []).length === 3);
+  assert.ok(o.content.indexOf('id="sel-bar"') > -1 && o.content.indexOf('id="sel-bar"') < o.content.indexOf('class="table-card"'));
+});
+test('the page Export names the opportunities it holds and exports exactly those in scope', () => {
+  const o = run({});
+  assert.ok(/Export <span class="btn-n">1<\/span>/.test(o.page.a), o.page.a);
+  assert.ok(o.page.a.includes('exportPipeline(scopedDeals())'));
+});
+
 console.log('\nFlow');
 test('the flow cards are one card grid, the stage flow across the full width', () => {
   const o = run({ pipeView: 'flow' });
