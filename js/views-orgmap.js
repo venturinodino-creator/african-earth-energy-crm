@@ -562,13 +562,17 @@ function renderOrgMap() {
   if (!o.id) { nav('offtakers'); return; }
   const contacts = contactsFor(o.id);
 
+  /* The same header card as the account page; the page header keeps the
+     breadcrumb (Prospects / Company / Org map). */
   setPage((o.short || o.name) + ' — Org map',
-    'Who sits where — a visual map of tracked contacts by department and seniority',
+    'Who sits where — a visual map of tracked contacts by department and seniority', '', { record: true });
+  const head = recordHeadHtml(o,
     '<button class="btn btn-outline btn-sm" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">Back to the account</button>' +
-    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add contact</button>');
+    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add contact</button>',
+    'Org map: who sits where, by department and seniority');
 
   if (!contacts.length) {
-    setContent('<div class="empty" style="padding:60px 30px"><div class="ei">' + icon('contacts', 30) + '</div>' +
+    setContent(head + '<div class="empty" style="padding:60px 30px"><div class="ei">' + icon('contacts', 30) + '</div>' +
       '<h3>No contacts yet at ' + esc(o.short || o.name) + '</h3>' +
       '<p>Add contacts on this account\'s page and they appear here automatically, grouped by department and seniority.</p>' +
       '<p><button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add the first contact</button></p></div>');
@@ -634,7 +638,7 @@ function renderOrgMap() {
   const legend = AE_TIERS.filter(t => contacts.some(c => aeRoleRank(c) === t.r))
     .map(t => '<span class="orgmap-leg"><i style="background:' + t.hex + '"></i>' + esc(t.label) + '</span>').join('');
 
-  setContent(
+  setContent(head +
     '<div class="orgmap-wrap"><div class="orgmap-tree">' +
       '<div class="orgmap-inst-node">' + esc(o.short || o.name) + '</div>' +
       (execs.length ? execRows(execs) : '') +

@@ -696,10 +696,10 @@ function sfPathHtml(rec) {
    underneath so nobody has to guess what "Needs Analysis" means here. */
 function sfPathCardHtml(rec) {
   const st = sfStageOf(sfStageFor(rec)) || {};
-  return '<div class="card" style="margin-bottom:14px">' +
+  return '<div class="card">' +
     '<div class="card-header"><div><div class="card-title">Sales stage</div>' +
     '<div class="card-sub">' + esc(st.hint || '') + '</div></div>' +
-    '<div style="display:flex;align-items:center;gap:8px">' + dwellSentenceHtml(rec) + sfStageBadge(rec) +
+    '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">' + dwellSentenceHtml(rec) + sfStageBadge(rec) +
       '<button class="btn btn-outline btn-xs" data-admin-only ' +
       'title="Put this back on Off-taker Prospects with no sales stage - for a company moved in by mistake" ' +
       'onclick="removeFromPipeline(' + jsStr(rec.id) + ')">' +
@@ -784,12 +784,37 @@ addEventListener('popstate', e => {
   nav(view, id ? { id } : {}, true);
 });
 
+/* The trail above a page's title. A record page is a child of a list: a lead's
+   is under Off-taker Prospects, an account in the pipeline's under Pipeline, and
+   the org map is a step below its account. Everything else keeps the plain way
+   back to the Dashboard. Each step is { label, on? }; the last has no link. */
+function crumbsFor(view) {
+  if (view === 'dashboard') return [];
+  if (view === 'detail' || view === 'org-map') {
+    const o = getOfftaker(state.detailId);
+    if (o.id) {
+      const parent = inPipeline(o) ? { label: 'Pipeline', on: "nav('pipeline')" } : { label: 'Off-taker Prospects', on: "nav('offtakers')" };
+      const name = o.short || o.name;
+      return view === 'detail'
+        ? [parent, { label: name }]
+        : [parent, { label: name, on: 'nav(\'detail\',{id:' + jsStr(o.id) + '})' }, { label: 'Org map' }];
+    }
+  }
+  return [{ label: 'Dashboard', on: "nav('dashboard')", back: true }];
+}
+
 function renderBackToMain() {
   const host = document.getElementById('back-to-main');
   if (!host) return;
-  host.innerHTML = state.view === 'dashboard'
-    ? ''
-    : '<div class="back-btn" onclick="nav(\'dashboard\')">&larr; Back to Dashboard</div>';
+  const crumbs = crumbsFor(state.view);
+  if (!crumbs.length) { host.innerHTML = ''; return; }
+  if (crumbs.length === 1 && crumbs[0].back) {
+    host.innerHTML = '<div class="back-btn" onclick="' + crumbs[0].on + '">&larr; Back to ' + esc(crumbs[0].label) + '</div>';
+    return;
+  }
+  host.innerHTML = '<nav class="crumbs" aria-label="Breadcrumb">' + crumbs.map(c => c.on
+    ? '<a onclick="' + c.on + '">' + esc(c.label) + '</a>'
+    : '<span aria-current="page">' + esc(c.label) + '</span>').join('<i>/</i>') + '</nav>';
 }
 
 function render() {
@@ -832,10 +857,14 @@ function applyRoleUI() {
   });
 }
 
-function setPage(title, sub, actions) {
+/* `opts.record` marks a record page: its header card carries the name and the
+   actions, so the page header keeps only the breadcrumb (the title stays in the
+   page for screen readers). Every other page resets it. */
+function setPage(title, sub, actions, opts) {
   document.getElementById('page-title').textContent = title;
   document.getElementById('page-sub').textContent = sub || '';
   document.getElementById('page-actions').innerHTML = actions || '';
+  document.getElementById('page-head').classList.toggle('is-record', !!(opts && opts.record));
 }
 function setContent(html) { document.getElementById('content').innerHTML = html; }
 
