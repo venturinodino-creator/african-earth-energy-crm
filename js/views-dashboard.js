@@ -17,9 +17,10 @@ function lostDeals() { return state.deals.filter(d => d.stage === 'lost'); }
 function pipelineMw() { return liveDeals().reduce((s, d) => s + num(d.mw), 0); }
 
 function renderDashboard() {
-  setPage('Dashboard', 'Offtaker pipeline for African Earth Energy',
-    '<button class="btn btn-outline btn-sm" onclick="nav(\'calculator\')">' + icon('calc', 14) + ' Savings calculator</button>' +
-    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
+  /* One link, to the page the numbers below summarise. Adding an off-taker is in
+     + New and the Savings calculator is in the sidebar, so neither is repeated here. */
+  setPage('Dashboard', 'Where to focus today across the pipeline and the book',
+    '<button class="btn btn-outline btn-sm" onclick="nav(\'analytics\')">' + icon('chart', 14) + ' Open analytics</button>');
 
   const offtakers = state.offtakers;
   const openDeals = liveDeals();
@@ -194,10 +195,10 @@ function renderDashboard() {
         : '<div class="empty" style="padding:28px 10px"><h3>No activity logged yet</h3><p>Log a call or meeting from any offtaker page and it shows up here.</p></div>') +
     '</div>';
 
+  /* The KPI row, then every card in one even two-column grid, pairing a
+     "what to do" card with the numbers behind it. */
   setContent(statsHtml +
-    '<div class="cols-2">' + callHtml + funnelHtml + '</div>' +
-    '<div style="margin-top:14px">' + agentsCardHtml() + '</div>' +
-    '<div class="grid-3" style="margin-top:14px">' + sectorHtml + projHtml + actHtml + '</div>');
+    '<div class="card-grid">' + callHtml + funnelHtml + agentsCardHtml() + actHtml + sectorHtml + projHtml + '</div>');
   growBars();
 }
 
