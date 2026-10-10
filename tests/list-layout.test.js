@@ -16,6 +16,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const scopeStubs = require('./scope-stubs');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -34,6 +35,7 @@ function env(over) {
     offtakers: [], archived: [], archivedContacts: [], contacts: [], foundContacts: [], contactRuns: [],
   }, over);
   const ctx = vm.createContext({
+    ...scopeStubs(state),
     console, esc, num, fmtNum: v => String(Math.round(num(v))), icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))), safeHref: u => /^https?:/.test(u || '') ? u : '',
     initials: (a, b) => (a || '')[0] + (b || '')[0], avatarColor: () => '#555', sectorIcon: () => '', sectorBadge: s => '<span class="badge">' + s + '</span>', sectorName: s => s,
     sectorOptions: () => '', STATUS_LABEL: { prospect: 'Prospect' }, fitScore: () => 70, fitColor: () => '#000', nearestProject: () => null, distanceLabel: () => '', loadFactor: () => 0.5,

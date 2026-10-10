@@ -17,6 +17,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const scopeStubs = require('./scope-stubs');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -29,7 +30,9 @@ const num = v => Number(v) || 0;
 
 function run(book) {
   const out = { page: null, content: '' };
+  const state = Object.assign({ contactRuns: [], foundContacts: [] }, book);
   const ctx = vm.createContext({
+    ...scopeStubs(state),
     console, setTimeout: () => 0, document: { querySelectorAll: () => [] },
     esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '', jsStr: v => JSON.stringify(String(v)),
     relTime: () => 'today', avatarColor: () => '#555', sectorName: s => s, STATUS_LABEL: { prospect: 'Prospect' },
@@ -39,7 +42,7 @@ function run(book) {
     getOfftaker: id => book.offtakers.find(o => o.id === id) || {}, openProject() {}, openOfftakersFiltered() {},
     loadFinderCache() {}, refreshFinderFromServer() {},
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; },
-    state: Object.assign({ contactRuns: [], foundContacts: [] }, book),
+    state,
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'views-dashboard.js'), 'utf8') + '\nrenderDashboard();', ctx);
   return out;

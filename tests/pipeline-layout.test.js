@@ -16,6 +16,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const scopeStubs = require('./scope-stubs');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -38,6 +39,7 @@ function run(over) {
     projects: [{ id: 'p1', name: 'Site', town: 'Town', mw: 100, status: 'development' }], interactions: [], contacts: [],
   }, over);
   const ctx = vm.createContext({
+    ...scopeStubs(state),
     console, setTimeout: () => 0, document: { querySelectorAll: () => [] }, esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '',
     jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))), sectorName: s => s, STATUS_LABEL: { engaged: 'Engaged', prospect: 'Prospect' }, avatarColor: () => '#555',
     viewToggle: k => '<div class="view-toggle" data-key="' + k + '"></div>',

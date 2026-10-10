@@ -31,12 +31,13 @@ function renderPipeline() {
   if (state.pipeView === 'board' || !['accounts', 'flow', 'table'].includes(state.pipeView)) {
     state.pipeView = 'accounts';
   }
-  const open = liveDeals();
+  /* The pipeline follows the province scope: its accounts, and the opportunities open on them. */
+  const open = liveDeals(scopedDeals());
   const working = pipelineAccounts();
   setPage('Pipeline',
     working.length + ' account' + (working.length === 1 ? '' : 's') + ' being worked · ' +
     open.length + ' live opportunit' + (open.length === 1 ? 'y' : 'ies') + ' · ' +
-    fmtNum(pipelineMw()) + ' MW under discussion',
+    fmtNum(pipelineMw(scopedDeals())) + ' MW under discussion',
     '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
@@ -74,15 +75,15 @@ function pipelineStats() {
   const open = accounts.filter(o => sfStageFor(o) !== 'closed');
   const won = accounts.filter(o => sfStageFor(o) === 'closed' && !sfIsClosedLost(o));
   const lost = accounts.filter(sfIsClosedLost);
-  const live = liveDeals();
+  const live = liveDeals(scopedDeals());
   const weighted = live.reduce((s, d) => s + weightedValue(d), 0);
-  const bench = state.offtakers.length - accounts.length;
+  const bench = scopedOfftakers().length - accounts.length;
   return '<div class="stats-grid">' +
     statTile('building', 'amber', 'Accounts in process', open.length,
       fmtNum(open.reduce((a, o) => a + num(o.annualGwh), 0)) + ' GWh a year between them') +
-    statTile('pipeline', 'amber', 'Open opportunities', live.length, fmtNum(pipelineMw()) + ' MW under discussion') +
+    statTile('pipeline', 'amber', 'Open opportunities', live.length, fmtNum(pipelineMw(scopedDeals())) + ' MW under discussion') +
     statTile('trending', 'blue', 'Weighted pipeline', fmtR(weighted), 'across contract life') +
-    statTile('bolt', 'green', 'Signed', fmtNum(contractedMw()) + ' MW',
+    statTile('bolt', 'green', 'Signed', fmtNum(contractedMw(scopedDeals())) + ' MW',
       won.length + ' closed won' + (lost.length ? ' · ' + lost.length + ' lost' : '')) +
     statTile('clock', 'amber', 'Stalled', accounts.filter(isStalled).length,
       'sitting longer than the stage allows') +

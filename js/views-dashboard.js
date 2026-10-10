@@ -5,16 +5,19 @@
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
-function portfolioMw() { return state.projects.filter(p => p.status !== 'pipeline').reduce((s, p) => s + num(p.mw), 0); }
-function contractedMw() { return state.deals.filter(d => d.stage === 'closed').reduce((s, d) => s + num(d.mw), 0); }
+/* Each of these takes the set to add up, and every deal or site when none is given. The
+   pages that follow the province scope pass scopedDeals() or scopedProjects(); the
+   pages that do not (Projects, Analytics) call them bare and still see everything. */
+function portfolioMw(projects) { return (projects || state.projects).filter(p => p.status !== 'pipeline').reduce((s, p) => s + num(p.mw), 0); }
+function contractedMw(deals) { return (deals || state.deals).filter(d => d.stage === 'closed').reduce((s, d) => s + num(d.mw), 0); }
 
 /* A deal is live until it closes, either way. 'lost' has no column on the
    board, so without excluding it here a closed opportunity would keep
    inflating the open pipeline for ever. */
 function isLiveDeal(d) { return d.stage !== 'closed' && d.stage !== 'lost'; }
-function liveDeals() { return state.deals.filter(isLiveDeal); }
+function liveDeals(deals) { return (deals || state.deals).filter(isLiveDeal); }
 function lostDeals() { return state.deals.filter(d => d.stage === 'lost'); }
-function pipelineMw() { return liveDeals().reduce((s, d) => s + num(d.mw), 0); }
+function pipelineMw(deals) { return liveDeals(deals).reduce((s, d) => s + num(d.mw), 0); }
 
 function renderDashboard() {
   /* One link, to the page the numbers below summarise. Adding an off-taker is in
@@ -22,10 +25,19 @@ function renderDashboard() {
   setPage('Dashboard', 'Where to focus today across the pipeline and the book',
     '<button class="btn btn-outline btn-sm" onclick="nav(\'analytics\')">' + icon('chart', 14) + ' Open analytics</button>');
 
-  const offtakers = state.offtakers;
-  const openDeals = liveDeals();
+  /* Everything below is what the province scope leaves in; with no province chosen
+     these are the whole book. Capacity is a property of the sites, not of the
+     off-takers: with a province chosen it is that province's sites less what is
+     signed on them, whoever signed it. */
+  const offtakers = scopedOfftakers();
+  const deals = scopedDeals();
+  const contacts = scopedContacts();
+  const sites = scopedProjects();
+  const siteIds = new Set(sites.map(p => p.id));
+  const openDeals = liveDeals(deals);
   const weighted = openDeals.reduce((s, d) => s + weightedValue(d), 0);
-  const available = portfolioMw() - contractedMw();
+  const signedMw = contractedMw(deals);
+  const available = portfolioMw(sites) - (state.province ? contractedMw(state.deals.filter(d => siteIds.has(d.projectId))) : signedMw);
   const hot = offtakers.map(o => ({ o, f: fitScore(o) })).sort((a, b) => b.f - a.f);
 
   /* ── Stat row ───────────────────────────────────────────────── */
@@ -33,14 +45,14 @@ function renderDashboard() {
     { icon: 'building', cls: 'green', label: 'Companies tracked', value: offtakers.length,
       sub: offtakers.filter(o => !inPipeline(o)).length + ' leads · ' +
         pipelineAccounts().length + ' being worked', go: "nav('offtakers')" },
-    { icon: 'pipeline', cls: 'amber', label: 'Open pipeline', value: fmtNum(pipelineMw()) + ' MW',
+    { icon: 'pipeline', cls: 'amber', label: 'Open pipeline', value: fmtNum(pipelineMw(deals)) + ' MW',
       sub: openDeals.length + ' live opportunities', go: "nav('pipeline')" },
     { icon: 'trending', cls: 'blue', label: 'Weighted value', value: fmtR(weighted),
       sub: 'probability-adjusted, contract life', go: "nav('pipeline')" },
     { icon: 'sun', cls: 'purple', label: 'Capacity to sell', value: fmtNum(available) + ' MW',
-      sub: 'of ' + fmtNum(portfolioMw()) + ' MW in development', go: "nav('projects')" },
-    { icon: 'contacts', cls: 'green', label: 'Contacts', value: state.contacts.length,
-      sub: state.contacts.filter(c => !c.email).length + ' missing an email', go: "nav('contacts')" },
+      sub: 'of ' + fmtNum(portfolioMw(sites)) + ' MW in development', go: "nav('projects')" },
+    { icon: 'contacts', cls: 'green', label: 'Contacts', value: contacts.length,
+      sub: contacts.filter(c => !c.email).length + ' missing an email', go: "nav('contacts')" },
   ];
   const statsHtml = '<div class="stats-grid">' + stats.map(s =>
     '<div class="stat-card" onclick="' + s.go + '">' +
@@ -88,14 +100,14 @@ function renderDashboard() {
   const stalledCount = byAccountStage.reduce((a, x) => a + x.stalled, 0);
 
   const byStage = PIPELINE_STAGES.map(s => {
-    const list = state.deals.filter(d => d.stage === s.id);
+    const list = deals.filter(d => d.stage === s.id);
     return { ...s, count: list.length, mw: list.reduce((a, d) => a + num(d.mw), 0) };
   });
   const maxMw = Math.max(1, ...byStage.map(s => s.mw));
   /* Named because the note has to say so: a signed deal still has a row
      here while the board's "open opportunities" tile has stopped counting
      it, and that difference is the next thing to be misread. */
-  const closedDeals = state.deals.filter(d => d.stage === 'closed').length;
+  const closedDeals = deals.filter(d => d.stage === 'closed').length;
   const funnelHtml =
     '<div class="card">' +
       '<div class="card-header"><div><div class="card-title">Pipeline by stage</div>' +
@@ -119,7 +131,7 @@ function renderDashboard() {
         '<div class="bar-num">' + st.count + '</div></div>').join('') +
 
       '<div class="funnel-block-title divided">Opportunities open on them</div>' +
-      '<div class="funnel-block-note">' + liveDeals().length + ' live · ' + fmtNum(pipelineMw()) + ' MW under discussion' +
+      '<div class="funnel-block-note">' + openDeals.length + ' live · ' + fmtNum(pipelineMw(deals)) + ' MW under discussion' +
       (closedDeals ? ', plus ' + closedDeals + ' closed, counted in the Closed row' : '') +
       '. Each sits on its company\'s card on the board.</div>' +
       '<div class="funnel-head"><span></span><span>deals</span><span>MW</span></div>' +
@@ -134,8 +146,8 @@ function renderDashboard() {
 
       '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
       stalledCount + ' account' + (stalledCount === 1 ? ' has' : 's have') +
-      ' sat longer than the stage allows. ' + fmtNum(contractedMw()) + ' MW signed to date. ' +
-      'The other ' + (state.offtakers.length - working.length) + ' are leads in Off-taker Prospects, ' +
+      ' sat longer than the stage allows. ' + fmtNum(signedMw) + ' MW signed to date. ' +
+      'The other ' + (offtakers.length - working.length) + ' are leads in Off-taker Prospects, ' +
       'not pipeline — nothing measures them until somebody works one.</div>' +
     '</div>';
 
@@ -159,7 +171,7 @@ function renderDashboard() {
     '</div>';
 
   /* ── Capacity allocation per project ────────────────────────── */
-  const projRows = state.projects.filter(p => p.status !== 'pipeline').map(p => {
+  const projRows = sites.filter(p => p.status !== 'pipeline').map(p => {
     const committed = state.deals.filter(d => d.projectId === p.id && d.stage !== 'lost').reduce((s, d) => s + num(d.mw), 0);
     return { p, committed, pct: Math.min(100, (committed / Math.max(1, p.mw)) * 100) };
   }).sort((a, b) => b.pct - a.pct);
@@ -183,7 +195,7 @@ function renderDashboard() {
     '</div>';
 
   /* ── Recent activity ────────────────────────────────────────── */
-  const recent = state.interactions.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 6);
+  const recent = scopedInteractions().slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 6);
   const actHtml =
     '<div class="card">' +
       '<div class="card-header"><div class="card-title">Recent activity</div>' +

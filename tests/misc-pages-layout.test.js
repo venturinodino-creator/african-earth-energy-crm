@@ -17,6 +17,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const scopeStubs = require('./scope-stubs');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -41,6 +42,7 @@ function env(over) {
     foundContacts: [{ id: 'f1', runId: 'r1', status: 'pending', email: 'x@a.co.za' }],
   }, over);
   const ctx = vm.createContext({
+    ...scopeStubs(state),
     console, window: {}, setTimeout: () => 0, clearTimeout() {}, document: { querySelectorAll: () => [], getElementById: () => null },
     esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))),
     safeHref: u => /^https?:/.test(u || '') ? u : '', todayISO: () => '2026-10-10', relTime: () => 'today', avatarColor: () => '#555', sectorName: s => s,

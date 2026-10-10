@@ -574,7 +574,9 @@ function inPipeline(rec) {
      past prospect only gets written by somebody moving them along. */
   return !!rec.status && rec.status !== 'prospect' && rec.status !== 'parked';
 }
-function pipelineAccounts() { return state.offtakers.filter(inPipeline); }
+/* The accounts being worked, within the province scope. Only the Dashboard and the
+   Pipeline ask, and both follow the scope. */
+function pipelineAccounts() { return scopedOfftakers().filter(inPipeline); }
 
 /* Closed splits in two and only the status records which way it went. */
 function sfIsClosedLost(rec) { return sfStageFor(rec) === 'closed' && rec.status === 'lost'; }
@@ -884,7 +886,8 @@ function applyRoleUI() {
    page for screen readers). Every other page resets it. */
 function setPage(title, sub, actions, opts) {
   document.getElementById('page-title').textContent = title;
-  document.getElementById('page-sub').textContent = sub || '';
+  const note = scopeNote(state.view, state.province);
+  document.getElementById('page-sub').textContent = [sub, note].filter(Boolean).join(' · ');
   document.getElementById('page-actions').innerHTML = actions || '';
   document.getElementById('page-head').classList.toggle('is-record', !!(opts && opts.record));
 }
@@ -1240,11 +1243,44 @@ function syncProvinceSwitch() {
   el.classList.toggle('on', !!state.province);
 }
 
-/* The top-bar switcher. Sizes change with the scope, so every list goes back to page one. */
+/* The top-bar switcher. Sizes change with the scope, so every list goes back to page one,
+   and a company filter that has fallen out of scope is dropped rather than left to
+   show an empty page that looks broken. */
 function onProvinceSwitch(p) {
   setProvince(p);
   state.offPage = state.contactPage = state.muniPage = state.prospectPage = 1;
+  if (state.contactOfftaker && !accountInScope(state.contactOfftaker)) state.contactOfftaker = '';
   render();
+}
+
+/* What the scope leaves in. Each hands back the whole set, not a copy, when no
+   province is chosen. A deal, a contact or a log entry is filed against an account, and
+   that account is an off-taker or a municipality, so it takes that account's province.
+   A record filed against nothing is in no single province. */
+function provinceOfAccount(id) {
+  const o = state.offtakers.find(x => x.id === id);
+  if (o) return o.province || '';
+  return isMunicipalityId(id) ? (MUNI_BY_ID[id].province || '') : '';
+}
+function accountInScope(id) { return provinceInScope(state.province, provinceOfAccount(id)); }
+function scopedOfftakers() { return state.province ? state.offtakers.filter(inScope) : state.offtakers; }
+function scopedDeals() { return state.province ? state.deals.filter(d => accountInScope(d.offtakerId)) : state.deals; }
+function scopedContacts() { return state.province ? state.contacts.filter(c => accountInScope(c.offtakerId)) : state.contacts; }
+function scopedInteractions() { return state.province ? state.interactions.filter(i => accountInScope(i.offtakerId)) : state.interactions; }
+function scopedProjects() { return state.province ? state.projects.filter(p => provinceInScope(state.province, p.province)) : state.projects; }
+
+/* Which pages follow the scope and which do not, so the page header can say so while a
+   province is chosen. A switcher that quietly covers only some pages is read as covering
+   all of them. Record pages (one company, one site) are not labelled either way. */
+const SCOPED_VIEWS = new Set(['dashboard', 'offtakers', 'contacts', 'municipalities', 'prospects',
+  'pipeline', 'activity', 'news', 'map']);
+const UNSCOPED_VIEWS = new Set(['projects', 'regions', 'sectors', 'analytics', 'agenthq',
+  'calculator', 'playbook']);
+function scopeNote(view, province) {
+  if (!province) return '';
+  if (SCOPED_VIEWS.has(view)) return province;
+  if (UNSCOPED_VIEWS.has(view)) return 'all provinces';
+  return '';
 }
 
 /* A municipality named in a contact file's company column. Accepts what

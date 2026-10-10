@@ -108,14 +108,22 @@ test('the page header carries title, subtitle, actions and the way back', () => 
 });
 test('setPage writes title, subtitle and actions into the page header', () => {
   const d = stubDoc();
-  fn('setPage', { document: d.document })('Pipeline', 'Two boards', '<button>Go</button>');
+  fn('setPage', { document: d.document, state: { view: 'dashboard', province: '' }, scopeNote: () => '' })('Pipeline', 'Two boards', '<button>Go</button>');
   assert.strictEqual(d.els['page-title'].textContent, 'Pipeline');
   assert.strictEqual(d.els['page-sub'].textContent, 'Two boards');
   assert.strictEqual(d.els['page-actions'].innerHTML, '<button>Go</button>');
 });
+test('setPage adds the province scope to the subtitle, or on its own when there is none', () => {
+  const d = stubDoc();
+  const set = fn('setPage', { document: d.document, state: { view: 'pipeline', province: 'Limpopo' }, scopeNote: (v, p) => p });
+  set('Pipeline', 'Two boards', '');
+  assert.strictEqual(d.els['page-sub'].textContent, 'Two boards · Limpopo');
+  set('Pipeline', '', '');
+  assert.strictEqual(d.els['page-sub'].textContent, 'Limpopo');
+});
 test('setPage with no subtitle or actions clears the old ones', () => {
   const d = stubDoc();
-  const set = fn('setPage', { document: d.document });
+  const set = fn('setPage', { document: d.document, state: { view: 'dashboard', province: '' }, scopeNote: () => '' });
   set('A', 'sub', '<b>x</b>'); set('B');
   assert.strictEqual(d.els['page-sub'].textContent, '');
   assert.strictEqual(d.els['page-actions'].innerHTML, '');
@@ -164,7 +172,7 @@ console.log('\nBreadcrumb');
     render();
     const h = d.els['back-to-main'].innerHTML;
     assert.ok(h.includes('Off-taker Prospects') && h.includes('Alpha') && h.includes('class="crumbs"'), h);
-    const set = fn('setPage', { document: d.document });
+    const set = fn('setPage', { document: d.document, state: { view: 'dashboard', province: '' }, scopeNote: () => '' });
     set('Alpha', 'sub', '', { record: true });
     assert.ok(d.els['page-head'].classList.contains('is-record'));
     set('Pipeline', 'sub', '');
