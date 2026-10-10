@@ -37,6 +37,7 @@ function env(files, over) {
     cfTarget: 'mining', cfRoles: ['decision'], cfProvince: '', cfShowAllRuns: false,
   }, over);
   const ctx = vm.createContext({
+    document: { getElementById: () => null, querySelectorAll: () => [] },
     console, esc, num, fmtNum: v => String(Math.round(num(v))), icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))), safeHref: u => /^https?:/.test(u || '') ? u : '',
     initials: (a, b) => (a || '')[0] + (b || '')[0], avatarColor: () => '#555', sortBy: l => l.slice(), thClass: () => 'sortable', sortArrow: () => '', toggleSort() {},
     viewToggle: k => '<div class="view-toggle" data-key="' + k + '"></div>', contactsFor: id => state.contacts.filter(c => c.offtakerId === id), interactionsFor: () => [],
@@ -45,7 +46,7 @@ function env(files, over) {
     ROLE_LABEL: { decision: 'Decision maker', influencer: 'Influencer', technical: 'Technical', gatekeeper: 'Gatekeeper' },
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; }, state,
   });
-  files.forEach(f => vm.runInContext(read(f) + '\n', ctx, { filename: f }));
+  files.concat(['js/selection.js']).forEach(f => vm.runInContext(read(f) + '\n', ctx, { filename: f }));
   return { ctx, out, state, run: fn => { vm.runInContext(fn + '();', ctx); return { out, ctx, state }; } };
 }
 const MUNI = ['data/municipalities.js', 'js/layout.js', 'js/views-municipalities.js'];

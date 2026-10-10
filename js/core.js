@@ -1038,36 +1038,47 @@ function downloadCSV(filename, rows) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-function exportOfftakers() {
+/* Each export is a row builder over any list, and a button that downloads it. A page's own
+   Export passes the list its filters leave; called bare (the sidebar's Export offtakers)
+   it exports the whole book. Export selected on a table uses the same builders. */
+function offtakerCsvRows(list) {
   const head = ['id', 'name', 'short', 'sector', 'province', 'city', 'website', 'annual_gwh', 'peak_mw',
     'current_tariff_r_kwh', 'supply', 'wheeling', 'nmd_mva', 'status', 'priority', 'fit_score',
     'nearest_project', 'distance_km', 'contacts', 'description'];
-  const rows = [head].concat(state.offtakers.map(o => {
+  return [head].concat(list.map(o => {
     const np = nearestProject(o);
     return [o.id, o.name, o.short, sectorName(o.sector), o.province, o.city, o.website,
       o.annualGwh, o.peakMw, o.tariff, o.supply, WHEELING_LABEL[o.wheeling] || o.wheeling, o.nmd,
       STATUS_LABEL[o.status] || o.status, o.priority, fitScore(o),
       np ? np.project.name : '', np ? np.km : '', contactsFor(o.id).length, o.description];
   }));
-  downloadCSV('aee-offtakers-' + todayISO() + '.csv', rows);
-  toast('Exported ' + state.offtakers.length + ' offtakers');
+}
+function exportOfftakers(list) {
+  const rows = list || state.offtakers;
+  downloadCSV('aee-offtakers-' + todayISO() + '.csv', offtakerCsvRows(rows));
+  toast('Exported ' + rows.length + ' offtakers');
 }
 
-function exportContacts() {
+/* A contact's company is an off-taker or a municipality, so the company and province
+   columns are read from the account, not from the off-taker table alone. */
+function contactCsvRows(list) {
   const head = ['first', 'last', 'title', 'department', 'offtaker', 'sector', 'province', 'email', 'phone', 'linkedin', 'role', 'priority', 'status', 'notes'];
-  const rows = [head].concat(state.contacts.map(c => {
-    const o = getOfftaker(c.offtakerId);
-    return [c.first, c.last, c.title, c.dept, o.name || '', sectorName(o.sector), o.province || '',
+  return [head].concat(list.map(c => {
+    const o = getAccount(c.offtakerId);
+    return [c.first, c.last, c.title, c.dept, o.name || '', o.sector ? sectorName(o.sector) : '', provinceOfAccount(c.offtakerId),
       c.email, c.phone, c.linkedin, c.role, c.priority, c.status, c.notes];
   }));
-  downloadCSV('aee-contacts-' + todayISO() + '.csv', rows);
-  toast('Exported ' + state.contacts.length + ' contacts');
+}
+function exportContacts(list) {
+  const rows = list || state.contacts;
+  downloadCSV('aee-contacts-' + todayISO() + '.csv', contactCsvRows(rows));
+  toast('Exported ' + rows.length + ' contacts');
 }
 
-function exportPipeline() {
+function pipelineCsvRows(deals) {
   const head = ['opportunity', 'account', 'account_type', 'project', 'mw', 'stage', 'tariff_r_kwh', 'tenor_years',
     'probability_pct', 'annual_value_r', 'lifetime_value_r', 'weighted_value_r', 'close_date', 'notes'];
-  const rows = [head].concat(state.deals.map(d => {
+  return [head].concat(deals.map(d => {
     const stage = PIPELINE_STAGES.find(s => s.id === d.stage);
     const acc = dealAccount(d);
     return [d.name, acc.name, acc.kind, getProject(d.projectId).name || '', d.mw,
@@ -1075,8 +1086,11 @@ function exportPipeline() {
       Math.round(dealAnnualValue(d)), Math.round(dealLifetimeValue(d)), Math.round(weightedValue(d)),
       d.closeDate, d.notes];
   }));
-  downloadCSV('aee-pipeline-' + todayISO() + '.csv', rows);
-  toast('Exported ' + state.deals.length + ' opportunities');
+}
+function exportPipeline(deals) {
+  const rows = deals || state.deals;
+  downloadCSV('aee-pipeline-' + todayISO() + '.csv', pipelineCsvRows(rows));
+  toast('Exported ' + rows.length + ' opportunities');
 }
 
 /* Import contacts from CSV. Header row is matched loosely so a list

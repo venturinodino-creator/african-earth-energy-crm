@@ -40,7 +40,7 @@ function run(over) {
   }, over);
   const ctx = vm.createContext({
     ...scopeStubs(state),
-    console, setTimeout: () => 0, document: { querySelectorAll: () => [] }, esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '',
+    console, setTimeout: () => 0, document: { getElementById: () => null, querySelectorAll: () => [] }, esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '',
     jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))), sectorName: s => s, STATUS_LABEL: { engaged: 'Engaged', prospect: 'Prospect' }, avatarColor: () => '#555',
     viewToggle: k => '<div class="view-toggle" data-key="' + k + '"></div>',
     SF_STAGES: STAGES, PIPELINE_STAGES: STAGES, LEGACY_STAGE_LABELS: {}, CAPACITY_FACTOR: 0.3,
@@ -51,7 +51,7 @@ function run(over) {
     exportPipeline() {}, openAddDeal() {}, loadFinderCache() {}, refreshFinderFromServer() {},
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; }, state,
   });
-  vm.runInContext(read('layout.js') + '\n' + read('views-dashboard.js') + '\n' + read('views-pipeline.js') + '\nrenderPipeline();', ctx);
+  vm.runInContext(read('layout.js') + '\n' + read('selection.js') + '\n' + read('views-dashboard.js') + '\n' + read('views-pipeline.js') + '\nrenderPipeline();', ctx);
   return out;
 }
 

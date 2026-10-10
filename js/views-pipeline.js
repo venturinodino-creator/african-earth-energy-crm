@@ -34,11 +34,13 @@ function renderPipeline() {
   /* The pipeline follows the province scope: its accounts, and the opportunities open on them. */
   const open = liveDeals(scopedDeals());
   const working = pipelineAccounts();
+  /* A ticked account belongs to what is showing now: another reading, the stalled filter or province drops it. */
+  selectionSync('pipeline', JSON.stringify([state.pipeView, state.pipeStalled, state.province]));
   setPage('Pipeline',
     working.length + ' account' + (working.length === 1 ? '' : 's') + ' being worked · ' +
     open.length + ' live opportunit' + (open.length === 1 ? 'y' : 'ies') + ' · ' +
     fmtNum(pipelineMw(scopedDeals())) + ' MW under discussion',
-    '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
+    exportButtonHtml('exportPipeline(scopedDeals())', scopedDeals().length) +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
   /* The three readings of the one pipeline are tabs, the way Priority list and
@@ -53,9 +55,11 @@ function renderPipeline() {
   }
 
   if (state.pipeView === 'table') {
-    setContent(tabs + pipelineStats() + accountTableHtml() +
+    setContent(tabs + pipelineStats() + selectionSlotHtml('pipeline') + accountTableHtml() +
       '<div class="fg-hint" style="margin-top:12px">The table reads the whole pipeline in stage order, one row ' +
-      'per company. Switch back to the board to move one between stages by dragging it.</div>');
+      'per company. Switch back to the board to move one between stages by dragging it. Export selected ' +
+      'downloads the opportunities open on the accounts you tick.</div>');
+    selectionRefresh();
     return;
   }
 
@@ -281,6 +285,7 @@ function accountTableHtml() {
     noun: list.length === 1 ? 'account' : 'accounts', page: 1, pages: 1,
   });
   return tableCardHtml('<div class="table-wrap"><table><thead><tr>' +
+    selectionHeadCellHtml('pipeline', list.map(o => o.id)) +
     '<th>Account</th><th>Sector</th><th>Stage</th><th class="num">GWh/yr</th>' +
     '<th class="num">Open MW</th><th class="num">Weighted</th><th class="num">Fit</th><th>In stage</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
@@ -290,8 +295,9 @@ function accountTableHtml() {
       const mw = open.reduce((a, d) => a + num(d.mw), 0);
       const weighted = open.reduce((a, d) => a + weightedValue(d), 0);
       return '<tr>' +
-        '<td><span class="ext-link" style="cursor:pointer" onclick="nav(' + jsStr(accountView(o.id)) +
-          ',{id:' + jsStr(o.id) + '})">' + esc(o.short || o.name) + '</span></td>' +
+        selectionCellHtml('pipeline', o.id, o.short || o.name) +
+        '<td><div class="name-cell">' + avatarTileHtml(o.name) + '<span class="ext-link" style="cursor:pointer" onclick="nav(' + jsStr(accountView(o.id)) +
+          ',{id:' + jsStr(o.id) + '})">' + esc(o.short || o.name) + '</span></div></td>' +
         '<td>' + esc(sectorName(o.sector)) + '</td>' +
         '<td>' + sfStageBadge(o) + '</td>' +
         '<td class="num">' + (isUnworked(o) ? '<span style="color:var(--muted)">—</span>' : fmtNum(o.annualGwh)) + '</td>' +

@@ -36,6 +36,7 @@ function env(over) {
   }, over);
   const ctx = vm.createContext({
     ...scopeStubs(state),
+    document: { getElementById: () => null, querySelectorAll: () => [] },
     console, esc, num, fmtNum: v => String(Math.round(num(v))), icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))), safeHref: u => /^https?:/.test(u || '') ? u : '',
     initials: (a, b) => (a || '')[0] + (b || '')[0], avatarColor: () => '#555', sectorIcon: () => '', sectorBadge: s => '<span class="badge">' + s + '</span>', sectorName: s => s,
     sectorOptions: () => '', STATUS_LABEL: { prospect: 'Prospect' }, fitScore: () => 70, fitColor: () => '#000', nearestProject: () => null, distanceLabel: () => '', loadFactor: () => 0.5,
@@ -45,7 +46,7 @@ function env(over) {
     SA_MUNICIPALITIES: [], loadFinderCache() {}, refreshFinderFromServer() {}, growBars() {}, PER_PAGE: 20,
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; }, state,
   });
-  vm.runInContext(read('layout.js') + '\n' + read('views-offtakers.js'), ctx);
+  vm.runInContext(read('layout.js') + '\n' + read('selection.js') + '\n' + read('views-offtakers.js'), ctx);
   return { ctx, out, state, run: fn => { vm.runInContext(fn + '();', ctx); return { out, ctx, state }; } };
 }
 
