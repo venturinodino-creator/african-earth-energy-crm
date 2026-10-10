@@ -11,6 +11,10 @@ const STORE_PREFIX = 'aee_crm_';
 const SEED_VERSION = 'v1';
 const PER_PAGE = 20;
 
+/* The nine provinces, in the order the top-bar switcher lists them. */
+const SA_PROVINCES = ['Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo',
+  'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'];
+
 let state = {
   offtakers: [],
   pm: null,              // ProjectManager.com copy (Projects page); null until loaded
@@ -58,7 +62,13 @@ let state = {
      Prospects filters — a lead has no stage and so cannot stall. */
   pipeStalled: '',
 
-  offSearch: '', offSector: '', offStatus: '', offProvince: '',
+  /* The province scope: one filter for the whole app, set from the top bar and
+     remembered on this device. The province filters the pages grew for themselves
+     (offProvince, muniProvince, newsProvince, cfProvince) are the same setting
+     under their old names; see linkProvinceFilters. */
+  province: storedProvince(),
+
+  offSearch: '', offSector: '', offStatus: '',
   offSort: { field: 'fit', dir: 'desc' },
   offPage: 1,
 
@@ -73,14 +83,13 @@ let state = {
   prospectSearch: '', prospectSector: '', prospectTier: '', prospectStatus: '',
   prospectPage: 1,
 
-  muniSearch: '', muniProvince: '', muniCat: '', muniWorked: '',
+  muniSearch: '', muniCat: '', muniWorked: '',
   muniSort: { field: 'name', dir: 'asc' },
   muniPage: 1,
 
-  newsTopic: 'all', newsProvince: '', newsSearch: '',
+  newsTopic: 'all', newsSearch: '',
 
   /* Contact finder: the scope a discovery run will be queued against. */
-  cfProvince: '',
   cfTarget: 'mining',
   cfRoles: ['decision'],
   contactRuns: null, foundContacts: null,
@@ -88,6 +97,7 @@ let state = {
   mapFilter: 'all',
   pbFilter: '',
 };
+linkProvinceFilters(state);
 
 /* ─── GRID / TABLE TOGGLE ─────────────────────────────────────────
    Every list view offers the same two readings of the same records: cards
@@ -1174,7 +1184,68 @@ function provincesOf(text) {
   return String(text || '').split('/').map(p => provinceFromText(p)).filter(Boolean);
 }
 function inProvince(o, province) { return provincesOf(o && o.province).includes(province); }
-function provinceChoices(list) { return [...new Set(list.flatMap(o => provincesOf(o.province)))].sort(); }
+/* The provinces a list can be filtered by. The chosen province stays on offer even when
+   nothing in this list sits there, so a select always shows what is narrowing the page. */
+function provinceChoices(list) {
+  const found = list.flatMap(o => provincesOf(o.province));
+  return [...new Set(state.province ? found.concat(state.province) : found)].sort();
+}
+
+/* ─── PROVINCE SCOPE ──────────────────────────────────────────────
+   One province filter for the whole app. The switcher in the top bar sets it;
+   every page that lists records narrows to it. It is remembered on this device.
+   "" means all provinces. A company that spans provinces is in scope for either. */
+function storedProvince() {
+  try {
+    const v = localStorage.getItem(STORE_PREFIX + 'province');
+    return SA_PROVINCES.includes(v) ? v : '';
+  } catch (e) { return ''; }
+}
+
+/* Is a record whose province reads `provinceText` inside `scope`? */
+function provinceInScope(scope, provinceText) {
+  return !scope || provincesOf(provinceText).includes(scope);
+}
+function inScope(o) { return provinceInScope(state.province, o && o.province); }
+
+/* Anything that is not one of the nine provinces means all of them, so a stale or
+   mistyped value can never narrow the app to nothing. True when the scope changed. */
+function setProvince(p) {
+  const v = SA_PROVINCES.includes(p) ? p : '';
+  const changed = v !== state.province;
+  state.province = v;
+  try { localStorage.setItem(STORE_PREFIX + 'province', v); } catch (e) {}
+  syncProvinceSwitch();
+  return changed;
+}
+
+/* The pages that grew their own province select keep their old names for it
+   (offProvince, muniProvince, newsProvince, cfProvince). They are now the same
+   setting as the switcher: reading one gives the scope, writing one sets it, so
+   there is one province filter in the app and never two that disagree. */
+function linkProvinceFilters(s) {
+  ['offProvince', 'muniProvince', 'newsProvince', 'cfProvince'].forEach(k =>
+    Object.defineProperty(s, k, { get: () => s.province, set: v => { setProvince(v); }, enumerable: false, configurable: true }));
+}
+
+function provinceSwitchHtml(chosen) {
+  return '<option value="">All provinces</option>' + SA_PROVINCES.map(p =>
+    '<option value="' + p + '"' + (p === chosen ? ' selected' : '') + '>' + p + '</option>').join('');
+}
+function syncProvinceSwitch() {
+  const el = document.getElementById('province-switch');
+  if (!el) return;
+  el.innerHTML = provinceSwitchHtml(state.province);
+  el.value = state.province;
+  el.classList.toggle('on', !!state.province);
+}
+
+/* The top-bar switcher. Sizes change with the scope, so every list goes back to page one. */
+function onProvinceSwitch(p) {
+  setProvince(p);
+  state.offPage = state.contactPage = state.muniPage = state.prospectPage = 1;
+  render();
+}
 
 /* A municipality named in a contact file's company column. Accepts what
    people actually write — "Polokwane", "Polokwane Local Municipality",
@@ -1633,6 +1704,7 @@ async function onSignedIn(session) {
 
 async function boot() {
   document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon, 17); });
+  syncProvinceSwitch();
   showGate('<div class="gate-card"><div class="gate-spinner"></div><p class="gate-sub">Checking your session…</p></div>');
 
   await initSupabase();

@@ -166,14 +166,20 @@ function finderScopeAccounts(target, offtakers, mainMunis, province) {
   /* Filtered again here so a caller handing over every municipality
      still gets only the main ones. */
   const pool = finderIsMuni(target) ? mainMunis.filter(muniIsMain) : offtakers.filter(o => o.sector === target);
-  return province ? pool.filter(a => a.province === province) : pool;
+  return province ? pool.filter(a => finderProvincesOf(a).includes(province)) : pool;
+}
+
+/* The provinces an account sits in. A company that spans two reads
+   "Mpumalanga / Limpopo" and is in scope for either. */
+function finderProvincesOf(a) {
+  return String((a && a.province) || '').split('/').map(s => s.trim()).filter(Boolean);
 }
 
 /* The provinces present in the target, so the filter cannot offer an
    empty set. */
 function finderProvinces(target, offtakers, mainMunis) {
   return [...new Set(finderScopeAccounts(target, offtakers, mainMunis, '')
-    .map(a => a.province).filter(Boolean))].sort();
+    .flatMap(a => finderProvincesOf(a)))].sort();
 }
 
 /* The run that queuing writes. The ids are what the agent is pointed at:
@@ -303,20 +309,20 @@ function finderTargetBar() {
   '</div>';
 }
 
-/* A province that is not in the new target would filter it to nothing,
-   so it is cleared rather than carried across. */
+/* The province is the app-wide scope, so a target with nobody in it simply
+   shows nothing in scope; it is not cleared here, because that would change
+   every other page too. */
 function setFinderTarget(key) {
   state.cfTarget = key;
-  if (state.cfProvince &&
-      !finderProvinces(key, state.offtakers, finderMainMunis()).includes(state.cfProvince)) {
-    state.cfProvince = '';
-  }
   renderContactFinder();
 }
 
 /* Roles use the same chip language, plus the narrowing select. */
 function finderRoleBar(scoped) {
+  /* The chosen province stays on offer even when this target has nobody there. */
   const provinces = finderProvinces(state.cfTarget, state.offtakers, finderMainMunis());
+  if (state.province && !provinces.includes(state.province)) provinces.push(state.province);
+  provinces.sort();
   const isMuni = finderIsMuni(state.cfTarget);
   const nounOne = isMuni ? 'municipality' : 'offtaker';
   const nounPlural = isMuni ? 'municipalities' : 'offtakers';

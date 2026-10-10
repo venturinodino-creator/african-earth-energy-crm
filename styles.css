@@ -108,6 +108,12 @@ h1,h2,h3,h4,.stat-value,.dh-metric-v,.ec-metric-v,.calc-tile-v,.ia-tile-n{font-f
 .topbar{background:var(--card);padding:10px 22px;display:flex;align-items:center;gap:10px;
   position:sticky;top:0;z-index:50;border-bottom:1px solid var(--border)}
 .topbar-spacer{flex:1 1 auto}
+/* The province scope. Tinted while a province is chosen, so a narrowed app never looks like the whole book. */
+.province-switch{flex:0 0 auto;max-width:176px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;
+  background:var(--bg3);color:var(--text);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.province-switch.on{border-color:color-mix(in srgb,var(--accent) 45%,transparent);color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 8%,var(--bg3))}
+.province-switch:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .page-head{padding:22px 22px 0}
 .ph-row{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
 .ph-text{min-width:0}
@@ -636,9 +642,11 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
   .sb.open{transform:translateX(0);box-shadow:0 0 40px rgba(31,20,16,0.30)}
   .sb-scrim.open{display:block;position:fixed;inset:0;background:rgba(31,20,16,0.45);z-index:90}
   .main{margin-left:0;min-width:0}
-  .topbar{padding:9px 14px;gap:8px}
-  .gs-wrap{flex:1 1 auto}
+  /* Two rows: search across the top, then the province, + New and the account. */
+  .topbar{padding:9px 14px;gap:8px;flex-wrap:wrap}
+  .gs-wrap{flex:1 1 100%}
   .topbar-spacer{display:none}
+  .province-switch{flex:1 1 0;min-width:0;max-width:none}
   .page-head{padding:16px 14px 0}
   .ph-text h2{font-size:20px}
   .content{padding:14px 14px 88px}

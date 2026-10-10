@@ -26,11 +26,13 @@ function offSortVal(o, field) {
 /* Open the company list showing exactly the rows a number was made of.
    Every other filter is cleared first: a figure on the dashboard counts
    the whole book, so landing on a list still narrowed by whatever was
-   set last would contradict the number that was just clicked. */
+   set last would contradict the number that was just clicked. The province
+   scope is the exception. It belongs to the whole app, not to this list, so
+   it stays where the rep put it. */
 function openOfftakersFiltered(filters) {
   state.offArchive = false;
   state.offSearch = ''; state.offSector = '';
-  state.offStatus = ''; state.offProvince = '';
+  state.offStatus = '';
   Object.assign(state, filters);
   state.offPage = 1;
   nav('offtakers');
@@ -65,7 +67,7 @@ function offTabsHtml() {
 
 function setOffArchive(v) {
   state.offArchive = v;
-  state.offSearch = ''; state.offSector = ''; state.offStatus = ''; state.offProvince = '';
+  state.offSearch = ''; state.offSector = ''; state.offStatus = '';
   state.offPage = 1;
   renderOfftakers();
 }

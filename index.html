@@ -129,6 +129,9 @@
       <div id="global-search-results" class="gs-results"></div>
     </div>
     <div class="topbar-spacer"></div>
+    <!-- The province scope: one filter for the whole app, for admins and viewers alike. js/core.js fills it. -->
+    <select class="province-switch" id="province-switch" aria-label="Province" title="Show one province, or all"
+            onchange="onProvinceSwitch(this.value)"></select>
     <!-- + New: every create action that exists. Admin-only, like the buttons it mirrors. -->
     <div class="menu-wrap" id="new-menu-wrap" data-admin-only>
       <button class="btn btn-primary" id="new-btn" onclick="toggleMenu('new-menu', event)" aria-haspopup="menu" aria-expanded="false">
