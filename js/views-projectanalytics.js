@@ -284,8 +284,8 @@ function paHtml(opts) {
 
 /* The Analytics mode of the Projects page. */
 function renderProjectAnalytics() {
-  setPage('Project analytics', 'portfolio overview and progress, from the ProjectManager.com plans', projectsModeToggle());
+  setPage('Project analytics', 'portfolio overview and progress, from the ProjectManager.com plans', '');
   if (state.paLock) paFilters().project = '';      // coming back from a site's own dashboard: start from the whole portfolio
   state.paLock = '';
-  setContent(paGuideHtml() + paHtml());
+  setContent(projectsTabsHtml() + paGuideHtml() + paHtml());
 }

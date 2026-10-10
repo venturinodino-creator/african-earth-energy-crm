@@ -98,7 +98,7 @@ function projectNotesHtml(site) {
   const pmId = m.p.id;
   const notes = state.pm.notes.filter(n => n.project_id === pmId).slice(0, 6);
   const name = id => { const t = state.pm.tasks.find(x => x.id === id); return t ? t.name : ''; };
-  return '<div class="card" style="margin-top:14px"><div class="card-header"><div><div class="card-title">Notes</div>' +
+  return '<div class="card"><div class="card-header"><div><div class="card-title">Notes</div>' +
     '<div class="card-sub">from people and agents, on the project and its tasks</div></div></div>' +
     (notes.length ? notes.map(n => '<div class="mkt-row" style="align-items:flex-start"><div style="min-width:0">' +
       (n.task_id ? '<div class="mkt-note">' + esc(name(n.task_id)) + '</div>' : '') +
@@ -147,14 +147,17 @@ function projectSiteHtml(site) {
       statTile('check', 'green', 'Signed', fmtNum(signed) + ' MW', fmtNum(committed) + ' MW committed in all') +
       statTile('target', 'purple', 'Still to sell', fmtNum(Math.max(0, num(site.mw) - committed)) + ' MW', Math.round(pct) + '% allocated') +
     '</div>' +
-    '<div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">The site</div></div>' +
-      '<div class="fit-row"><span>Allocated</span><span style="color:' + allocationColor(pct) + '">' + Math.round(pct) + '%</span></div>' +
-      '<div class="fit-bar"><span data-w="' + pct + '" style="background:' + allocationColor(pct) + '"></span></div>' +
-      '<div style="font-size:12.5px;color:var(--muted2);line-height:1.6;margin-top:10px">' + esc(site.note) + '</div>' +
-      '<div class="mkt-note" style="margin-top:8px">' + esc(site.town) + ', ' + esc(site.province) + ' &middot; ' +
-        (site.lat != null ? site.lat + ', ' + site.lng + ' &middot; ' : '') + 'status ' + esc(site.status || 'development') + '</div></div>' +
-    '<div class="grid-2">' + projectDeliveryHtml(site) + projectBuyersHtml(site) + '</div>' +
-    '<div style="margin-top:14px">' + projectNearbyHtml(site) + '</div>' + projectNotesHtml(site);
+    /* One card grid: the site across the full width, then the delivery and the
+       buyers side by side, then the nearby prospects and the notes. */
+    '<div class="card-grid">' +
+      '<div class="card span-all"><div class="card-header"><div class="card-title">The site</div></div>' +
+        '<div class="fit-row"><span>Allocated</span><span style="color:' + allocationColor(pct) + '">' + Math.round(pct) + '%</span></div>' +
+        '<div class="fit-bar"><span data-w="' + pct + '" style="background:' + allocationColor(pct) + '"></span></div>' +
+        '<div style="font-size:12.5px;color:var(--muted2);line-height:1.6;margin-top:10px">' + esc(site.note) + '</div>' +
+        '<div class="mkt-note" style="margin-top:8px">' + esc(site.town) + ', ' + esc(site.province) + ' &middot; ' +
+          (site.lat != null ? site.lat + ', ' + site.lng + ' &middot; ' : '') + 'status ' + esc(site.status || 'development') + '</div></div>' +
+      projectDeliveryHtml(site) + projectBuyersHtml(site) + projectNearbyHtml(site) + projectNotesHtml(site) +
+    '</div>';
 }
 
 /* ─── THE GUIDE CARD ──────────────────────────────────────────────────
@@ -221,12 +224,21 @@ function renderProject() {
   const tab = state.projectTab === 'plan' ? 'plan' : 'overview';
   const m = projectPmFor(site.id);
   const tabs = [['overview', 'Overview'], ['plan', 'Project plan' + (m ? ' (' + pmProjectTasks(m.p.id).filter(pmIsLeaf).length + ' tasks)' : '')]];
-  setPage(site.name, site.town + ', ' + site.province + ' \u00b7 COD ' + site.cod, '');
-  setContent(
+  /* A record page: the breadcrumb (Projects / Site) is the page header, the
+     header card carries the name, and the tabs sit under the guide card. */
+  setPage(site.name, site.town + ', ' + site.province + ' \u00b7 COD ' + site.cod, '', { record: true });
+  const head = '<div class="record-head">' +
+    '<div class="rh-icon">' + icon('sun', 24) + '</div>' +
+    '<div class="rh-text"><h3 class="rh-title">' + esc(site.name) + '</h3>' +
+      '<div class="rh-chips">' +
+        '<span class="badge b-solar">Solar PV</span><span class="badge b-bess">BESS</span>' +
+        '<span class="chip">' + fmtNum(site.mw) + ' MW</span>' +
+        '<span class="chip">COD ' + esc(site.cod) + '</span>' +
+        '<span class="chip">' + icon('pin', 11) + ' ' + esc(site.town) + ', ' + esc(site.province) + '</span>' +
+      '</div></div><div class="rh-actions"></div></div>';
+  setContent(head +
     projectGuideHtml(site, tab, m) +
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">' +
-      '<button class="btn btn-ghost btn-sm" onclick="nav(\'projects\')">&larr; All projects</button>' +
-      '<div class="view-toggle">' + tabs.map(([k, l]) => '<button class="vt-btn ' + (tab === k ? 'active' : '') + '" onclick="projectSetTab(\'' + k + '\')">' + esc(l) + '</button>').join('') + '</div></div>' +
+    viewTabsHtml(tabs.map(([k, l]) => ({ label: l, active: tab === k, on: "projectSetTab('" + k + "')" }))) +
     (tab === 'plan' ? projectPlanHtml(site) : projectOverviewHtml(site, m)));
   growBars();
 }

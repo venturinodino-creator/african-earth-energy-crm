@@ -63,7 +63,7 @@ function env({ role = 'admin' } = {}) {
   vm.createContext(ctx);
   vm.runInContext(root('data/seed.js') + '\nthis.SITES = AEE_PROJECTS;', ctx);
   ctx.state.projects = ctx.SITES;
-  vm.runInContext(root('js/pmanalytics-core.js') + '\n' + root('js/views-projectplans.js') + '\n' + root('js/views-projectanalytics.js') + '\n' + root('js/views-projectprofile.js') + `
+  vm.runInContext(root('js/layout.js') + '\n' + root('js/pmanalytics-core.js') + '\n' + root('js/views-projectplans.js') + '\n' + root('js/views-projectanalytics.js') + '\n' + root('js/views-projectprofile.js') + `
     function projectCommitted(p) { return state.deals.filter(d => d.projectId === p.id && d.stage !== 'lost').reduce((s, d) => s + num(d.mw), 0); }
     function projectSigned(p) { return state.deals.filter(d => d.projectId === p.id && d.stage === 'closed').reduce((s, d) => s + num(d.mw), 0); }
     function allocationColor(pct) { return 'var(--accent)'; }`, ctx);
@@ -156,7 +156,7 @@ test('an unknown site goes back to the list', () => {
 test('a guide card sits above the tabs and says what the page is, with the site\'s live figures', () => {
   const e = env(); const h = render(e, 'middelburg');
   assert.ok(h.includes('What you are looking at'));
-  assert.ok(h.indexOf('What you are looking at') < h.indexOf('All projects'), 'the card comes first, above the back button and tabs');
+  assert.ok(h.indexOf('What you are looking at') < h.indexOf('view-tabs'), 'the card comes above the tabs (the breadcrumb replaced the back button)');
   assert.ok(h.includes('Middelburg Solar Farm + BESS') && h.includes('49 MW') && h.includes('Mpumalanga') && h.includes('2029'), 'the site');
   assert.ok(/0 MW signed, 20 MW in discussion and 29 MW still to sell/.test(h), 'the commercial position');
   assert.ok(/of the work is done against \d+% planned; 1 task is past its finish date/.test(h), 'the delivery position: Rezoning is the one late task');
@@ -222,7 +222,7 @@ test('every site\'s guide renders on every tab', () => {
   e.ctx.state.projects.forEach(p => ['overview', 'plan'].forEach(tab => {
     e.ctx.state.projectId = p.id; e.ctx.state.projectTabFor = p.id; e.ctx.state.projectTab = tab;
     vm.runInContext('renderProject()', e.ctx);
-    assert.ok(e.html.includes('What you are looking at') && !/undefined|NaN/.test(e.html.slice(0, e.html.indexOf('All projects'))), p.id + ' / ' + tab);
+    assert.ok(e.html.includes('What you are looking at') && !/undefined|NaN/.test(e.html.slice(0, e.html.indexOf('view-tabs'))), p.id + ' / ' + tab);
   }));
 });
 

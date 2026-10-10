@@ -140,6 +140,10 @@ console.log('\nBreadcrumb');
     assert.ok(/nav\('detail'/.test(c[1].on), 'account crumb links to the account');
     assert.ok(!c[2].on, 'the current page is not a link');
   });
+  test('a site is under Projects', () => {
+    const f = fn('crumbsFor', Object.assign(stubs('project', null, {}), { state: { view: 'project', projectId: 's1', projects: [{ id: 's1', name: 'Middelburg Solar Farm' }] } }));
+    assert.deepStrictEqual(Array.from(f('project')).map(c => c.label), ['Projects', 'Middelburg Solar Farm']);
+  });
   test('every other page keeps the plain way back to the Dashboard', () => {
     const c = crumbs('news', null, {});
     assert.deepStrictEqual(c.map(x => x.label), ['Dashboard']);

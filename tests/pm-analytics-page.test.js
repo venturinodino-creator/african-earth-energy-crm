@@ -36,7 +36,7 @@ function env({ role = 'admin', many = 0 } = {}) {
   const store = {};
   const ctx = {
     console, esc, fmtNum: v => String(Math.round(Number(v) || 0)), pmShortDate: d => String(d || '').slice(0, 10), pmCanEdit: () => role === 'admin',
-    pmSiteIdFor: () => null, pmSiteGuessFor: () => null, nav() {}, setPage() {}, setContent(h) { calls.content = h; }, projectsModeToggle: () => '',
+    pmSiteIdFor: () => null, pmSiteGuessFor: () => null, nav() {}, setPage() {}, setContent(h) { calls.content = h; }, projectsTabsHtml: () => '',
     renderProject() { calls.renders++; }, renderProjects() { calls.projects++; }, renderAnalytics() { calls.analytics++; },
     lsGet: (k, d) => (k in store ? store[k] : d), lsSet: (k, v) => { store[k] = v; },
     state: { view: 'projects', pm: {

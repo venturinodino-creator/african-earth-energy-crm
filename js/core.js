@@ -800,6 +800,10 @@ function crumbsFor(view) {
         : [parent, { label: name, on: 'nav(\'detail\',{id:' + jsStr(o.id) + '})' }, { label: 'Org map' }];
     }
   }
+  if (view === 'project') {
+    const site = state.projects.find(p => p.id === state.projectId);
+    if (site) return [{ label: 'Projects', on: "nav('projects')" }, { label: site.name }];
+  }
   return [{ label: 'Dashboard', on: "nav('dashboard')", back: true }];
 }
 
