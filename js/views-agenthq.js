@@ -153,15 +153,18 @@ function renderAgentHQ() {
       statTile('contacts', 'blue', 'People found', fmtNum(finds.length), 'across ' + runs.length + ' runs') +
       statTile('target', 'purple', 'To review', String(pending), 'nothing is added until accepted') +
     '</div>' +
-    '<div class="card"><div class="card-header"><div><div class="card-title">Agents</div>' +
+    /* The run tables are seven columns wide, so each card takes the full width of the grid. */
+    '<div class="card-grid">' +
+    '<div class="card span-all"><div class="card-header"><div><div class="card-title">Agents</div>' +
       '<div class="card-sub">The research agents defined for this CRM</div></div></div>' +
       AHQ_ROSTER.map(a => ahqRosterRowHtml(a, runs, finds)).join('') + '</div>' +
-    '<div class="card" style="margin-top:14px"><div class="card-header"><div><div class="card-title">Working now</div>' +
+    '<div class="card span-all"><div class="card-header"><div><div class="card-title">Working now</div>' +
       '<div class="card-sub">Running, stalled and waiting runs</div></div></div>' +
       (active.length ? table(active) : '<div class="fg-hint">No agent is running or queued. Queue a run from the Contact finder.</div>') + '</div>' +
-    '<div class="card" style="margin-top:14px"><div class="card-header"><div><div class="card-title">Recent runs</div>' +
+    '<div class="card span-all"><div class="card-header"><div><div class="card-title">Recent runs</div>' +
       '<div class="card-sub">The last ' + recent.length + ' finished or failed</div></div></div>' +
       (recent.length ? table(recent) : '<div class="fg-hint">Nothing has finished yet.</div>') + '</div>' +
+    '</div>' +
     '<div class="fg-hint" style="margin-top:10px">Updates every ' + (AHQ_POLL_MS / 1000) + ' seconds while this page is open. ' +
       'Agents run outside the browser; this page shows their rows in the queue. A run claimed more than ' + AHQ_STALL_MIN + ' minutes ago and not finished is marked stalled.</div>');
 

@@ -63,19 +63,13 @@ function renderNews() {
     ' topics · mining, power and PPA activity by province',
     '<button class="btn btn-outline btn-sm" onclick="exportNews()">' + icon('download', 14) + ' Export</button>');
 
-  /* Chip row: All Topics, then Summary, then one chip per topic —
-     the order in the reference design. */
-  const chip = (id, label) => '<button class="news-filter-btn' + (state.newsTopic === id ? ' active' : '') +
-    '" onclick="setNewsTopic(\'' + id + '\')">' + esc(label) + '</button>';
-
-  const summaryChip = '<button class="news-summary-btn' + (state.newsTopic === 'summary' ? ' active' : '') +
-    '" onclick="setNewsTopic(\'summary\')" title="Executive read of the stories currently in scope">' +
-    icon('note', 13) + ' Summary</button>';
-
-  const chips = '<div class="news-filter-bar">' +
-    chip('all', 'All Topics') + summaryChip +
-    Object.entries(NEWS_TOPICS).map(([id, t]) => chip(id, t.label)).join('') +
-    '</div>';
+  /* Tab row: All Topics, then Summary, then one tab per topic. Each topic
+     counts the stories the search and the province filter leave in scope. */
+  const topic = state.newsTopic || 'all';
+  const topicTab = (id, label, count) => ({ label, count, active: topic === id, on: "setNewsTopic('" + id + "')" });
+  const chips = viewTabsHtml(
+    [topicTab('all', 'All Topics', scope.length), topicTab('summary', 'Summary')].concat(
+      Object.entries(NEWS_TOPICS).map(([id, t]) => topicTab(id, t.label, scope.filter(a => a.topic === id).length))));
 
   const toolbar =
     '<div class="toolbar">' +
