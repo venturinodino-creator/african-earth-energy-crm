@@ -383,7 +383,7 @@ the Contact finder screen, and accepting is what creates the contact. How to run
 
 ## Research files
 
-`research/` holds the desk-research CSVs behind the contact data, split by lane so the three
+`research/` holds the desk-research behind the contact data, split by lane so the three
 efforts do not mix:
 
 | Folder | Holds |
@@ -394,8 +394,14 @@ efforts do not mix:
 | `research/sources/` | the source PDFs and text extractions the CSVs were read from, kept for provenance |
 
 `research/big-load-people-no-email.csv` sits at the top as the queue of people still
-needing an email. Each CSV carries a source URL and a confidence note on every row. The CSVs
-contain personal data about named people, so treat the repository accordingly.
+needing an email. Each CSV carries a source URL and a confidence note on every row.
+
+**The research CSVs are not in the repository.** They contain personal data about named
+people, and the site is published from this repo, so `.gitignore` keeps every CSV outside
+`data/` local to the desk's machine. They stay readable at these paths for the scripts that
+write and read them, and a private copy is kept beside the repo, in
+`african-earth-energy-crm-private/research/`. Only `research/sources/` is tracked. Earlier
+commits still hold the CSVs, so history is not clean of them.
 
 ## The page frame
 
