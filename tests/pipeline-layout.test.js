@@ -40,7 +40,7 @@ function run(over) {
   }, over);
   const ctx = vm.createContext({
     ...scopeStubs(state),
-    console, setTimeout: () => 0, document: { querySelectorAll: () => [] }, esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '',
+    console, setTimeout: () => 0, document: { getElementById: () => null, querySelectorAll: () => [] }, esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '',
     jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))), sectorName: s => s, STATUS_LABEL: { engaged: 'Engaged', prospect: 'Prospect' }, avatarColor: () => '#555',
     viewToggle: k => '<div class="view-toggle" data-key="' + k + '"></div>',
     SF_STAGES: STAGES, PIPELINE_STAGES: STAGES, LEGACY_STAGE_LABELS: {}, CAPACITY_FACTOR: 0.3,
@@ -51,7 +51,7 @@ function run(over) {
     exportPipeline() {}, openAddDeal() {}, loadFinderCache() {}, refreshFinderFromServer() {},
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; }, state,
   });
-  vm.runInContext(read('layout.js') + '\n' + read('views-dashboard.js') + '\n' + read('views-pipeline.js') + '\nrenderPipeline();', ctx);
+  vm.runInContext(read('layout.js') + '\n' + read('selection.js') + '\n' + read('views-dashboard.js') + '\n' + read('views-pipeline.js') + '\nrenderPipeline();', ctx);
   return out;
 }
 
@@ -91,6 +91,18 @@ test('the table is one card with a footer counting the accounts', () => {
   const o = run({ pipeView: 'table' });
   assert.ok(o.content.includes('<div class="table-card">') && o.content.includes('Showing 1–3 of 3 accounts'), o.content.match(/Showing[^<]*/));
   assert.strictEqual((o.content.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g) || []).length, 3);
+});
+
+test('the table has an avatar tile and a box on every account, a header box, and the bar slot above the card', () => {
+  const o = run({ pipeView: 'table' });
+  assert.strictEqual((o.content.match(/class="nm-tile"/g) || []).length, 3);
+  assert.ok(o.content.includes('class="sel-head"') && (o.content.match(/class="sel-row"/g) || []).length === 3);
+  assert.ok(o.content.indexOf('id="sel-bar"') > -1 && o.content.indexOf('id="sel-bar"') < o.content.indexOf('class="table-card"'));
+});
+test('the page Export names the opportunities it holds and exports exactly those in scope', () => {
+  const o = run({});
+  assert.ok(/Export <span class="btn-n">1<\/span>/.test(o.page.a), o.page.a);
+  assert.ok(o.page.a.includes('exportPipeline(scopedDeals())'));
 });
 
 console.log('\nFlow');

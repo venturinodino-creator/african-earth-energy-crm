@@ -47,6 +47,33 @@ function tableCardHtml(tableHtml, footerHtml) {
   return '<div class="table-card">' + tableHtml + (footerHtml || '') + '</div>';
 }
 
+/* Initials for an avatar. A company takes the first letters of its first two words, a
+   person their first and last name, and a one-word name its first two letters. A
+   bracketed short name ("(ARM)") and small joining words (of, the, and, for) are not
+   counted, so "City of Cape Town Metro" is CC and not CO. */
+function nameInitials(name) {
+  const words = String(name || '').replace(/\([^)]*\)/g, ' ').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const kept = words.filter(w => !/^(of|the|and|for)$/i.test(w));
+  const use = kept.length ? kept : words;
+  if (!use.length) return '?';
+  return (use.length === 1 ? use[0].slice(0, 2) : use[0][0] + use[1][0]).toUpperCase();
+}
+
+/* The avatar beside a name in a table or a list: initials in a rounded tile, tinted from
+   the name so a company keeps its colour on every page. */
+function avatarTileHtml(name) {
+  const color = avatarColor(name);
+  return '<span class="nm-tile" style="background:color-mix(in srgb,' + color + ' 16%,transparent);color:' + color +
+    '" aria-hidden="true">' + esc(nameInitials(name)) + '</span>';
+}
+
+/* The page's own Export button. It exports what the filters show, so it says how many
+   rows that is. `call` is the onclick expression. */
+function exportButtonHtml(call, count) {
+  return '<button class="btn btn-outline btn-sm" onclick="' + call + '">' + icon('download', 14) + ' Export' +
+    (count != null ? ' <span class="btn-n">' + esc(count) + '</span>' : '') + '</button>';
+}
+
 /* The card that opens a record page: an icon, the name, chips for what state it
    is in, one quiet line of description, and the actions that can be taken on it.
    The account page, a site, a sector and a municipality all open with this one,

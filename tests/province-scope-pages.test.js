@@ -174,9 +174,11 @@ test('the Dashboard counts scoped off-takers, deals, contacts and interactions',
 });
 test('Contacts reads scoped people and scoped companies', () => {
   const o = src('views-offtakers');
+  const filtered = /function contactsFiltered\(\) \{[\s\S]*?\n\}/.exec(o)[0];
+  assert.ok(filtered.includes('scopedContacts()'));
   const body = /function renderContacts\(\) \{[\s\S]*?\n\}/.exec(o)[0];
-  assert.ok(body.includes('scopedContacts()'));
-  assert.ok(!/state\.contacts\b/.test(body), 'renderContacts should not read state.contacts directly');
+  assert.ok(body.includes('contactsFiltered()'), 'the page and its Export read the same list');
+  assert.ok(!/state\.contacts\b/.test(body) && !/state\.contacts\b/.test(filtered), 'Contacts should not read state.contacts directly');
 });
 test('the Pipeline reads scoped deals', () => {
   const p = src('views-pipeline');

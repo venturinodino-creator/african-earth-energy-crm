@@ -276,6 +276,20 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .tf-note{color:var(--muted)}
 .pager{display:flex;align-items:center;gap:8px}
 
+/* Row selection: a box on every row, and a bar above the table once something is ticked. */
+thead th.sel-cell,tbody td.sel-cell{width:36px;padding-left:14px;padding-right:0}
+.sel-cell input{width:15px;height:15px;margin:0;accent-color:var(--accent);cursor:pointer;vertical-align:middle}
+.sel-slot:empty{display:none}
+.sel-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px;padding:8px 12px;font-size:12.5px;
+  background:color-mix(in srgb,var(--accent) 8%,var(--card));border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);
+  border-radius:10px}
+.sel-n{margin-right:auto;color:var(--text2)}
+/* Initials in a tile: the avatar beside a name in a table or list. The tint comes from the name. */
+.nm-tile{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;flex-shrink:0;
+  font-size:10px;font-weight:800;letter-spacing:.02em}
+.btn-n{display:inline-block;margin-left:3px;padding:0 6px;border-radius:9px;font-size:10.5px;font-weight:700;
+  background:color-mix(in srgb,var(--fg) 8%,transparent);font-variant-numeric:tabular-nums}
+
 /* ─── BADGES ──────────────────────────────────────────────────── */
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;letter-spacing:.2px}
 /* Sector badges are coloured by GROUP, not by sector — 30 sectors would be

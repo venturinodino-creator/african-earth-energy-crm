@@ -36,6 +36,7 @@ function env(over) {
   }, over);
   const ctx = vm.createContext({
     ...scopeStubs(state),
+    document: { getElementById: () => null, querySelectorAll: () => [] },
     console, esc, num, fmtNum: v => String(Math.round(num(v))), icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))), safeHref: u => /^https?:/.test(u || '') ? u : '',
     initials: (a, b) => (a || '')[0] + (b || '')[0], avatarColor: () => '#555', sectorIcon: () => '', sectorBadge: s => '<span class="badge">' + s + '</span>', sectorName: s => s,
     sectorOptions: () => '', STATUS_LABEL: { prospect: 'Prospect' }, fitScore: () => 70, fitColor: () => '#000', nearestProject: () => null, distanceLabel: () => '', loadFactor: () => 0.5,
@@ -45,7 +46,7 @@ function env(over) {
     SA_MUNICIPALITIES: [], loadFinderCache() {}, refreshFinderFromServer() {}, growBars() {}, PER_PAGE: 20,
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; }, state,
   });
-  vm.runInContext(read('layout.js') + '\n' + read('views-offtakers.js'), ctx);
+  vm.runInContext(read('layout.js') + '\n' + read('selection.js') + '\n' + read('views-offtakers.js'), ctx);
   return { ctx, out, state, run: fn => { vm.runInContext(fn + '();', ctx); return { out, ctx, state }; } };
 }
 
@@ -111,6 +112,17 @@ console.log('\nOff-taker Prospects');
     assert.ok(out.content.includes('Showing 1 of 1 leads') || out.content.includes('Showing 1 of 1 lead'), out.content.match(/Showing[^<]*/));
     assert.ok(out.content.includes('filters hide 2 of 3'));
   });
+  test('the table has an avatar tile, a header box and a box on every row', () => {
+    const { out } = env(Object.assign({ offView: 'table' }, book)).run('renderOfftakers');
+    assert.strictEqual((out.content.match(/class="nm-tile"/g) || []).length, 3, 'a tile on each lead');
+    assert.ok(out.content.includes('class="sel-head"') && (out.content.match(/class="sel-row"/g) || []).length === 3);
+    assert.ok(out.content.includes('id="sel-bar"'));
+  });
+  test('the page Export names the leads the filters leave, and exports exactly them', () => {
+    const { out } = env(Object.assign({ offSearch: 'alp' }, book)).run('renderOfftakers');
+    assert.ok(/Export <span class="btn-n">1<\/span>/.test(out.page.a), out.page.a);
+    assert.ok(out.page.a.includes('exportOfftakers(filteredOfftakers())'));
+  });
   test('the Archive tab is active in the archive, with its own footer', () => {
     const { out } = env(Object.assign({ offArchive: true }, book)).run('renderOfftakers');
     assert.ok(/view-tab active"[^>]*onclick="setOffArchive\(true\)">Archive/.test(out.content));
@@ -149,6 +161,19 @@ console.log('\nContacts');
     const { out } = env(Object.assign({ contactView: 'grid' }, book)).run('renderContacts');
     assert.ok(out.content.includes('class="table-foot standalone"') && out.content.includes('Showing 1–20 of 45 contacts'));
     assert.ok(!out.content.includes('class="table-card"'), 'a grid is not inside a table card');
+    assert.ok(!out.content.includes('id="sel-bar"'), 'rows are only selectable in the table');
+  });
+  test('the table has a header box, a box on every row, the bar slot, and group heads that span the new column', () => {
+    const { out } = env(book).run('renderContacts');
+    assert.ok(out.content.includes('class="sel-head"'), 'header box');
+    assert.strictEqual((out.content.match(/class="sel-row"/g) || []).length, 20, 'a box on each of the 20 rows');
+    assert.ok(out.content.includes('id="sel-bar"') && out.content.indexOf('id="sel-bar"') < out.content.indexOf('class="table-card"'), 'bar above the card');
+    assert.ok(out.content.includes('colspan="9"') && !out.content.includes('colspan="8"'));
+  });
+  test('the page Export names the contacts the filters leave, and exports exactly them', () => {
+    const { out } = env(Object.assign({ contactRole: 'technical' }, book)).run('renderContacts');
+    assert.ok(/Export <span class="btn-n">11<\/span>/.test(out.page.a), out.page.a);
+    assert.ok(out.page.a.includes('exportContacts(contactsFiltered().list)'));
   });
 }
 

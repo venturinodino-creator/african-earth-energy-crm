@@ -192,6 +192,8 @@ async function archiveOfftaker(id) {
 function renderOfftakers() {
   if (state.offArchive) { renderArchive(); return; }
   const list = filteredOfftakers();
+  /* A ticked row belongs to what is showing now: a new tab, filter, search or reading drops it. */
+  selectionSync('offtakers', JSON.stringify([state.offView, state.offSearch, state.offSector, state.offStatus, state.province]));
   const leads = prospectRecords();
   /* The header counts what the province scope leaves; the filters below are offered
      from every lead, so a province with nobody in it is still a choice. */
@@ -215,7 +217,7 @@ function renderOfftakers() {
         'Accept all ' + pendingFinds + ' found contact' + (pendingFinds === 1 ? '' : 's') + '</button>'
       : '') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
-    '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
+    exportButtonHtml('exportOfftakers(filteredOfftakers())', list.length) +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
 
   const provinces = provinceChoices(leads);
@@ -270,8 +272,9 @@ function renderOfftakers() {
   if (isGrid) {
     setContent(toolbar + '<div class="ent-grid">' + list.map(offtakerCardHtml).join('') + '</div>' + foot + note);
   } else {
-    setContent(toolbar + tableCardHtml(offtakerTableHtml(list), foot) + note);
+    setContent(toolbar + selectionSlotHtml('offtakers') + tableCardHtml(offtakerTableHtml(list), foot) + note);
   }
+  selectionRefresh();
   growBars();
 }
 
@@ -345,6 +348,7 @@ function offtakerTableHtml(list) {
   const s = state.offSort;
   const th = (field, label) => '<th class="' + thClass(field, s) + '" onclick="toggleSort(state.offSort,\'' + field + '\',renderOfftakers)">' + label + sortArrow(field, s) + '</th>';
   return '<div class="table-wrap"><table><thead><tr>' +
+    selectionHeadCellHtml('offtakers', list.map(o => o.id)) +
     th('name', 'Offtaker') + th('sector', 'Sector') + th('province', 'Province') +
     th('load', 'GWh/yr') + th('peak', 'Peak MW') + th('tariff', 'R/kWh') +
     th('distance', 'Nearest site') + th('fit', 'Fit') + th('status', 'Status') +
@@ -355,7 +359,8 @@ function offtakerTableHtml(list) {
     list.map(o => {
       const f = fitScore(o), np = nearestProject(o);
       return '<tr class="clickable" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' +
-        '<td><div class="name-cell"><span style="opacity:.6;display:flex">' + sectorIcon(o.sector, 15) + '</span>' +
+        selectionCellHtml('offtakers', o.id, o.short || o.name) +
+        '<td><div class="name-cell">' + avatarTileHtml(o.name) +
           '<div><div style="font-weight:700">' + esc(o.name) + '</div>' +
           '<div style="font-size:10.5px;color:var(--muted)">' + esc(o.city) + '</div></div></div></td>' +
         '<td>' + sectorBadge(o.sector) + '</td>' +
@@ -562,20 +567,26 @@ function contactSortVal(c, field) {
   }
 }
 
-function renderContacts() {
+/* The people the page lists, in the layers the page applies them. `people` are those in the
+   province scope (their company, or municipality, sits there); `base` is what the search and
+   the company filter leave, which the role tabs count; `list` is `base` narrowed to the chosen
+   role. The page and its Export both read this, so the file is exactly the list. */
+function contactsFiltered() {
   const term = state.contactSearch.toLowerCase();
-  /* The people in the province scope: their company (or municipality) sits there. */
   const people = scopedContacts();
-  /* The role tabs count what the search and the company filter leave, so each
-     tab says how many people it would show; the role itself is applied after. */
   const base = people.filter(c => {
     const o = contactAccountOf(c);
     if (term && !((c.first + ' ' + c.last + ' ' + c.title + ' ' + c.dept + ' ' + (o.name || '')).toLowerCase().includes(term))) return false;
     if (state.contactOfftaker && c.offtakerId !== state.contactOfftaker) return false;
     return true;
   });
-  let list = base.filter(c => !state.contactRole || c.role === state.contactRole);
-  list = sortBy(list, state.contactSort, contactSortVal);
+  return { people, base, list: base.filter(c => !state.contactRole || c.role === state.contactRole) };
+}
+
+function renderContacts() {
+  const { people, base, list: filtered } = contactsFiltered();
+  let list = sortBy(filtered, state.contactSort, contactSortVal);
+  selectionSync('contacts', JSON.stringify([state.contactView, state.contactRole, state.contactSearch, state.contactOfftaker, state.province, state.contactPage]));
 
   /* Group by account. A stable re-sort on the account's name keeps the
      chosen column order intact inside each group, so the page reads as
@@ -596,7 +607,7 @@ function renderContacts() {
   setPage('Contacts', people.length + ' people across ' +
     new Set(people.map(c => c.offtakerId).filter(Boolean)).size + ' companies',
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'contacts\')">' + icon('upload', 14) + ' Import CSV</button>' +
-    '<button class="btn btn-outline btn-sm" onclick="exportContacts()">' + icon('download', 14) + ' Export</button>' +
+    exportButtonHtml('exportContacts(contactsFiltered().list)', list.length) +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact()">' + icon('plus', 14) + ' Add contact</button>');
 
   const roleTab = (value, label) => ({
@@ -640,7 +651,8 @@ function renderContacts() {
   });
   setContent(toolbar + (isGrid
     ? contactGroupedGridHtml(page, groupCount) + foot
-    : tableCardHtml(contactTableHtml(page, groupCount), foot)));
+    : selectionSlotHtml('contacts') + tableCardHtml(contactTableHtml(page, groupCount), foot)));
+  selectionRefresh();
 }
 
 /* One heading per account, shared by the grid and the table so both
@@ -710,6 +722,7 @@ function contactTableHtml(page, groupCount) {
   const th = (field, label) => '<th class="' + thClass(field, s) + '" onclick="toggleSort(state.contactSort,\'' + field + '\',renderContacts)">' + label + sortArrow(field, s) + '</th>';
   let cur = null;
   return '<div class="table-wrap"><table><thead><tr>' +
+      selectionHeadCellHtml('contacts', page.map(c => c.id)) +
       th('last', 'Name') + th('title', 'Title') + th('offtaker', 'Company') +
       th('role', 'Role') + '<th>Email</th><th>Phone</th>' + th('priority', 'Priority') + '<th>Actions</th>' +
     '</tr></thead><tbody>' +
@@ -718,9 +731,10 @@ function contactTableHtml(page, groupCount) {
       let head = '';
       if ((c.offtakerId || '') !== cur) {
         cur = c.offtakerId || '';
-        head = '<tr><td colspan="8" style="padding:0 8px">' + contactGroupHeadHtml(c, groupCount) + '</td></tr>';
+        head = '<tr><td colspan="9" style="padding:0 8px">' + contactGroupHeadHtml(c, groupCount) + '</td></tr>';
       }
       return head + '<tr>' +
+        selectionCellHtml('contacts', c.id, c.first + ' ' + c.last) +
         '<td><div class="name-cell"><div class="av" style="background:' + avatarColor(c.first + c.last) + '">' +
           esc(initials(c.first, c.last).toUpperCase()) + '</div><div style="font-weight:700">' + esc(c.first + ' ' + c.last) + '</div></div></td>' +
         '<td>' + esc(c.title) + (c.dept ? '<div style="font-size:10.5px;color:var(--muted)">' + esc(c.dept) + '</div>' : '') + '</td>' +

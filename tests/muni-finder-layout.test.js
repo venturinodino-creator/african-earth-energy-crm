@@ -37,6 +37,7 @@ function env(files, over) {
     cfTarget: 'mining', cfRoles: ['decision'], cfProvince: '', cfShowAllRuns: false,
   }, over);
   const ctx = vm.createContext({
+    document: { getElementById: () => null, querySelectorAll: () => [] },
     console, esc, num, fmtNum: v => String(Math.round(num(v))), icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))), safeHref: u => /^https?:/.test(u || '') ? u : '',
     initials: (a, b) => (a || '')[0] + (b || '')[0], avatarColor: () => '#555', sortBy: l => l.slice(), thClass: () => 'sortable', sortArrow: () => '', toggleSort() {},
     viewToggle: k => '<div class="view-toggle" data-key="' + k + '"></div>', contactsFor: id => state.contacts.filter(c => c.offtakerId === id), interactionsFor: () => [],
@@ -45,7 +46,7 @@ function env(files, over) {
     ROLE_LABEL: { decision: 'Decision maker', influencer: 'Influencer', technical: 'Technical', gatekeeper: 'Gatekeeper' },
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; }, state,
   });
-  files.forEach(f => vm.runInContext(read(f) + '\n', ctx, { filename: f }));
+  files.concat(['js/selection.js']).forEach(f => vm.runInContext(read(f) + '\n', ctx, { filename: f }));
   return { ctx, out, state, run: fn => { vm.runInContext(fn + '();', ctx); return { out, ctx, state }; } };
 }
 const MUNI = ['data/municipalities.js', 'js/layout.js', 'js/views-municipalities.js'];
@@ -91,6 +92,19 @@ console.log('\nMunicipalities');
   test('a grid view keeps a footer and is not wrapped in a table card', () => {
     const { out } = env(MUNI, { muniView: 'grid' }).run('renderMunicipalities');
     assert.ok(out.content.includes('class="table-foot standalone"') && !out.content.includes('class="table-card"'));
+    assert.ok(!out.content.includes('id="sel-bar"'), 'rows are only selectable in the table');
+  });
+  test('the table has an avatar tile and a box on every row, a header box, and the bar slot above the card', () => {
+    const { out } = env(MUNI).run('renderMunicipalities');
+    assert.strictEqual((out.content.match(/class="nm-tile"/g) || []).length, 20);
+    assert.ok(out.content.includes('class="sel-head"') && (out.content.match(/class="sel-row"/g) || []).length === 20);
+    assert.ok(out.content.indexOf('id="sel-bar"') > -1 && out.content.indexOf('id="sel-bar"') < out.content.indexOf('class="table-card"'));
+  });
+  test('the page Export names the municipalities the filters leave, and exports exactly them', () => {
+    const { out } = env(MUNI, { muniCat: 'A' }).run('renderMunicipalities');
+    const metros = count("m.cat === 'A'");
+    assert.ok(new RegExp('Export <span class="btn-n">' + metros + '</span>').test(out.page.a), out.page.a);
+    assert.ok(out.page.a.includes('exportMunicipalities(filteredMunicipalities())'));
   });
   test('searching for nothing says so and keeps the tabs', () => {
     const { out } = env(MUNI, { muniSearch: 'zzzzzz' }).run('renderMunicipalities');

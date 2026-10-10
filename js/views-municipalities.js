@@ -92,6 +92,8 @@ function filteredMunicipalities(skipCat) {
 
 function renderMunicipalities() {
   const list = filteredMunicipalities();
+  /* A ticked row belongs to what is showing now: a new tab, filter, search or page drops it. */
+  selectionSync('municipalities', JSON.stringify([state.muniView, state.muniCat, state.muniSearch, state.province, state.muniWorked, state.muniPage]));
   const worked = SA_MUNICIPALITIES.filter(muniIsWorked).length;
   const people = state.contacts.filter(c => muniOf(c.offtakerId)).length;
 
@@ -99,8 +101,7 @@ function renderMunicipalities() {
     SA_MUNICIPALITIES.length + ' municipalities · ' + worked + ' with someone on file',
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'contacts\')">' +
       icon('upload', 14) + ' Import contacts</button>' +
-    '<button class="btn btn-outline btn-sm" onclick="exportMunicipalities()">' +
-      icon('download', 14) + ' Export</button>');
+    exportButtonHtml('exportMunicipalities(filteredMunicipalities())', list.length));
 
   const counts = { A: 0, B: 0, C: 0 };
   SA_MUNICIPALITIES.forEach(m => { counts[m.cat]++; });
@@ -167,8 +168,9 @@ function renderMunicipalities() {
     prev: 'state.muniPage--;renderMunicipalities()', next: 'state.muniPage++;renderMunicipalities()', standalone: !isTable,
   });
   setContent(stats + toolbar + (isTable
-    ? tableCardHtml(muniTableHtml(page), foot)
+    ? selectionSlotHtml('municipalities') + tableCardHtml(muniTableHtml(page), foot)
     : '<div class="ent-grid">' + page.map(muniCardHtml).join('') + '</div>' + foot));
+  selectionRefresh();
 }
 
 function muniFlt(key, allLabel, pairs) {
@@ -213,13 +215,15 @@ function muniTableHtml(list) {
   const s = state.muniSort;
   const th = (field, label) => '<th class="' + thClass(field, s) + '" onclick="toggleSort(state.muniSort,\'' + field + '\',renderMunicipalities)">' + label + sortArrow(field, s) + '</th>';
   return '<div class="table-wrap"><table><thead><tr>' +
+    selectionHeadCellHtml('municipalities', list.map(m => m.id)) +
     th('name', 'Municipality') + th('code', 'Code') + th('cat', 'Category') +
     th('province', 'Province') + th('seat', 'Seat') + th('district', 'District') +
     th('population', 'Population') + th('contacts', 'Contacts') + '</tr></thead><tbody>' +
     list.map(m => {
       const cc = contactsFor(m.id).length;
       return '<tr class="clickable" onclick="nav(\'municipality\',{id:\'' + m.id + '\'})">' +
-        '<td><div class="name-cell"><span style="opacity:.6;display:flex">' + icon('building', 15) + '</span>' +
+        selectionCellHtml('municipalities', m.id, m.name) +
+        '<td><div class="name-cell">' + avatarTileHtml(m.name) +
           '<div style="font-weight:700">' + esc(m.name) + '</div></div></td>' +
         '<td style="font-variant-numeric:tabular-nums;color:var(--muted)">' + esc(m.code) + '</td>' +
         '<td>' + muniCatBadge(m.cat) + '</td>' +
@@ -355,13 +359,19 @@ function muniPitchLine(m) {
   return 'Local municipality in the ' + (m.districtName || '') + ' District. Pumping and street lighting are the load; the distribution licence decides whether a wheeled PPA can reach customers here.';
 }
 
-/* Export is the whole reference list plus whatever the team has added,
+/* The reference columns plus what the team holds, for any list of municipalities. The
+   page's own Export passes what its filters leave; bare, it is the whole reference list,
    so it can be worked offline or handed to someone without a login. */
-function exportMunicipalities() {
+function muniCsvRows(list) {
   const rows = [['code', 'name', 'category', 'province', 'seat', 'district', 'contacts', 'activity']];
-  SA_MUNICIPALITIES.forEach(m => {
+  list.forEach(m => {
     rows.push([m.code, m.name, MUNI_CATEGORY_LONG[m.cat], m.province, m.seat,
       m.districtName || '', contactsFor(m.id).length, interactionsFor(m.id).length]);
   });
-  downloadCSV('aee-municipalities.csv', rows);
+  return rows;
+}
+function exportMunicipalities(list) {
+  const rows = list || SA_MUNICIPALITIES;
+  downloadCSV('aee-municipalities.csv', muniCsvRows(rows));
+  toast('Exported ' + rows.length + ' municipalities');
 }
