@@ -46,3 +46,28 @@ function tableFooterHtml(o) {
 function tableCardHtml(tableHtml, footerHtml) {
   return '<div class="table-card">' + tableHtml + (footerHtml || '') + '</div>';
 }
+
+/* The card that opens a record page: an icon, the name, chips for what state it
+   is in, one quiet line of description, and the actions that can be taken on it.
+   The account page, a site, a sector and a municipality all open with this one,
+   so every record page starts the same way. The page header above it keeps only
+   the breadcrumb (see setPage's `record` option). Arguments are ready-made
+   markup, except `desc`, which is plain text. */
+function recordCardHtml(iconHtml, name, chipsHtml, desc, actionsHtml) {
+  return '<div class="record-head">' +
+    '<div class="rh-icon">' + iconHtml + '</div>' +
+    '<div class="rh-text">' +
+      '<h3 class="rh-title">' + esc(name) + '</h3>' +
+      '<div class="rh-chips">' + (chipsHtml || '') + '</div>' +
+      (desc ? '<p class="rh-desc">' + esc(desc) + '</p>' : '') +
+    '</div>' +
+    '<div class="rh-actions">' + (actionsHtml || '') + '</div>' +
+  '</div>';
+}
+
+/* A fact list for the About card on a record page: [label, value, highlight?]
+   rows, values already escaped. */
+function factListHtml(rows) {
+  return '<dl class="kv rec-kv">' + rows.map(([label, value, hl]) =>
+    '<dt>' + esc(label) + '</dt><dd' + (hl ? ' class="hl"' : '') + '>' + value + '</dd>').join('') + '</dl>';
+}

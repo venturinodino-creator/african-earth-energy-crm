@@ -144,6 +144,14 @@ console.log('\nBreadcrumb');
     const f = fn('crumbsFor', Object.assign(stubs('project', null, {}), { state: { view: 'project', projectId: 's1', projects: [{ id: 's1', name: 'Middelburg Solar Farm' }] } }));
     assert.deepStrictEqual(Array.from(f('project')).map(c => c.label), ['Projects', 'Middelburg Solar Farm']);
   });
+  test('a sector is under Sectors and a municipality under Municipalities', () => {
+    const f = fn('crumbsFor', Object.assign(stubs('sector', null, {}), {
+      state: { view: 'sector', sectorId: 'mining', detailId: 'mun_X' }, sectorOf: id => (id === 'mining' ? { id, name: 'Mining & Minerals' } : null),
+      muniOf: id => (id === 'mun_X' ? { id, name: 'Emfuleni' } : null),
+    }));
+    assert.deepStrictEqual(Array.from(f('sector')).map(c => c.label), ['Sectors', 'Mining & Minerals']);
+    assert.deepStrictEqual(Array.from(f('municipality')).map(c => c.label), ['Municipalities', 'Emfuleni']);
+  });
   test('every other page keeps the plain way back to the Dashboard', () => {
     const c = crumbs('news', null, {});
     assert.deepStrictEqual(c.map(x => x.label), ['Dashboard']);

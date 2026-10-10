@@ -423,18 +423,17 @@ function renderDetail() {
   /* About: who and where they are, and the numbers the desk has. The six
      figures that used to be tiles under the name, as one fact list. */
   const unsized = isUnworked(o);
-  const fact = (label, value, hl) => '<dt>' + esc(label) + '</dt><dd' + (hl ? ' class="hl"' : '') + '>' + value + '</dd>';
   const about = '<div class="card"><div class="card-header"><div class="card-title">About</div></div>' +
-    '<dl class="kv rec-kv">' +
-      fact('Sector', sectorBadge(o.sector)) +
-      fact('Location', esc([o.city, o.province].filter(Boolean).join(', ') || '—')) +
-      fact(unsized ? 'Estimated load' : 'GWh a year', esc(unsized ? loadBandText(o) : fmtNum(o.annualGwh)), true) +
-      fact('Peak demand', unsized ? '—' : esc(fmtNum(o.peakMw)) + ' MW') +
-      fact('Load factor', unsized ? '—' : Math.round(loadFactor(o) * 100) + '%') +
-      fact('Current tariff', num(o.tariff) ? 'R' + num(o.tariff).toFixed(2) : '—') +
-      fact('Fit score', unsized ? 'not scored' : f + '/100', true) +
-      fact('Nearest site', np ? esc(distanceLabel(np)) + ' to ' + esc(np.project.town) + (np.approx ? ' (approx)' : '') : 'no nearby site') +
-    '</dl>' +
+    factListHtml([
+      ['Sector', sectorBadge(o.sector)],
+      ['Location', esc([o.city, o.province].filter(Boolean).join(', ') || '—')],
+      [unsized ? 'Estimated load' : 'GWh a year', esc(unsized ? loadBandText(o) : fmtNum(o.annualGwh)), true],
+      ['Peak demand', unsized ? '—' : esc(fmtNum(o.peakMw)) + ' MW'],
+      ['Load factor', unsized ? '—' : Math.round(loadFactor(o) * 100) + '%'],
+      ['Current tariff', num(o.tariff) ? 'R' + num(o.tariff).toFixed(2) : '—'],
+      ['Fit score', unsized ? 'not scored' : f + '/100', true],
+      ['Nearest site', np ? esc(distanceLabel(np)) + ' to ' + esc(np.project.town) + (np.approx ? ' (approx)' : '') : 'no nearby site'],
+    ]) +
     (unsized ? '' : '<div class="fit-bar"><span style="width:' + f + '%;background:' + fitColor(f) + '"></span></div>') +
   '</div>';
 
@@ -473,28 +472,20 @@ function renderDetail() {
    done to it. Shared by the account page and its org map, so both start the
    same way. `desc` is one quiet line under the chips. */
 function recordHeadHtml(o, actionsHtml, desc) {
-  return '<div class="record-head">' +
-    '<div class="rh-icon">' + sectorIcon(o.sector, 24) + '</div>' +
-    '<div class="rh-text">' +
-      '<h3 class="rh-title">' + esc(o.name) + '</h3>' +
-      '<div class="rh-chips">' +
-        sectorBadge(o.sector) +
-        '<span class="badge b-' + esc(o.status) + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
-        '<span class="badge b-' + esc(o.priority) + '">' + esc(o.priority) + ' priority</span>' +
-        (o.estimated ? '<span class="chip" title="Load figures are desk estimates — verify with the customer">' + icon('alert', 11) + ' estimated load</span>' : '') +
-        /* A parked account only comes back if the date that unparks it is
-           visible. Due dates read as live, future ones as a reminder. */
-        (o.revisitDate
-          ? '<span class="chip"' +
-            (o.revisitDate <= todayISO() ? ' style="color:var(--danger);border-color:var(--danger)"' : '') +
-            ' title="Revisit this account">' + icon('clock', 11) + ' revisit ' + esc(o.revisitDate) + '</span>'
-          : '') +
-        (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Website</a>' : '') +
-      '</div>' +
-      (desc ? '<p class="rh-desc">' + esc(desc) + '</p>' : '') +
-    '</div>' +
-    '<div class="rh-actions">' + actionsHtml + '</div>' +
-  '</div>';
+  return recordCardHtml(sectorIcon(o.sector, 24), o.name,
+    sectorBadge(o.sector) +
+    '<span class="badge b-' + esc(o.status) + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
+    '<span class="badge b-' + esc(o.priority) + '">' + esc(o.priority) + ' priority</span>' +
+    (o.estimated ? '<span class="chip" title="Load figures are desk estimates — verify with the customer">' + icon('alert', 11) + ' estimated load</span>' : '') +
+    /* A parked account only comes back if the date that unparks it is
+       visible. Due dates read as live, future ones as a reminder. */
+    (o.revisitDate
+      ? '<span class="chip"' +
+        (o.revisitDate <= todayISO() ? ' style="color:var(--danger);border-color:var(--danger)"' : '') +
+        ' title="Revisit this account">' + icon('clock', 11) + ' revisit ' + esc(o.revisitDate) + '</span>'
+      : '') +
+    (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Website</a>' : ''),
+    desc, actionsHtml);
 }
 
 /* Blank-line-separated text into real paragraphs. The blurbs were written

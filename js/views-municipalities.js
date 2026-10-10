@@ -249,37 +249,31 @@ function renderMunicipality() {
     ? SA_MUNICIPALITIES.filter(x => x.districtCode === m.code) : [];
   const parent = m.districtCode ? SA_MUNICIPALITIES.find(x => x.code === m.districtCode) : null;
 
-  setPage(m.name, MUNI_CATEGORY_LONG[m.cat] + ' · ' + m.code + ' · ' + m.seat + ', ' + m.province,
+  /* A record page: the breadcrumb (Municipalities / Name) is the page header,
+     the shared card carries the name and the actions, and the five figures that
+     used to be tiles are an About card. */
+  setPage(m.name, MUNI_CATEGORY_LONG[m.cat] + ' · ' + m.code + ' · ' + m.seat + ', ' + m.province, '', { record: true });
+
+  const hero = recordCardHtml(icon('building', 24), m.name,
+    muniCatBadge(m.cat) +
+    '<span class="chip">' + esc(m.code) + '</span>' +
+    (parent ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'municipality\',{id:\'' + parent.id + '\'})">' +
+      esc(parent.name) + ' District &rarr;</span>' : ''),
+    muniPitchLine(m),
     '<button class="btn btn-outline btn-sm" onclick="nav(\'org-map\',{id:\'' + m.id + '\'})" title="Visual org chart: who sits where">' +
       icon('grid', 14) + ' Org map</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openLogInteraction(\'' + m.id + '\')">' + icon('note', 14) + ' Log activity</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact(\'' + m.id + '\')">' + icon('plus', 14) + ' Add contact</button>');
 
-  const hero =
-    '<div class="detail-hero">' +
-      '<div class="dh-top">' +
-        '<div class="dh-icon">' + icon('building', 24) + '</div>' +
-        '<div style="flex:1;min-width:220px">' +
-          '<div class="dh-title">' + esc(m.name) + '</div>' +
-          '<div class="dh-sub">' +
-            muniCatBadge(m.cat) +
-            '<span class="chip">' + esc(m.code) + '</span>' +
-            (parent ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'municipality\',{id:\'' + parent.id + '\'})">' +
-              esc(parent.name) + ' District &rarr;</span>' : '') +
-          '</div>' +
-          '<p style="font-size:12.5px;color:var(--muted2);line-height:1.6;margin-top:10px;max-width:70ch">' +
-            esc(muniPitchLine(m)) + '</p>' +
-        '</div>' +
-      '</div>' +
-      '<div class="dh-metrics">' +
-        dhMetric(esc(m.seat), 'Council seat') +
-        dhMetric(esc(m.province), 'Province') +
-        dhMetric(people.length, 'Contacts on file', true) +
-        dhMetric(logs.length, 'Activity logged') +
-        dhMetric(m.cat === 'C' ? children.length : (parent ? '1' : '—'),
-          m.cat === 'C' ? 'Local municipalities' : 'District above') +
-      '</div>' +
-    '</div>';
+  const about =
+    '<div class="card"><div class="card-header"><div class="card-title">About</div></div>' +
+    factListHtml([
+      ['Council seat', esc(m.seat)],
+      ['Province', esc(m.province)],
+      ['Contacts on file', String(people.length), true],
+      ['Activity logged', String(logs.length)],
+      [m.cat === 'C' ? 'Local municipalities' : 'District above', String(m.cat === 'C' ? children.length : (parent ? '1' : '—'))],
+    ]) + '</div>';
 
   /* The two roles a municipality plays. Kept as plain text rather than
      numbers, because no load figures exist for any of these yet and a
@@ -330,11 +324,13 @@ function renderMunicipality() {
           '<p>Log the first call. Municipal officials rotate, and the next rep will need the history.</p></div>') +
     '</div>';
 
+  /* Who is here runs the full width above the two columns; the contact list and
+     the log are the working column, the figures and the role cards the side. */
   setContent(hero +
-    '<div style="margin-top:14px">' + contactMixHtml(acct, people) + '</div>' +
-    '<div class="cols-2" style="margin-top:14px">' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + contactsCardHtml(acct) + logHtml + '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + roleCard + childCard + '</div>' +
+    '<div class="rec-block">' + contactMixHtml(acct, people) + '</div>' +
+    '<div class="rec-grid two">' +
+      '<div class="rg-main">' + contactsCardHtml(acct) + logHtml + '</div>' +
+      '<div class="rg-side">' + about + roleCard + childCard + '</div>' +
     '</div>');
 }
 

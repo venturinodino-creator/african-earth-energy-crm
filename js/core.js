@@ -804,6 +804,14 @@ function crumbsFor(view) {
     const site = state.projects.find(p => p.id === state.projectId);
     if (site) return [{ label: 'Projects', on: "nav('projects')" }, { label: site.name }];
   }
+  if (view === 'sector') {
+    const s = sectorOf(state.sectorId);
+    if (s) return [{ label: 'Sectors', on: "nav('sectors')" }, { label: s.name }];
+  }
+  if (view === 'municipality') {
+    const m = muniOf(state.detailId);
+    if (m) return [{ label: 'Municipalities', on: "nav('municipalities')" }, { label: m.name }];
+  }
   return [{ label: 'Dashboard', on: "nav('dashboard')", back: true }];
 }
 

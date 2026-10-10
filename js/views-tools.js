@@ -514,7 +514,7 @@ function shortlistsHtml() {
   const ranked = SECTOR_SHORTLISTS.filter(s => s.sectors.length);
   const notes = SECTOR_SHORTLISTS.filter(s => !s.sectors.length);
   return '<div class="section-title">Where to point the desk</div>' +
-    '<div class="grid-3">' + ranked.map(s =>
+    '<div class="card-grid three">' + ranked.map(s =>
       '<div class="card">' +
         '<div class="card-header"><div><div class="card-title">' + esc(s.name) + '</div>' +
         '<div class="card-sub">' + esc(s.meaning) + '</div></div></div>' +
@@ -536,7 +536,7 @@ function shortlistsHtml() {
    an industrial or mining energy sale wherever it happens. */
 function stakeholderLadderHtml() {
   return '<div class="section-title">Who to approach, in what order</div>' +
-    '<div class="grid-3">' + STAKEHOLDER_TIERS.map(t =>
+    '<div class="card-grid three">' + STAKEHOLDER_TIERS.map(t =>
       '<div class="card">' +
         '<div class="card-header"><div><div class="card-title">' + esc(t.label) + '</div>' +
         '<div class="card-sub">' + esc(t.hint) + '</div></div>' +
@@ -556,7 +556,7 @@ function stakeholderLadderHtml() {
 
 function marketContextHtml() {
   return '<div class="section-title">Market context — as at ' + esc(MARKET.asAt) + '</div>' +
-    '<div class="grid-3">' +
+    '<div class="card-grid three">' +
       '<div class="card">' +
         '<div class="card-header"><div><div class="card-title">Tariff benchmarks</div>' +
         '<div class="card-sub">ZAR per kWh, all-in</div></div></div>' +
