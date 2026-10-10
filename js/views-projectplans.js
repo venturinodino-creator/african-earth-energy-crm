@@ -431,9 +431,9 @@ function pmTeamTabHtml() {
     '<div class="table-wrap" style="border:0"><table><thead><tr><th>Person</th><th>Role</th><th>Email</th><th class="num">Utilisation</th>' +
     '<th class="num">At 100%</th><th class="num">Past finish, not 100%</th><th class="num">Projects</th></tr></thead><tbody>' + detail + '</tbody></table></div></div>';
 
-  return '<div class="grid-3" style="margin-bottom:14px">' + tasksCard + workloadCard + scheduleCard + '</div>' +
+  return '<div class="card-grid three" style="margin-bottom:14px">' + tasksCard + workloadCard + scheduleCard + '</div>' +
     '<div class="section-title" style="margin:6px 0 10px">Team breakdown</div>' +
-    '<div class="grid-2">' + dueCard + utilCard + '</div>' + pulseCard + streamCard + peopleCard;
+    '<div class="card-grid">' + dueCard + utilCard + '</div>' + pulseCard + streamCard + peopleCard;
 }
 
 function pmUtilisation(personId) {

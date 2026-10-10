@@ -289,7 +289,7 @@ function pmNotesTabHtml() {
     '<span class="badge ' + (n.author_kind === 'agent' ? 'b-engaged' : 'b-low') + '">' + (n.author_kind === 'agent' ? 'Agent' : 'Person') + '</span></div>').join('');
   const histRows = hist.map(h => '<div class="mkt-row"><div style="min-width:0"><div class="mkt-note">' + esc(pmTaskLabel(h.task_id) || 'a task') + '</div>' + pmChangeText(h) +
     '<div class="mkt-note">' + esc(h.by) + (h.kind === 'agent' ? ' (agent)' : '') + ' &middot; ' + esc(pmWhen(h.at)) + '</div></div></div>').join('');
-  return add + '<div class="grid-2"><div class="card"><div class="card-header"><div><div class="card-title">Notes</div><div class="card-sub">' + (pm.notes || []).length +
+  return add + '<div class="card-grid"><div class="card"><div class="card-header"><div><div class="card-title">Notes</div><div class="card-sub">' + (pm.notes || []).length +
     ' from people and agents, newest first</div></div></div>' + (noteRows || '<div class="fg-hint">No notes yet. Open a task in the Plan tab to add one; agents add theirs with scripts/pm-agent.js.</div>') + '</div>' +
     '<div class="card"><div class="card-header"><div><div class="card-title">Changes</div><div class="card-sub">' + (pm.history || []).length +
     ' edits made here, against the ProjectManager.com copy</div></div></div>' + (histRows || '<div class="fg-hint">Nothing has been changed yet.</div>') + '</div></div>';
