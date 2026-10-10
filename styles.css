@@ -198,6 +198,11 @@ h1,h2,h3,h4,.stat-value,.dh-title,.dh-metric-v,.ec-metric-v,.calc-tile-v,.ia-til
    narrow screen. Every page body that is "a set of cards" uses this. */
 .card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch}
 .card-grid>.span-all{grid-column:1/-1}
+/* Three across when there is room, fewer when there is not. */
+.card-grid.three{grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
+/* A card that sits above a record page's columns. */
+.rec-block{margin-bottom:14px}
+.rec-grid+.card-grid{margin-top:14px}
 @media(max-width:1100px){.card-grid{grid-template-columns:minmax(0,1fr)}}
 .stat-icon-box{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;
   flex-shrink:0;color:color-mix(in srgb,var(--fg) 70%,transparent)}
@@ -502,8 +507,12 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .rec-grid{display:grid;gap:14px;align-items:start;grid-template-columns:minmax(0,1fr) 300px;grid-template-areas:"main about" "main side"}
 .rg-about{grid-area:about}.rg-main{grid-area:main}.rg-side{grid-area:side}
 .rg-about,.rg-main,.rg-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+/* A record page with no About column: the working column and one side column,
+   at every width, then one column on a phone. */
+.rec-grid.two{grid-template-columns:minmax(0,1fr) 320px;grid-template-areas:"main side"}
 @media(min-width:1440px){.rec-grid{grid-template-columns:260px minmax(0,1fr) 300px;grid-template-areas:"about main side"}}
-@media(max-width:860px){.rec-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"about" "main" "side"}}
+@media(max-width:860px){.rec-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"about" "main" "side"}
+  .rec-grid.two{grid-template-columns:minmax(0,1fr);grid-template-areas:"main" "side"}}
 .rec-kv{grid-template-columns:104px minmax(0,1fr)}
 .rec-kv dd{overflow-wrap:anywhere}
 .rec-kv dd.hl{font-weight:800}

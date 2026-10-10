@@ -125,5 +125,15 @@ test('the guide card and the four KPI tiles are kept, in that order', () => {
   assert.ok(o.content.indexOf('GUIDE') < o.content.indexOf('stats-grid'));
 });
 
+console.log('\nPlaybook');
+test('the three-up sections are card grids, with no old grid-3 left', () => {
+  const e = env({ view: 'playbook', pbFilter: '' });
+  vm.runInContext(read('data/seed.js') + '\n' + read('data/sectors.js') + '\nthis.__pb = typeof PLAYBOOK !== "undefined";', e.ctx);
+  const o = e.run('renderPlaybook');
+  assert.ok((o.content.match(/class="card-grid three"/g) || []).length === 3, 'three card grids: shortlists, ladder, market context');
+  assert.ok(!o.content.includes('grid-3'));
+  assert.ok(o.content.includes('Scripts &amp; templates'));
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

@@ -227,15 +227,11 @@ function renderProject() {
   /* A record page: the breadcrumb (Projects / Site) is the page header, the
      header card carries the name, and the tabs sit under the guide card. */
   setPage(site.name, site.town + ', ' + site.province + ' \u00b7 COD ' + site.cod, '', { record: true });
-  const head = '<div class="record-head">' +
-    '<div class="rh-icon">' + icon('sun', 24) + '</div>' +
-    '<div class="rh-text"><h3 class="rh-title">' + esc(site.name) + '</h3>' +
-      '<div class="rh-chips">' +
-        '<span class="badge b-solar">Solar PV</span><span class="badge b-bess">BESS</span>' +
-        '<span class="chip">' + fmtNum(site.mw) + ' MW</span>' +
-        '<span class="chip">COD ' + esc(site.cod) + '</span>' +
-        '<span class="chip">' + icon('pin', 11) + ' ' + esc(site.town) + ', ' + esc(site.province) + '</span>' +
-      '</div></div><div class="rh-actions"></div></div>';
+  const head = recordCardHtml(icon('sun', 24), site.name,
+    '<span class="badge b-solar">Solar PV</span><span class="badge b-bess">BESS</span>' +
+    '<span class="chip">' + fmtNum(site.mw) + ' MW</span>' +
+    '<span class="chip">COD ' + esc(site.cod) + '</span>' +
+    '<span class="chip">' + icon('pin', 11) + ' ' + esc(site.town) + ', ' + esc(site.province) + '</span>');
   setContent(head +
     projectGuideHtml(site, tab, m) +
     viewTabsHtml(tabs.map(([k, l]) => ({ label: l, active: tab === k, on: "projectSetTab('" + k + "')" }))) +

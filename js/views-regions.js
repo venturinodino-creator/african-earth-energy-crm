@@ -71,7 +71,7 @@ function renderRegions() {
     '<button class="btn btn-outline btn-sm" onclick="nav(\'map\')">' + icon('map', 14) + ' Map</button>');
 
   const intro =
-    '<div class="card" style="margin-bottom:14px;border-left:3px solid var(--accent2)">' +
+    '<div class="card span-all" style="border-left:3px solid var(--accent2)">' +
       '<div class="card-title" style="margin-bottom:6px">Sold by proximity, not by sector</div>' +
       '<div style="font-size:12px;color:var(--muted2);line-height:1.6;max-width:92ch">' +
       'Sites are ordered by unsold capacity, so whichever needs the most attention comes first. ' +
@@ -129,7 +129,7 @@ function renderRegions() {
     '</div>';
   }).join('');
 
-  setContent(intro + '<div class="grid-2">' + cards + '</div>');
+  setContent('<div class="card-grid">' + intro + cards + '</div>');
   growBars();
 }
 

@@ -14,31 +14,35 @@ function renderSectors() {
   ALL_SECTORS.forEach(s => { tierCounts[s.tier] = (tierCounts[s.tier] || 0) + 1; });
 
   setPage('Sectors', ALL_SECTORS.length + ' sectors · ' + SUB_SECTORS.length + ' sub-sectors · market as at ' + MARKET.asAt,
-    viewToggle('sectorView') +
     '<button class="btn btn-outline btn-sm" onclick="nav(\'prospects\')">' + icon('target', 14) + ' Prospect list</button>');
 
-  const list = ALL_SECTORS
-    .filter(s => !state.sectorTier || String(s.tier) === String(state.sectorTier))
+  /* The tier is a tab: All, then the three tiers the desk works the market in.
+     Each tab counts what the search and the group filter leave in it; the tier
+     itself is applied after. */
+  const base = ALL_SECTORS
     .filter(s => !state.sectorGroup || s.group === state.sectorGroup)
     .filter(s => !state.sectorSearch ||
-      (s.name + ' ' + s.why + ' ' + s.subSectors.join(' ')).toLowerCase().includes(state.sectorSearch.toLowerCase()))
+      (s.name + ' ' + s.why + ' ' + s.subSectors.join(' ')).toLowerCase().includes(state.sectorSearch.toLowerCase()));
+  const list = base
+    .filter(s => !state.sectorTier || String(s.tier) === String(state.sectorTier))
     .sort((a, b) => a.tier - b.tier || b.ppaFit - a.ppaFit || a.name.localeCompare(b.name));
+  const tierTab = (value, label, n) => ({
+    label, count: n, active: String(state.sectorTier || '') === String(value),
+    on: 'state.sectorTier=' + jsStr(value) + ';renderSectors()',
+  });
 
-  const toolbar =
+  const toolbar = viewTabsHtml([tierTab('', 'All', base.length)].concat(
+      [1, 2, 3].map(t => tierTab(String(t), 'Tier ' + t, base.filter(s => s.tier === t).length)))) +
     '<div class="toolbar">' +
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
       '<input placeholder="Search sector or sub-sector..." value="' + esc(state.sectorSearch) + '" ' +
       'oninput="state.sectorSearch=this.value;renderSectors()"></div>' +
-      '<select class="flt" onchange="state.sectorTier=this.value;renderSectors()">' +
-        '<option value="">All tiers</option>' +
-        [1, 2, 3].map(t => '<option value="' + t + '"' + (String(state.sectorTier) === String(t) ? ' selected' : '') + '>' +
-          'Tier ' + t + ' (' + tierCounts[t] + ')</option>').join('') +
-      '</select>' +
       '<select class="flt" onchange="state.sectorGroup=this.value;renderSectors()">' +
         '<option value="">All groups</option>' +
         Object.entries(SECTOR_GROUPS).map(([k, v]) =>
           '<option value="' + k + '"' + (state.sectorGroup === k ? ' selected' : '') + '>' + esc(v) + '</option>').join('') +
       '</select>' +
+      viewToggle('sectorView') +
       '<span class="result-count">' + list.length + ' sector' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
 
@@ -56,9 +60,15 @@ function renderSectors() {
     return;
   }
 
-  setContent(stats + toolbar + (state.sectorView === 'table'
-    ? sectorTableHtml(list)
-    : '<div class="ent-grid">' + list.map(sectorCardHtml).join('') + '</div>'));
+  const isTable = state.sectorView === 'table';
+  const foot = tableFooterHtml({
+    from: 1, to: list.length, total: list.length,
+    all: ALL_SECTORS.filter(s => !state.sectorTier || String(s.tier) === String(state.sectorTier)).length,   // the tier tab is a choice
+    noun: list.length === 1 ? 'sector' : 'sectors', page: 1, pages: 1, standalone: !isTable,
+  });
+  setContent(stats + toolbar + (isTable
+    ? tableCardHtml(sectorTableHtml(list), foot)
+    : '<div class="ent-grid">' + list.map(sectorCardHtml).join('') + '</div>' + foot));
 }
 
 function sectorCardHtml(s) {
@@ -127,32 +137,25 @@ function renderSector() {
   const offtakers = state.offtakers.filter(o => o.sector === s.id);
   const subs = SUB_SECTORS.filter(x => x.sectorId === s.id);
 
-  setPage(s.name, 'Tier ' + s.tier + ' · ' + (SECTOR_GROUPS[s.group] || s.group) + ' · PPA fit ' + s.ppaFit + '/5',
-    '<button class="btn btn-outline btn-sm" onclick="nav(\'sectors\')">All sectors</button>');
+  /* A record page: the breadcrumb (Sectors / Name) is the page header, the
+     shared card carries the name, and the six figures are an About card. */
+  setPage(s.name, 'Tier ' + s.tier + ' · ' + (SECTOR_GROUPS[s.group] || s.group) + ' · PPA fit ' + s.ppaFit + '/5', '', { record: true });
 
-  const hero =
-    '<div class="detail-hero">' +
-      '<div class="dh-top">' +
-        '<div class="dh-icon">' + sectorIcon(s.id, 24) + '</div>' +
-        '<div style="flex:1;min-width:240px">' +
-          '<div class="dh-title">' + esc(s.name) + '</div>' +
-          '<div class="dh-sub">' +
-            '<span class="badge b-tier-' + s.tier + '">Tier ' + s.tier + '</span>' +
-            '<span class="badge b-grp-' + s.group + '">' + esc(SECTOR_GROUPS[s.group] || s.group) + '</span>' +
-            ppaDots(s.ppaFit) +
-          '</div>' +
-          '<p style="font-size:12.5px;color:var(--muted2);line-height:1.6;margin-top:10px;max-width:74ch">' + esc(s.why) + '</p>' +
-        '</div>' +
-      '</div>' +
-      '<div class="dh-metrics">' +
-        dhMetric(esc(s.loadMw) + ' MW', 'Typical site load') +
-        dhMetric(esc(s.annualGwh) + ' GWh', 'Annual use') +
-        dhMetric(esc(s.dealMw) + ' MW', 'Typical deal', true) +
-        dhMetric(esc(s.cycleMonths) + ' mo', 'Sales cycle') +
-        dhMetric(esc(s.solarMatch), 'Solar self-match') +
-        dhMetric(offtakers.length, 'Companies tracked', true) +
-      '</div>' +
-    '</div>';
+  const hero = recordCardHtml(sectorIcon(s.id, 24), s.name,
+    '<span class="badge b-tier-' + s.tier + '">Tier ' + s.tier + '</span>' +
+    '<span class="badge b-grp-' + s.group + '">' + esc(SECTOR_GROUPS[s.group] || s.group) + '</span>' +
+    ppaDots(s.ppaFit), s.why);
+
+  const about =
+    '<div class="card"><div class="card-header"><div class="card-title">About</div></div>' +
+    factListHtml([
+      ['Typical site load', esc(s.loadMw) + ' MW'],
+      ['Annual use', esc(s.annualGwh) + ' GWh'],
+      ['Typical deal', esc(s.dealMw) + ' MW', true],
+      ['Sales cycle', esc(s.cycleMonths) + ' mo'],
+      ['Solar self-match', esc(s.solarMatch)],
+      ['Companies tracked', String(offtakers.length), true],
+    ]) + '</div>';
 
   const shape =
     '<div class="card">' +
@@ -205,13 +208,15 @@ function renderSector() {
      kept open on the call — so they sit at the bottom of the page,
      below the shape of the sector and the companies in it. */
   const reference = (qCard || oCard)
-    ? '<div class="cols-2" style="margin-top:14px">' + qCard + oCard + '</div>'
+    ? '<div class="card-grid">' + qCard + oCard + '</div>'
     : '';
 
+  /* The working column holds the shape of the sector and who to call; the side
+     column holds the figures and the companies. */
   setContent(hero +
-    '<div class="cols-2">' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + shape + who + '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:14px">' + listCard + '</div>' +
+    '<div class="rec-grid two">' +
+      '<div class="rg-main">' + shape + who + '</div>' +
+      '<div class="rg-side">' + about + listCard + '</div>' +
     '</div>' + reference);
 }
 
