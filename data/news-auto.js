@@ -4,6 +4,18 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-u32ey5",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-10",
+    "title": "Yellow Door Energy breaks ground on 49 MW solar park in South Africa",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Solarbytes",
+    "url": "https://solarbytes.info/emea-bytes/yellow-door-energy-49-mw-lion-thorn-solar-park-construction-south-africa-12662718",
+    "auto": true
+  },
+  {
     "id": "auto-2bftxz",
     "topic": "renewable_energy",
     "province": "Multiple",
@@ -37,6 +49,18 @@ const NEWS_AUTO = [
     "whyItMatters": "",
     "source": "pv magazine Global",
     "url": "https://www.pv-magazine.com/2026/10/08/south-africa-to-procure-4-6-gw-of-battery-storage/",
+    "auto": true
+  },
+  {
+    "id": "auto-gw2zjz",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-08",
+    "title": "South Africa IRP 2025: 4.6 GW Battery Storage and 5 GW Gas Procurement - News and Statistics",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "IndexBox",
+    "url": "https://www.indexbox.io/blog/south-africa-to-procure-46-gw-battery-storage-and-5-gw-gas-power-under-irp-2025/",
     "auto": true
   },
   {
