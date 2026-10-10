@@ -57,11 +57,10 @@ function filteredOfftakers() {
    searchable, out of every count and every other page until someone
    decides a company is worth working and adds it back. */
 function offTabsHtml() {
-  const tab = (arch, label, n) =>
-    '<button class="vt-btn ' + (state.offArchive === arch ? 'active' : '') + '" ' +
-    'onclick="setOffArchive(' + arch + ')">' + label + ' <span style="opacity:.7">' + n + '</span></button>';
-  return '<div class="view-toggle">' + tab(false, 'Priority list', prospectRecords().length) +
-    tab(true, 'Archive', state.archived.length) + '</div>';
+  return viewTabsHtml([
+    { label: 'Priority list', count: prospectRecords().length, active: !state.offArchive, on: 'setOffArchive(false)' },
+    { label: 'Archive', count: state.archived.length, active: !!state.offArchive, on: 'setOffArchive(true)' },
+  ]);
 }
 
 function setOffArchive(v) {
@@ -94,10 +93,9 @@ function renderArchive() {
 
   setPage('Off-taker Prospects',
     state.archived.length + ' archived compan' + (state.archived.length === 1 ? 'y' : 'ies') +
-    ' · kept on file, out of every count until you add one back',
-    offTabsHtml());
+    ' · kept on file, out of every count until you add one back', '');
 
-  const toolbar =
+  const toolbar = offTabsHtml() +
     '<div class="toolbar">' +
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
       '<input placeholder="Search the archive..." value="' + esc(state.offSearch) + '" ' +
@@ -111,9 +109,7 @@ function renderArchive() {
   const note = '<div class="fg-hint" style="margin-top:12px">' +
     'Archived companies are not deleted. Press <b>Add to priority list</b> on any of them and it moves back ' +
     'to the working list with its contacts. ' +
-    (list.length > shown.length
-      ? 'Showing the first ' + shown.length + ' of ' + list.length + ' &mdash; search or filter to narrow it down.'
-      : '') + '</div>';
+    (list.length > shown.length ? 'Search or filter to narrow it down.' : '') + '</div>';
 
   if (!list.length) {
     setContent(toolbar + '<div class="empty"><div class="ei">' + icon('search', 30) + '</div>' +
@@ -124,7 +120,11 @@ function renderArchive() {
   }
 
   const archivedContactCount = id => state.archivedContacts.filter(c => c.offtakerId === id).length;
-  setContent(toolbar +
+  const archFoot = tableFooterHtml({
+    from: 1, to: shown.length, total: list.length, all: state.archived.length,
+    noun: list.length === 1 ? 'archived company' : 'archived companies', page: 1, pages: 1,
+  });
+  setContent(toolbar + '<div class="table-card">' +
     '<div class="table-wrap"><table><thead><tr>' +
     '<th>Offtaker</th><th>Sector</th><th>Province</th><th class="num">GWh/yr</th><th class="num">Contacts</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
@@ -141,7 +141,7 @@ function renderArchive() {
         '<button class="btn btn-xs btn-primary" data-admin-only onclick="restoreOfftaker(' + jsStr(o.id) + ')">' +
           icon('plus', 12) + ' Add to priority list</button>' +
       '</td></tr>').join('') +
-    '</tbody></table></div>' + note);
+    '</tbody></table></div>' + archFoot + '</div>' + note);
 }
 
 function selectFltArchive(key, allLabel, pairs) {
@@ -208,8 +208,6 @@ function renderOfftakers() {
       ? '<button class="btn btn-primary btn-sm" data-admin-only onclick="acceptAllFoundEverywhere()">' +
         'Accept all ' + pendingFinds + ' found contact' + (pendingFinds === 1 ? '' : 's') + '</button>'
       : '') +
-    offTabsHtml() +
-    viewToggle('offView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'offtakers\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportOfftakers()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddOfftaker()">' + icon('plus', 14) + ' Add offtaker</button>');
@@ -219,7 +217,7 @@ function renderOfftakers() {
      puts a record in the pipeline by definition, so offering all six here
      would be five dead options and one live one. */
   const statuses = [...new Set(leads.map(o => o.status))].filter(Boolean).sort();
-  const toolbar =
+  const toolbar = offTabsHtml() +
     '<div class="toolbar">' +
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
       '<input placeholder="Search company, city or notes..." value="' + esc(state.offSearch) + '" ' +
@@ -231,6 +229,7 @@ function renderOfftakers() {
          measures time-in-stage has nothing to measure without one. */
       selectFlt('offStatus', 'All statuses', statuses.map(st => [st, STATUS_LABEL[st] || st])) +
       selectFlt('offProvince', 'All provinces', provinces.map(p => [p, p])) +
+      viewToggle('offView') +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
 
@@ -257,10 +256,15 @@ function renderOfftakers() {
     return;
   }
 
-  if (state.offView === 'grid') {
-    setContent(toolbar + '<div class="ent-grid">' + list.map(offtakerCardHtml).join('') + '</div>' + note);
+  const isGrid = state.offView === 'grid';
+  const foot = tableFooterHtml({
+    from: 1, to: list.length, total: list.length, all: leads.length,
+    noun: list.length === 1 ? 'lead' : 'leads', page: 1, pages: 1, standalone: isGrid,
+  });
+  if (isGrid) {
+    setContent(toolbar + '<div class="ent-grid">' + list.map(offtakerCardHtml).join('') + '</div>' + foot + note);
   } else {
-    setContent(toolbar + offtakerTableHtml(list) + note);
+    setContent(toolbar + tableCardHtml(offtakerTableHtml(list), foot) + note);
   }
   growBars();
 }
@@ -550,13 +554,15 @@ function contactSortVal(c, field) {
 
 function renderContacts() {
   const term = state.contactSearch.toLowerCase();
-  let list = state.contacts.filter(c => {
+  /* The role tabs count what the search and the company filter leave, so each
+     tab says how many people it would show; the role itself is applied after. */
+  const base = state.contacts.filter(c => {
     const o = contactAccountOf(c);
     if (term && !((c.first + ' ' + c.last + ' ' + c.title + ' ' + c.dept + ' ' + (o.name || '')).toLowerCase().includes(term))) return false;
     if (state.contactOfftaker && c.offtakerId !== state.contactOfftaker) return false;
-    if (state.contactRole && c.role !== state.contactRole) return false;
     return true;
   });
+  let list = base.filter(c => !state.contactRole || c.role === state.contactRole);
   list = sortBy(list, state.contactSort, contactSortVal);
 
   /* Group by account. A stable re-sort on the account's name keeps the
@@ -577,12 +583,15 @@ function renderContacts() {
 
   setPage('Contacts', state.contacts.length + ' people across ' +
     new Set(state.contacts.map(c => c.offtakerId).filter(Boolean)).size + ' companies',
-    viewToggle('contactView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'contacts\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportContacts()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact()">' + icon('plus', 14) + ' Add contact</button>');
 
-  const toolbar =
+  const roleTab = (value, label) => ({
+    label, count: value ? base.filter(c => c.role === value).length : base.length, active: state.contactRole === value,
+    on: 'state.contactRole=' + jsStr(value) + ';state.contactPage=1;renderContacts()',
+  });
+  const toolbar = viewTabsHtml([roleTab('', 'All')].concat(Object.entries(ROLE_LABEL).map(([v, l]) => roleTab(v, l)))) +
     '<div class="toolbar">' +
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
       '<input placeholder="Search name, title or company..." value="' + esc(state.contactSearch) + '" ' +
@@ -593,10 +602,7 @@ function renderContacts() {
         SA_MUNICIPALITIES.filter(m => contactsFor(m.id).length)
           .map(m => '<option value="' + esc(m.id) + '"' + (state.contactOfftaker === m.id ? ' selected' : '') + '>' + esc(m.name) + ' Municipality</option>').join('') +
       '</select>' +
-      '<select class="flt" onchange="state.contactRole=this.value;state.contactPage=1;renderContacts()">' +
-        '<option value="">All roles</option>' +
-        Object.entries(ROLE_LABEL).map(([v, l]) => '<option value="' + v + '"' + (state.contactRole === v ? ' selected' : '') + '>' + l + '</option>').join('') +
-      '</select>' +
+      viewToggle('contactView') +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
 
@@ -610,16 +616,16 @@ function renderContacts() {
   state.contactPage = Math.min(Math.max(1, state.contactPage), pages);
   const page = list.slice((state.contactPage - 1) * PER_PAGE, state.contactPage * PER_PAGE);
 
-  const body = state.contactView === 'grid'
-    ? contactGroupedGridHtml(page, groupCount)
-    : contactTableHtml(page, groupCount);
-
-  setContent(toolbar + body +
-    (pages > 1 ? '<div class="pagination">' +
-      '<button class="pg-btn" ' + (state.contactPage === 1 ? 'disabled' : '') + ' onclick="state.contactPage--;renderContacts()">Previous</button>' +
-      '<span class="pg-info">Page ' + state.contactPage + ' of ' + pages + '</span>' +
-      '<button class="pg-btn" ' + (state.contactPage === pages ? 'disabled' : '') + ' onclick="state.contactPage++;renderContacts()">Next</button>' +
-    '</div>' : ''));
+  const isGrid = state.contactView === 'grid';
+  const from = (state.contactPage - 1) * PER_PAGE + 1;
+  const foot = tableFooterHtml({
+    from, to: from + page.length - 1, total: list.length, all: state.contacts.length,
+    noun: list.length === 1 ? 'contact' : 'contacts', page: state.contactPage, pages,
+    prev: 'state.contactPage--;renderContacts()', next: 'state.contactPage++;renderContacts()', standalone: isGrid,
+  });
+  setContent(toolbar + (isGrid
+    ? contactGroupedGridHtml(page, groupCount) + foot
+    : tableCardHtml(contactTableHtml(page, groupCount), foot)));
 }
 
 /* One heading per account, shared by the grid and the table so both
