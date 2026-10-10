@@ -752,7 +752,11 @@ function nav(view, extra, fromHistory) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const target = document.querySelector('[data-view="' + (view === 'project' ? 'projects' : view) + '"]');
   if (target) target.classList.add('active');
-  document.querySelector('.sb').classList.remove('open');
+  toggleSidebar(false);
+  closeMenus();
+  const tab = bottomTabFor(view);
+  document.querySelectorAll('.bb-tab').forEach(el =>
+    el.classList.toggle('active', tab === 'more' ? el.hasAttribute('data-more') : el.dataset.view === tab));
 
   if (!fromHistory) {
     const id = ID_SCOPED_VIEWS.has(view) ? (extra.id || state.detailId) : null;
@@ -831,7 +835,7 @@ function applyRoleUI() {
 function setPage(title, sub, actions) {
   document.getElementById('page-title').textContent = title;
   document.getElementById('page-sub').textContent = sub || '';
-  document.getElementById('topbar-actions').innerHTML = actions || '';
+  document.getElementById('page-actions').innerHTML = actions || '';
 }
 function setContent(html) { document.getElementById('content').innerHTML = html; }
 
@@ -868,11 +872,51 @@ function sortBy(list, s, getVal) {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
+    closeMenus();
+    toggleSidebar(false);
+  }
 });
 document.addEventListener('click', e => {
   if (e.target.classList && e.target.classList.contains('overlay')) e.target.classList.remove('open');
+  /* A click anywhere outside an open menu closes it. */
+  if (!(e.target.closest && e.target.closest('.menu-wrap'))) closeMenus();
 });
+
+/* ─── SHELL: menus, sidebar sheet, bottom bar ─────────────────── */
+/* The top bar's two menus (+ New and the account). Only one is open at a time. */
+function closeMenus() {
+  document.querySelectorAll('.menu').forEach(m => { m.hidden = true; });
+  document.querySelectorAll('.menu-wrap [aria-expanded]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+function toggleMenu(id, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const menu = document.getElementById(id);
+  if (!menu) return;
+  const open = menu.hidden;
+  closeMenus();
+  menu.hidden = !open;
+  const trigger = menu.parentElement && menu.parentElement.querySelector('[aria-expanded]');
+  if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+/* The sidebar is a slide-over sheet on a phone; the bottom bar's More opens it. */
+function toggleSidebar(force) {
+  const sb = document.getElementById('sidebar');
+  const scrim = document.getElementById('sb-scrim');
+  if (!sb) return;
+  const on = sb.classList.toggle('open', force);
+  if (scrim) scrim.classList.toggle('open', on);
+}
+
+/* Which bottom-bar tab is lit for a page. Record pages light none of them;
+   everything that has no tab of its own lives under More. */
+function bottomTabFor(view) {
+  if (['dashboard', 'offtakers', 'pipeline', 'contacts'].includes(view)) return view;
+  if (['detail', 'org-map', 'sector', 'municipality'].includes(view)) return null;
+  return 'more';
+}
 
 let _toastTimer = null;
 function toast(msg, kind) {
@@ -1512,13 +1556,16 @@ function setUserBadge(email, role) {
   const el = document.getElementById('user-badge');
   if (!el) return;
   if (!email) { el.style.display = 'none'; return; }
-  el.style.display = 'flex';
+  el.style.display = '';
   el.innerHTML =
-    '<div class="av" style="width:24px;height:24px;font-size:9px;background:' + avatarColor(email) + '">' +
-      esc((email[0] || '?').toUpperCase()) + '</div>' +
-    '<div class="ub-text"><div class="ub-email">' + esc(toDisplayName(email)) + '</div>' +
-    '<div class="ub-role">' + (role === 'admin' ? 'Admin' : 'Read only') + '</div></div>' +
-    '<button class="btn btn-ghost btn-xs" onclick="signOut()" title="Sign out">' + icon('logout', 13) + '</button>';
+    '<button class="acct-btn" onclick="toggleMenu(\'acct-menu\', event)" aria-haspopup="menu" aria-expanded="false" ' +
+      'aria-label="Account" title="' + esc(toDisplayName(email)) + '">' +
+      '<span class="av" style="background:' + avatarColor(email) + '">' + esc((email[0] || '?').toUpperCase()) + '</span></button>' +
+    '<div class="menu menu-right" id="acct-menu" role="menu" hidden>' +
+      '<div class="menu-head"><div class="ub-email">' + esc(toDisplayName(email)) + '</div>' +
+      '<div class="ub-role">' + (role === 'admin' ? 'Admin' : 'Read only') + '</div></div>' +
+      '<button class="menu-item" role="menuitem" onclick="signOut()">' + icon('logout', 14) + ' Sign out</button>' +
+    '</div>';
 }
 
 async function onSignedIn(session) {

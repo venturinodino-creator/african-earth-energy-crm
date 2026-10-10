@@ -23,7 +23,8 @@
 
 <div id="app-shell" style="display:none;width:100%">
 
-<nav class="sb">
+<div class="sb-scrim" id="sb-scrim" onclick="toggleSidebar(false)"></div>
+<nav class="sb" id="sidebar" aria-label="Main navigation">
   <a class="sb-logo" href="landing.html" title="Back to home">
     <div class="sb-logo-mark"><svg viewBox="0 0 44 44" width="32" height="32" aria-hidden="true"><use href="#aeeg-mark" fill="url(#aeeg-mk)"/></svg></div>
     <div class="sb-logo-text">
@@ -119,13 +120,6 @@
 
 <div class="main">
   <div class="topbar">
-    <button class="mobile-toggle" onclick="document.querySelector('.sb').classList.toggle('open')" aria-label="Menu">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-    <div class="topbar-left">
-      <h2 id="page-title">Dashboard</h2>
-      <p id="page-sub">Offtaker pipeline for African Earth Energy</p>
-    </div>
     <div class="gs-wrap">
       <span class="gs-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -134,12 +128,44 @@
              oninput="globalSearch(this.value)" autocomplete="off">
       <div id="global-search-results" class="gs-results"></div>
     </div>
-    <div class="topbar-right" id="topbar-actions"></div>
-    <div id="user-badge" class="user-badge" style="display:none"></div>
+    <div class="topbar-spacer"></div>
+    <!-- + New: every create action that exists. Admin-only, like the buttons it mirrors. -->
+    <div class="menu-wrap" id="new-menu-wrap" data-admin-only>
+      <button class="btn btn-primary" id="new-btn" onclick="toggleMenu('new-menu', event)" aria-haspopup="menu" aria-expanded="false">
+        <span class="mi" data-icon="plus"></span> New
+      </button>
+      <div class="menu menu-right" id="new-menu" role="menu" hidden>
+        <button class="menu-item" role="menuitem" onclick="closeMenus();openAddOfftaker()"><span class="mi" data-icon="building"></span> Off-taker</button>
+        <button class="menu-item" role="menuitem" onclick="closeMenus();openAddContact()"><span class="mi" data-icon="contacts"></span> Contact</button>
+        <button class="menu-item" role="menuitem" onclick="closeMenus();openAddDeal()"><span class="mi" data-icon="bolt"></span> Opportunity</button>
+        <button class="menu-item" role="menuitem" onclick="closeMenus();openLogInteraction()"><span class="mi" data-icon="note"></span> Log activity</button>
+      </div>
+    </div>
+    <div class="menu-wrap" id="user-badge" style="display:none"></div>
   </div>
-  <div id="back-to-main"></div>
+  <!-- The page header: this page's title, one line about it, and its own actions.
+       setPage() fills it; the way back to the Dashboard sits above the title. -->
+  <header class="page-head" id="page-head">
+    <div id="back-to-main"></div>
+    <div class="ph-row">
+      <div class="ph-text">
+        <h2 id="page-title">Dashboard</h2>
+        <p id="page-sub">Offtaker pipeline for African Earth Energy</p>
+      </div>
+      <div class="ph-actions" id="page-actions"></div>
+    </div>
+  </header>
   <div class="content" id="content"></div>
 </div>
+
+<!-- Phone navigation. Hidden above the small breakpoint; More opens the sidebar as a sheet. -->
+<nav class="bottom-bar" id="bottom-bar" aria-label="Mobile navigation">
+  <a class="bb-tab" data-view="dashboard" onclick="nav('dashboard')"><span class="mi" data-icon="dashboard"></span><span>Dashboard</span></a>
+  <a class="bb-tab" data-view="offtakers" onclick="nav('offtakers')"><span class="mi" data-icon="building"></span><span>Prospects</span></a>
+  <a class="bb-tab" data-view="pipeline" onclick="nav('pipeline')"><span class="mi" data-icon="pipeline"></span><span>Pipeline</span></a>
+  <a class="bb-tab" data-view="contacts" onclick="nav('contacts')"><span class="mi" data-icon="contacts"></span><span>Contacts</span></a>
+  <a class="bb-tab" data-more onclick="toggleSidebar()"><span class="mi" data-icon="menu"></span><span>More</span></a>
+</nav>
 
 </div><!-- /app-shell -->
 
