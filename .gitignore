@@ -56,11 +56,11 @@ npm-debug.log*
 # `.env.*`, and narrow enough that `.env.local` stays ignored.
 !.env.example
 
-# Local exports
+# Local exports. The research CSVs hold named people with work emails and
+# the site is published from this repo, so they stay on the desk's machine:
+# only data/*.csv ships.
 *.csv
 !data/*.csv
-!research/*.csv
-!research/**/*.csv
 
 # Local agent tooling
 .claude-flow/
