@@ -113,6 +113,17 @@ test('provinces follow the selected sector', () =>
 test('provinces follow the municipality target', () =>
   same(f.finderProvinces(f.FINDER_MUNI, offtakers, munis), ['Eastern Cape', 'Gauteng']));
 
+console.log('\nA company in two provinces');
+const spanning = offtakers.concat([{ id: 'o_min3', sector: 'mining', province: 'Mpumalanga / Limpopo', status: 'prospect' }]);
+test('is in scope for either province', () => {
+  const got = p => f.finderScopeAccounts('mining', spanning, munis, p).map(a => a.id);
+  assert.ok(got('Limpopo').includes('o_min3'));
+  assert.ok(got('Mpumalanga').includes('o_min3'));
+  assert.ok(!got('Gauteng').includes('o_min3'));
+});
+test('is offered as two provinces, never as the combination', () =>
+  same(f.finderProvinces('mining', spanning, munis), ['Gauteng', 'Limpopo', 'Mpumalanga']));
+
 console.log('\nfinderRunRecord');
 test('a sector run records the sector as its industry', () => {
   const run = f.finderRunRecord('chemicals', [{ id: 'o_chm1' }], ['decision'], 'run_1', '2026-10-02');

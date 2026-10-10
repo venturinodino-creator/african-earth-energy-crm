@@ -78,7 +78,7 @@ function renderNews() {
       'oninput="state.newsSearch=this.value;renderNews()"></div>' +
       '<select class="flt" onchange="state.newsProvince=this.value;renderNews()">' +
         '<option value="">All provinces</option>' +
-        NEWS_PROVINCES.map(p => '<option value="' + esc(p) + '"' +
+        SA_PROVINCES.map(p => '<option value="' + esc(p) + '"' +
           (state.newsProvince === p ? ' selected' : '') + '>' + esc(p) + '</option>').join('') +
       '</select>' +
       '<span class="result-count">' + scope.length + ' in scope</span>' +
@@ -145,11 +145,17 @@ function newsSidebarHtml(scope) {
       '<span class="news-legend-n">' + (byTopic[id] || 0) + '</span>' +
     '</div>').join('');
 
-  const provinces = NEWS_PROVINCES.filter(p => byProvince[p]).map(p =>
-    '<div class="news-legend-row' + (state.newsProvince === p ? ' on' : '') + '" onclick="setNewsProvince(\'' + esc(p) + '\')">' +
-      '<span style="flex:1">' + esc(p) + '</span>' +
-      '<span class="news-legend-n">' + byProvince[p] + '</span>' +
-    '</div>').join('');
+  /* "Multiple" tags the national stories. It is not one of the nine provinces, so it
+     is counted here but cannot be picked: choosing a province leaves national stories out. */
+  const provinces = NEWS_PROVINCES.filter(p => byProvince[p]).map(p => SA_PROVINCES.includes(p)
+    ? '<div class="news-legend-row' + (state.newsProvince === p ? ' on' : '') + '" onclick="setNewsProvince(\'' + esc(p) + '\')">' +
+        '<span style="flex:1">' + esc(p) + '</span>' +
+        '<span class="news-legend-n">' + byProvince[p] + '</span>' +
+      '</div>'
+    : '<div class="news-legend-row" style="cursor:default">' +
+        '<span style="flex:1">' + esc(p) + ' (national)</span>' +
+        '<span class="news-legend-n">' + byProvince[p] + '</span>' +
+      '</div>').join('');
 
   return '<div class="news-side-card"><h4>Topics</h4>' + topics + '</div>' +
     '<div class="news-side-card"><h4>Provinces</h4>' + (provinces ||

@@ -49,6 +49,7 @@ function env(over) {
     viewToggle: k => '<div class="view-toggle" data-key="' + k + '"></div>', growBars() {}, loadFinderCache() {}, refreshFinderFromServer() {}, analyticsPageGuideHtml: () => '<div class="guide">GUIDE</div>',
     pmProjectFor: () => null, interactionsFor: () => [], exportNews() {}, openLogInteraction() {}, deleteInteraction() {},
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; }, state,
+    SA_PROVINCES: ['Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'],
     NEWS_AUTO: [{ id: 'n1', topic: 'renewable_energy', province: 'Multiple', date: '2026-10-09', title: 'Eskom launches', summary: '', url: 'https://x.co.za', auto: true }],
   });
   const files = ['js/layout.js', 'data/news.js', 'js/views-agenthq.js', 'js/views-news.js', 'js/views-tools.js'];
