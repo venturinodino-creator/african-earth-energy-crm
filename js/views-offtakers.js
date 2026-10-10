@@ -619,7 +619,10 @@ function renderContacts() {
   const isGrid = state.contactView === 'grid';
   const from = (state.contactPage - 1) * PER_PAGE + 1;
   const foot = tableFooterHtml({
-    from, to: from + page.length - 1, total: list.length, all: state.contacts.length,
+    from, to: from + page.length - 1, total: list.length,
+    /* Everyone in the chosen role tab: the tab is a choice, so only the search
+       and the company filter count as hiding rows. */
+    all: state.contacts.filter(c => !state.contactRole || c.role === state.contactRole).length,
     noun: list.length === 1 ? 'contact' : 'contacts', page: state.contactPage, pages,
     prev: 'state.contactPage--;renderContacts()', next: 'state.contactPage++;renderContacts()', standalone: isGrid,
   });

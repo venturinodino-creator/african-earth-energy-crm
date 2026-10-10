@@ -68,7 +68,9 @@ function muniSortVal(m, field) {
   }
 }
 
-function filteredMunicipalities() {
+/* `skipCat` leaves the category tab out of the filter, so the tabs can count
+   what each one would show given the search, province and worked filters. */
+function filteredMunicipalities(skipCat) {
   const term = state.muniSearch.toLowerCase();
   const list = SA_MUNICIPALITIES.filter(m => {
     if (term && !(m.name + ' ' + m.code + ' ' + m.seat + ' ' + m.province + ' ' +
@@ -77,8 +79,10 @@ function filteredMunicipalities() {
     /* 'main' shares the category dropdown but is not a category: it is
        eight metros and sixteen locals, so it is answered before the
        A/B/C comparison rather than through it. */
-    if (state.muniCat === 'main') { if (!muniIsMain(m)) return false; }
-    else if (state.muniCat && m.cat !== state.muniCat) return false;
+    if (!skipCat) {
+      if (state.muniCat === 'main') { if (!muniIsMain(m)) return false; }
+      else if (state.muniCat && m.cat !== state.muniCat) return false;
+    }
     if (state.muniWorked === 'yes' && !muniIsWorked(m)) return false;
     if (state.muniWorked === 'no' && muniIsWorked(m)) return false;
     return true;
@@ -93,7 +97,6 @@ function renderMunicipalities() {
 
   setPage('Municipalities',
     SA_MUNICIPALITIES.length + ' municipalities · ' + worked + ' with someone on file',
-    viewToggle('muniView') +
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'contacts\')">' +
       icon('upload', 14) + ' Import contacts</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportMunicipalities()">' +
@@ -118,15 +121,28 @@ function renderMunicipalities() {
         "muniSetWorked('yes')") +
     '</div>';
 
-  const toolbar =
+  /* The category is a tab, not a drop-down: All, the 24 worth a call first, then
+     the three legal categories. Each tab counts what it would show given the
+     search, province and worked filters; the tab itself is applied after. */
+  const base = filteredMunicipalities(true);
+  const catTab = (value, label, n) => ({
+    label, count: n, active: state.muniCat === value,
+    on: 'state.muniCat=' + jsStr(value) + ';state.muniPage=1;renderMunicipalities()',
+  });
+  const toolbar = viewTabsHtml([
+    catTab('', 'All', base.length),
+    catTab('main', 'Main', base.filter(muniIsMain).length),
+    catTab('A', 'Metros', base.filter(m => m.cat === 'A').length),
+    catTab('C', 'Districts', base.filter(m => m.cat === 'C').length),
+    catTab('B', 'Locals', base.filter(m => m.cat === 'B').length),
+  ]) +
     '<div class="toolbar">' +
       '<div class="search-wrap"><span class="search-icon">' + icon('search', 14) + '</span>' +
       '<input placeholder="Search municipality, code, seat or district..." value="' + esc(state.muniSearch) + '" ' +
       'oninput="state.muniSearch=this.value;state.muniPage=1;renderMunicipalities()"></div>' +
       muniFlt('muniProvince', 'All provinces', MUNI_PROVINCES.map(p => [p, p])) +
-      muniFlt('muniCat', 'All categories',
-        Object.entries(MUNI_CATEGORY_LONG).concat([['main', 'Main municipalities']])) +
       muniFlt('muniWorked', 'Worked or not', [['yes', 'Has contacts'], ['no', 'Nobody on file yet']]) +
+      viewToggle('muniView') +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
 
@@ -140,14 +156,19 @@ function renderMunicipalities() {
   state.muniPage = Math.min(Math.max(1, state.muniPage), pages);
   const page = list.slice((state.muniPage - 1) * PER_PAGE, state.muniPage * PER_PAGE);
 
-  setContent(stats + toolbar +
-    (state.muniView === 'table' ? muniTableHtml(page) :
-      '<div class="ent-grid">' + page.map(muniCardHtml).join('') + '</div>') +
-    (pages > 1 ? '<div class="pagination">' +
-      '<button class="pg-btn" ' + (state.muniPage === 1 ? 'disabled' : '') + ' onclick="state.muniPage--;renderMunicipalities()">Previous</button>' +
-      '<span class="pg-info">Page ' + state.muniPage + ' of ' + pages + ' · ' + list.length + ' municipalities</span>' +
-      '<button class="pg-btn" ' + (state.muniPage === pages ? 'disabled' : '') + ' onclick="state.muniPage++;renderMunicipalities()">Next</button>' +
-    '</div>' : ''));
+  const isTable = state.muniView === 'table';
+  const from = (state.muniPage - 1) * PER_PAGE + 1;
+  const foot = tableFooterHtml({
+    from, to: from + page.length - 1, total: list.length,
+    /* Everything in the chosen tab: the tab is a choice, so only the search and
+       the drop-downs count as hiding rows. */
+    all: SA_MUNICIPALITIES.filter(m => state.muniCat === 'main' ? muniIsMain(m) : !state.muniCat || m.cat === state.muniCat).length,
+    noun: list.length === 1 ? 'municipality' : 'municipalities', page: state.muniPage, pages,
+    prev: 'state.muniPage--;renderMunicipalities()', next: 'state.muniPage++;renderMunicipalities()', standalone: !isTable,
+  });
+  setContent(stats + toolbar + (isTable
+    ? tableCardHtml(muniTableHtml(page), foot)
+    : '<div class="ent-grid">' + page.map(muniCardHtml).join('') + '</div>' + foot));
 }
 
 function muniFlt(key, allLabel, pairs) {

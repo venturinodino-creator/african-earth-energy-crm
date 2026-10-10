@@ -259,19 +259,32 @@ function renderContactFinder() {
       'Accept all (' + pending.length + ')' +
       (noEmail ? ' <span style="opacity:.75;font-weight:400">· ' + noEmail + ' without email</span>' : '') +
       '</button>' +
-    '<button class="btn btn-outline btn-sm" onclick="nav(\'prospect-companies\')">' +
-      icon('building', 14) + ' Prospect companies</button>' +
+    '<button class="btn btn-outline btn-sm" onclick="nav(\'offtakers\')">' +
+      icon('building', 14) + ' Off-taker Prospects</button>' +
     '<button class="btn btn-outline btn-sm" onclick="refreshFinderFromServer(true)">' +
       icon('refresh', 14) + ' Refresh</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportFoundContacts()">' +
       icon('download', 14) + ' Export</button>');
 
-  setContent(
-    finderTargetBar() +
-    finderRoleBar(scoped) +
-    finderNoticeHtml() +
-    finderRunStrip() +
-    (pending.length ? finderTableHtml(pending) : finderEmptyHtml(accepted)));
+  /* Two cards side by side: what the next run will do, and what the last ones
+     did. The review queue, which is the page's actual work, gets the full width
+     below them. */
+  const runs = finderRunStrip();
+  const setup = '<div class="card">' +
+    '<div class="card-header"><div><div class="card-title">Next run</div>' +
+    '<div class="card-sub">Pick who to research and which roles to find</div></div></div>' +
+    finderTargetBar() + finderRoleBar(scoped) + finderNoticeHtml() + '</div>';
+  const recent = '<div class="card">' +
+    '<div class="card-header"><div><div class="card-title">Recent runs</div>' +
+    '<div class="card-sub">' + (state.contactRuns.length
+      ? state.contactRuns.length + ' queued so far, newest first' : 'Nothing has been queued yet') + '</div></div></div>' +
+    (runs || '<div class="fg-hint">No runs yet. Queue one from the card on the left and it appears here.</div>') + '</div>';
+  const queue = pending.length
+    ? '<div class="section-title">Review queue</div>' + tableCardHtml(finderTableHtml(pending), tableFooterHtml({
+        from: 1, to: pending.length, total: pending.length, all: pending.length, noun: 'awaiting review', page: 1, pages: 1,
+      }))
+    : finderEmptyHtml(accepted);
+  setContent('<div class="card-grid">' + setup + recent + '</div>' + queue);
 }
 
 /* The target selector. Lists only targets with people missing (plus
