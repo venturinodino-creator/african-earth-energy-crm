@@ -121,6 +121,45 @@ test('setPage with no subtitle or actions clears the old ones', () => {
   assert.strictEqual(d.els['page-actions'].innerHTML, '');
 });
 
+console.log('\nBreadcrumb');
+{
+  const book = { a: { id: 'a', name: 'Alpha Mining', short: 'Alpha' }, b: { id: 'b', name: 'Beta Steel', short: '' } };
+  const stubs = (view, id, inPipe) => ({
+    state: { view, detailId: id }, getOfftaker: x => book[x] || {}, inPipeline: o => !!inPipe[o.id],
+    esc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'), jsStr: v => JSON.stringify(String(v)).replace(/"/g, '&quot;'),
+  });
+  /* Array.from: an array built inside the vm has the vm's prototype, which deepStrictEqual rejects. */
+  const crumbs = (view, id, inPipe) => Array.from(fn('crumbsFor', stubs(view, id, inPipe))(view));
+  test('a lead sits under Off-taker Prospects; a worked account under Pipeline', () => {
+    assert.deepStrictEqual(crumbs('detail', 'a', {}).map(c => c.label), ['Off-taker Prospects', 'Alpha']);
+    assert.deepStrictEqual(crumbs('detail', 'b', { b: true }).map(c => c.label), ['Pipeline', 'Beta Steel']);
+  });
+  test('the org map adds a step and links back to the account', () => {
+    const c = crumbs('org-map', 'a', {});
+    assert.deepStrictEqual(c.map(x => x.label), ['Off-taker Prospects', 'Alpha', 'Org map']);
+    assert.ok(/nav\('detail'/.test(c[1].on), 'account crumb links to the account');
+    assert.ok(!c[2].on, 'the current page is not a link');
+  });
+  test('every other page keeps the plain way back to the Dashboard', () => {
+    const c = crumbs('news', null, {});
+    assert.deepStrictEqual(c.map(x => x.label), ['Dashboard']);
+    assert.strictEqual(c[0].back, true);
+    assert.deepStrictEqual(crumbs('dashboard', null, {}), []);
+  });
+  test('the breadcrumb is drawn into the page header, and a record page hides the duplicate title', () => {
+    const d = stubDoc();
+    const render = fn('renderBackToMain', Object.assign(stubs('detail', 'a', {}), { document: d.document, crumbsFor: fn('crumbsFor', stubs('detail', 'a', {})) }));
+    render();
+    const h = d.els['back-to-main'].innerHTML;
+    assert.ok(h.includes('Off-taker Prospects') && h.includes('Alpha') && h.includes('class="crumbs"'), h);
+    const set = fn('setPage', { document: d.document });
+    set('Alpha', 'sub', '', { record: true });
+    assert.ok(d.els['page-head'].classList.contains('is-record'));
+    set('Pipeline', 'sub', '');
+    assert.ok(!d.els['page-head'].classList.contains('is-record'), 'the next page is an ordinary page again');
+  });
+}
+
 console.log('\nAccount menu');
 test('the account menu shows initials, username, role and Sign out', () => {
   const d = stubDoc();

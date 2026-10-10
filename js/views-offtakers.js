@@ -399,10 +399,15 @@ function renderDetail() {
   const people = contactsFor(o.id);
   const working = inPipeline(o);
 
-  setPage(o.short || o.name, sectorName(o.sector) + ' · ' + esc(o.city) + ', ' + esc(o.province),
+  /* The page header keeps only the breadcrumb; the name and every action live
+     in the header card below it. */
+  setPage(o.short || o.name, sectorName(o.sector) + ' · ' + o.city + ', ' + o.province, '', { record: true });
+
+  const head = recordHeadHtml(o,
     '<button class="btn btn-outline btn-sm" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})" title="Visual org chart: who sits where">' + icon('grid', 14) + ' Org map</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openLogInteraction(\'' + o.id + '\')">' + icon('note', 14) + ' Log activity</button>' +
     '<button class="btn btn-outline btn-sm" onclick="openAddContact(\'' + o.id + '\')">' + icon('plus', 14) + ' Add contact</button>' +
+    '<button class="btn btn-outline btn-sm" onclick="openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 13) + ' Edit</button>' +
     /* An opportunity is a pipeline object. Offering one on a lead would
        move the record across as a side effect of a form nobody opened for
        that reason, so a lead is given the move itself instead. */
@@ -412,50 +417,32 @@ function renderDetail() {
       : '<button class="btn btn-primary btn-sm" data-admin-only ' +
         'title="Move this lead out of Prospects and into the Pipeline at Prospecting" ' +
         'onclick="addToPipeline(' + jsStr(o.id) + ')">' +
-        icon('target', 14) + ' Work it</button>'));
+        icon('target', 14) + ' Work it</button>'),
+    o.description);
 
-  const hero =
-    '<div class="detail-hero">' +
-      '<div class="dh-top">' +
-        '<div class="dh-icon">' + sectorIcon(o.sector, 24) + '</div>' +
-        '<div style="flex:1;min-width:220px">' +
-          '<div class="dh-title">' + esc(o.name) + '</div>' +
-          '<div class="dh-sub">' +
-            sectorBadge(o.sector) +
-            '<span class="badge b-' + esc(o.status) + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
-            '<span class="badge b-' + o.priority + '">' + esc(o.priority) + ' priority</span>' +
-            (o.estimated ? '<span class="chip" title="Load figures are desk estimates — verify with the customer">' + icon('alert', 11) + ' estimated load</span>' : '') +
-            /* A parked account only comes back if the date that unparks it is
-               visible. Due dates read as live, future ones as a reminder. */
-            (o.revisitDate
-              ? '<span class="chip"' +
-                (o.revisitDate <= todayISO() ? ' style="color:var(--danger);border-color:var(--danger)"' : '') +
-                ' title="Revisit this account">' + icon('clock', 11) + ' revisit ' + esc(o.revisitDate) + '</span>'
-              : '') +
-            (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Website</a>' : '') +
-          '</div>' +
-          (o.description ? '<p style="font-size:12.5px;color:var(--muted2);line-height:1.6;margin-top:10px;max-width:70ch">' + esc(o.description) + '</p>' : '') +
-        '</div>' +
-        '<div style="display:flex;gap:6px;flex-shrink:0">' +
-          '<button class="btn btn-outline btn-sm" onclick="openEditOfftaker(\'' + o.id + '\')">' + icon('edit', 13) + ' Edit</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="dh-metrics">' +
-        dhMetric(isUnworked(o) ? loadBandText(o) : fmtNum(o.annualGwh),
-                 isUnworked(o) ? 'Estimated load' : 'GWh a year', true) +
-        dhMetric(isUnworked(o) ? '—' : fmtNum(o.peakMw) + ' MW', 'Peak demand') +
-        dhMetric(isUnworked(o) ? '—' : Math.round(loadFactor(o) * 100) + '%', 'Load factor') +
-        dhMetric(num(o.tariff) ? 'R' + num(o.tariff).toFixed(2) : '—', 'Current tariff') +
-        dhMetric(isUnworked(o) ? 'not scored' : f + '/100', 'Fit score', true) +
-        dhMetric(distanceLabel(np), np ? 'to ' + np.project.town + (np.approx ? ' (approx)' : '') : 'no nearby site') +
-      '</div>' +
-    '</div>';
+  /* About: who and where they are, and the numbers the desk has. The six
+     figures that used to be tiles under the name, as one fact list. */
+  const unsized = isUnworked(o);
+  const fact = (label, value, hl) => '<dt>' + esc(label) + '</dt><dd' + (hl ? ' class="hl"' : '') + '>' + value + '</dd>';
+  const about = '<div class="card"><div class="card-header"><div class="card-title">About</div></div>' +
+    '<dl class="kv rec-kv">' +
+      fact('Sector', sectorBadge(o.sector)) +
+      fact('Location', esc([o.city, o.province].filter(Boolean).join(', ') || '—')) +
+      fact(unsized ? 'Estimated load' : 'GWh a year', esc(unsized ? loadBandText(o) : fmtNum(o.annualGwh)), true) +
+      fact('Peak demand', unsized ? '—' : esc(fmtNum(o.peakMw)) + ' MW') +
+      fact('Load factor', unsized ? '—' : Math.round(loadFactor(o) * 100) + '%') +
+      fact('Current tariff', num(o.tariff) ? 'R' + num(o.tariff).toFixed(2) : '—') +
+      fact('Fit score', unsized ? 'not scored' : f + '/100', true) +
+      fact('Nearest site', np ? esc(distanceLabel(np)) + ' to ' + esc(np.project.town) + (np.approx ? ' (approx)' : '') : 'no nearby site') +
+    '</dl>' +
+    (unsized ? '' : '<div class="fit-bar"><span style="width:' + f + '%;background:' + fitColor(f) + '"></span></div>') +
+  '</div>';
 
   /* The researched overview, and how to approach the call. Both came
      across when leads and offtakers became one record type, and they are
      the only thing a company nobody has sized yet actually has. */
   const overview = (o.blurb || o.notes || o.phone || o.email)
-    ? '<div class="card" style="margin-bottom:14px">' +
+    ? '<div class="card">' +
         '<div class="card-header"><div><div class="card-title">Company overview</div>' +
         '<div class="card-sub">Scale, ownership, load shape and what would make them buy</div></div></div>' +
         (o.blurb ? '<div class="blurb">' + proseHtml(o.blurb) + '</div>' : '') +
@@ -469,19 +456,45 @@ function renderDetail() {
       '</div>'
     : '';
 
-  setContent(hero +
-    /* The path is the control a rep uses every day, so it sits at the top
-       of the record where Salesforce puts it — for an account in the
-       pipeline. A lead gets nothing here at all: not a greyed-out path,
-       not an empty stage badge. It has no sales stage, and the page says
-       so by not drawing one. */
-    (working ? sfPathCardHtml(o) : '') +
-    /* Who is on file comes before the long overview: the ladder names the
-       person in each seat with their email, and the list under it is every
-       contact in full. The panel's segments filter that list. */
-    '<div style="margin-bottom:14px">' + contactMixHtml(o, people) + '</div>' +
-    '<div style="margin-bottom:14px">' + contactsCardHtml(o) + '</div>' +
-    overview);
+  /* Three columns: About | the working column | who is here. The working
+     column is where a rep acts: the sales stage first (for an account in the
+     pipeline; a lead has no stage and the page says so by not drawing one),
+     then the overview, then every contact in full. Who is here is the seniority,
+     reachability and stakeholder-ladder panel whose segments filter that list. */
+  setContent(head +
+    '<div class="rec-grid">' +
+      '<div class="rg-about">' + about + '</div>' +
+      '<div class="rg-main">' + (working ? sfPathCardHtml(o) : '') + overview + contactsCardHtml(o) + '</div>' +
+      '<div class="rg-side">' + contactMixHtml(o, people) + '</div>' +
+    '</div>');
+}
+
+/* The card that opens a record: who it is, what state it is in, and what can be
+   done to it. Shared by the account page and its org map, so both start the
+   same way. `desc` is one quiet line under the chips. */
+function recordHeadHtml(o, actionsHtml, desc) {
+  return '<div class="record-head">' +
+    '<div class="rh-icon">' + sectorIcon(o.sector, 24) + '</div>' +
+    '<div class="rh-text">' +
+      '<h3 class="rh-title">' + esc(o.name) + '</h3>' +
+      '<div class="rh-chips">' +
+        sectorBadge(o.sector) +
+        '<span class="badge b-' + esc(o.status) + '">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>' +
+        '<span class="badge b-' + esc(o.priority) + '">' + esc(o.priority) + ' priority</span>' +
+        (o.estimated ? '<span class="chip" title="Load figures are desk estimates — verify with the customer">' + icon('alert', 11) + ' estimated load</span>' : '') +
+        /* A parked account only comes back if the date that unparks it is
+           visible. Due dates read as live, future ones as a reminder. */
+        (o.revisitDate
+          ? '<span class="chip"' +
+            (o.revisitDate <= todayISO() ? ' style="color:var(--danger);border-color:var(--danger)"' : '') +
+            ' title="Revisit this account">' + icon('clock', 11) + ' revisit ' + esc(o.revisitDate) + '</span>'
+          : '') +
+        (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Website</a>' : '') +
+      '</div>' +
+      (desc ? '<p class="rh-desc">' + esc(desc) + '</p>' : '') +
+    '</div>' +
+    '<div class="rh-actions">' + actionsHtml + '</div>' +
+  '</div>';
 }
 
 /* Blank-line-separated text into real paragraphs. The blurbs were written
