@@ -19,16 +19,21 @@ function renderProjects() {
 
   setPage(plans ? 'Project plans' : 'Generation portfolio',
     plans ? 'ProjectManager.com: team summary, portfolio, tasks and activity'
-          : fmtNum(total) + ' MW in development plus ' + fmtNum(pipelineOnly) + ' MW early-stage',
-    projectsModeToggle() + (plans ? '' : viewToggle('projectView')));
+          : fmtNum(total) + ' MW in development plus ' + fmtNum(pipelineOnly) + ' MW early-stage', '');
 
   if (plans) {
-    setContent(pmSectionHtml());
+    setContent(projectsTabsHtml() + pmSectionHtml());
     growBars();
     return;
   }
 
+  const isTable = state.projectView === 'table';
+  const foot = tableFooterHtml({
+    from: 1, to: state.projects.length, total: state.projects.length, all: state.projects.length,
+    noun: state.projects.length === 1 ? 'site' : 'sites', page: 1, pages: 1, standalone: !isTable,
+  });
   setContent(
+    projectsTabsHtml() +
     '<div class="stats-grid">' +
       statTile('sun', 'amber', 'Portfolio', fmtNum(total) + ' MW', live.length + ' named sites') +
       statTile('check', 'green', 'Contracted', fmtNum(contractedMw()) + ' MW', 'signed PPAs') +
@@ -36,22 +41,23 @@ function renderProjects() {
       statTile('target', 'purple', 'Still to sell', fmtNum(Math.max(0, total - contractedMw() - pipelineMw())) + ' MW', 'uncommitted capacity') +
     '</div>' +
     pmBannerHtml() +
-    (state.projectView === 'table'
-      ? projectTableHtml(state.projects)
-      : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>'));
+    '<div class="toolbar">' + viewToggle('projectView') +
+      '<span class="result-count">' + state.projects.length + ' site' + (state.projects.length === 1 ? '' : 's') + '</span></div>' +
+    (isTable
+      ? tableCardHtml(projectTableHtml(state.projects), foot)
+      : '<div class="ent-grid">' + state.projects.map(projectCardHtml).join('') + '</div>' + foot));
   growBars();
   focusProjectCard();
 }
 
-/* The Projects page has two views: the sites AEE sells from, and the
-   ProjectManager.com project plans. Both are one click from the top, because
-   a plan hidden at the foot of the sites table was never found. */
-function projectsModeToggle() {
+/* The Projects page has three readings: the sites AEE sells from, the
+   analytics across the plans, and the ProjectManager.com project plans. They
+   are tabs at the top of the page, because a plan hidden at the foot of the
+   sites table was never found. */
+function projectsTabsHtml() {
   const on = state.projectsMode === 'plans' ? 'plans' : state.projectsMode === 'analytics' ? 'analytics' : 'sites';
-  return '<div class="view-toggle">' +
-    '<button class="vt-btn ' + (on === 'sites' ? 'active' : '') + '" onclick="setProjectsMode(\'sites\')">Sites</button>' +
-    '<button class="vt-btn ' + (on === 'analytics' ? 'active' : '') + '" onclick="setProjectsMode(\'analytics\')">Analytics</button>' +
-    '<button class="vt-btn ' + (on === 'plans' ? 'active' : '') + '" onclick="setProjectsMode(\'plans\')">Project plans</button></div>';
+  const tab = (key, label) => ({ label, active: on === key, on: "setProjectsMode('" + key + "')" });
+  return viewTabsHtml([tab('sites', 'Sites'), tab('analytics', 'Analytics'), tab('plans', 'Project plans')]);
 }
 function setProjectsMode(m) { state.projectsMode = m; renderProjects(); }
 

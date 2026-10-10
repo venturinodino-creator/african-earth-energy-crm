@@ -99,12 +99,10 @@ function pmSectionHtml() {
       : pmOverviewHtml();
   }
   const asOf = pm && pm.sync && pm.sync.as_of ? pm.sync.as_of : '';
-  return '<div id="pm-section" class="card" style="margin-top:18px">' +
+  return '<div id="pm-section" class="card">' +
     '<div class="card-header"><div><div class="card-title">Project plans</div>' +
-    '<div class="card-sub">ProjectManager.com copy' + (asOf ? ' &middot; taken ' + esc(asOf) : '') + '</div></div>' +
-    '<div class="view-toggle">' + tabs.map(([k, label]) =>
-      '<button class="vt-btn ' + (state.pmTab === k ? 'active' : '') + '" onclick="pmSetTab(\'' + k + '\')">' + label + '</button>').join('') +
-    '</div></div>' + body +
+    '<div class="card-sub">ProjectManager.com copy' + (asOf ? ' &middot; taken ' + esc(asOf) : '') + '</div></div></div>' +
+    viewTabsHtml(tabs.map(([k, label]) => ({ label, active: state.pmTab === k, on: "pmSetTab('" + k + "')" }))) + body +
     '<div class="fg-hint" style="margin-top:12px">A dated copy, not a live feed. Status and % are shown as ProjectManager.com holds them and ' +
     'do not always agree (for example 5 tasks per project are marked Done while the project sits at 0%). ' +
     'Changes made on this page are kept in the CRM and marked <i>edited</i>; the ProjectManager.com copy underneath is not touched. ' +
