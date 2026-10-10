@@ -325,15 +325,13 @@ function renderAnalytics() {
       statTile('target', 'blue', 'Average fit score', avgFit + '/100', buckets['80–100'] + ' offtakers score 80+') +
       statTile('chart', 'purple', 'Weighted pipeline', fmtR(weighted), 'across contract life') +
     '</div>' +
-    '<div class="grid-2">' +
+    /* One card grid: two charts, then a chart and a table, then the funnel across the full width. */
+    '<div class="card-grid">' +
       barCard('Load by province', 'GWh a year', byProvince, null, 'var(--accent)') +
       barCard('Load by sector', 'GWh a year', bySector, SECTOR_LABEL_MAP, 'var(--accent2)') +
-    '</div>' +
-    '<div class="grid-2" style="margin-top:14px">' +
       barCard('Fit score distribution', 'Number of offtakers in each band', buckets, null, '#3F7F9A') +
       topCard +
-    '</div>' +
-    '<div class="card" style="margin-top:14px">' +
+    '<div class="card span-all">' +
       '<div class="card-header"><div class="card-title">Funnel health</div></div>' +
       '<div class="split-bar">' +
         Object.entries(byStatus).map(([k, v]) => {
@@ -346,6 +344,7 @@ function renderAnalytics() {
         Object.entries(byStatus).map(([k, v]) => '<span class="chip">' + esc(STATUS_LABEL[k] || k) + ' <i style="color:var(--muted)">' + v + '</i></span>').join('') +
       '</div>' +
       '<div class="fg-hint" style="margin-top:10px">A healthy funnel keeps prospects flowing into Engaged. If Prospect dominates, the problem is outreach volume, not conversion.</div>' +
+    '</div>' +
     '</div>');
   growBars();
 }
@@ -604,8 +603,9 @@ function renderActivity() {
     .sort((a, b) => (a.closeDate || '').localeCompare(b.closeDate || ''));
 
   setPage('Activity', logs.length + ' logged interactions',
-    viewToggle('activityView', [['timeline', 'Timeline'], ['table', 'Table']]) +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openLogInteraction()">' + icon('plus', 14) + ' Log activity</button>');
+  const readingTab = (key, label) => ({ label, active: (state.activityView === 'table' ? 'table' : 'timeline') === key, on: "setViewMode('activityView','" + key + "')" });
+  const tabs = viewTabsHtml([readingTab('timeline', 'Timeline'), readingTab('table', 'Table')]);
 
   const dueHtml = dueDeals.length
     ? '<div class="card"><div class="card-header"><div><div class="card-title">Target close dates</div>' +
@@ -624,7 +624,7 @@ function renderActivity() {
     logBody = '<div class="empty"><div class="ei">' + icon('activity', 30) + '</div><h3>Nothing logged yet</h3>' +
       '<p>Every call, email and meeting logged here is context the next person picking up the account will need.</p></div>';
   } else if (state.activityView === 'table') {
-    logBody = interactionTableHtml(logs);
+    logBody = '';
   } else {
     logBody = logs.map(i =>
       '<div class="int-row"><div class="int-dot"></div><div class="int-body">' +
@@ -637,11 +637,17 @@ function renderActivity() {
   const logHtml = '<div class="card"><div class="card-header"><div class="card-title">Interaction log</div></div>' +
     logBody + '</div>';
 
-  /* The table wants the full width; the timeline reads fine in a column. */
-  const body = !dueHtml ? logHtml
-    : state.activityView === 'table' ? logHtml + dueHtml
-    : '<div class="cols-2">' + logHtml + dueHtml + '</div>';
-  setContent(ahqActivityCardHtml() + body);
+  /* The table wants the full width, as a table card with its own footer; the
+     timeline reads fine in a column beside the close dates. */
+  let body;
+  if (state.activityView === 'table' && logs.length) {
+    const foot = tableFooterHtml({ from: 1, to: logs.length, total: logs.length, all: logs.length, noun: logs.length === 1 ? 'interaction' : 'interactions', page: 1, pages: 1 });
+    body = '<div class="section-title" style="margin-top:6px">Interaction log</div>' + tableCardHtml(interactionTableHtml(logs), foot) +
+      (dueHtml ? '<div style="margin-top:14px">' + dueHtml + '</div>' : '');
+  } else {
+    body = !dueHtml ? logHtml : '<div class="card-grid">' + logHtml + dueHtml + '</div>';
+  }
+  setContent(ahqActivityCardHtml() + tabs + body);
 }
 
 /* The log read as a register rather than a timeline — newest first either
