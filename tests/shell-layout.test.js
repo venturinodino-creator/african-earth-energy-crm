@@ -191,6 +191,35 @@ test('signed out hides the account menu', () => {
   assert.strictEqual(d.els['user-badge'].style.display, 'none');
 });
 
+console.log('\nSign-in screen');
+test('sign-in is one centred card with the AEEG mark, the form and a message line', () => {
+  const h = fn('signInScreenHtml', { esc: s => String(s == null ? '' : s).replace(/</g, '&lt;'), icon: () => '' })('Wrong password');
+  assert.ok(h.startsWith('<div class="gate-card">'));
+  ['#aeeg-mark', 'African Earth Energy', 'id="gate-email"', 'id="gate-password"', 'id="gate-btn"', 'Sign in', 'Wrong password'].forEach(s => assert.ok(h.includes(s), 'sign-in lacks ' + s));
+  assert.ok(!/<\/?(style|script)/.test(h));
+});
+test('the no-access screen is the same card, with Sign out', () => {
+  const h = fn('pendingScreenHtml', { esc: s => String(s), icon: () => '', toDisplayName: e => e.split('@')[0] })('pat@aeeg.co.za');
+  assert.ok(h.startsWith('<div class="gate-card">') && h.includes('signOut()') && h.includes('pat'));
+});
+test('the sign-in page is flat: no gradient wash, a solid card', () => {
+  const css = read('styles.css');
+  const gate = css.slice(css.indexOf('AUTH GATE'), css.indexOf('.gate-form{'));
+  assert.ok(!/gradient/.test(gate), 'the gate still paints a gradient');
+  assert.ok(/\.gate-card\{[^}]*background:var\(--card\)/.test(gate), 'the card is the shared card surface');
+});
+
+console.log('\nRetired layout');
+test('the old grids, hero and chip rows are gone from the stylesheet and from every script', () => {
+  const css = read('styles.css');
+  const retired = ['cols-2', 'grid-2', 'grid-3', 'detail-hero', 'dh-top', 'news-filter-btn', 'news-summary-btn', 'news-filter-bar', 'mobile-toggle', 'user-badge', 'topbar-left', 'topbar-right'];
+  retired.forEach(c => {
+    assert.ok(!new RegExp('\\.' + c + '[\\s{.:,>]').test(css), '.' + c + ' is still styled');
+    assert.ok(!new RegExp('class="[^"]*\\b' + c + '\\b').test(allJs + html), c + ' is still used');
+  });
+  assert.ok(!/class="pagination"/.test(allJs), 'the old pager is still used');
+});
+
 console.log('\nPhone bottom bar');
 test('five tabs: Dashboard, Prospects, Pipeline, Contacts, More', () => {
   const tabs = [...bottomBar.matchAll(/<(?:a|button|div)[^>]*class="bb-tab[^"]*"[^>]*>([\s\S]*?)<\/(?:a|button|div)>/g)]

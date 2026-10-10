@@ -397,6 +397,32 @@ efforts do not mix:
 needing an email. Each CSV carries a source URL and a confidence note on every row. The CSVs
 contain personal data about named people, so treat the repository accordingly.
 
+## The page frame
+
+Every page sits in the same frame, and the pieces are named in [`GLOSSARY.md`](GLOSSARY.md).
+The layout follows the WireFrame template's screens, re-drawn in this repo's own stylesheet
+with the AEEG colours and fonts; it does not use WireFrame's code or its config-driven
+engine ([ADR-0001](docs/adr/0001-wireframe-layout-not-engine.md)).
+
+- **Shell.** A light sidebar (every page, in four sections), a top bar with search, **+ New**
+  (off-taker, contact, opportunity, log activity; admins only) and the account menu, and on a
+  phone a five-tab bottom bar (Dashboard, Prospects, Pipeline, Contacts, More) where More opens
+  the sidebar.
+- **Page header.** Each page's title, subtitle and actions, filled by `setPage()`. A record page
+  passes `{ record: true }`: its header keeps only a breadcrumb, because its header card carries
+  the name and the actions.
+- **Lists.** View tabs (a saved filter that is on), then a filter bar, then one table card whose
+  footer says how much of the list is on screen and holds the pager. The builders are in
+  `js/layout.js`.
+- **Record pages.** An off-taker, a site, a sector and a municipality each open with the same
+  header card, then About | the working column | who is here (three columns from 1440px, two
+  below that, one on a phone).
+- **Cards.** A page body is made of cards: a KPI row of headline numbers, then card grids (even
+  two columns, or three, with full-width cards where a table needs the room).
+
+The layout is checked by `tests/shell-layout.test.js` (the frame and the retired classes) and a
+layout test per page family.
+
 ## Layout
 
 ```
@@ -410,6 +436,7 @@ data/municipalities.js      all 257 municipalities, as consumer and as distribut
 data/news.js                mining-industry stories, and the topics the desk watches
 data/mining-companies.txt   the company list for an Apollo batch run ("Company | domain")
 js/icons.js                 inline SVG icon set
+js/layout.js                page-layout builders: view tabs, table card and footer, record header card
 js/supabase.js              auth, row mapping, reads and writes
 js/core.js                  state, routing, helpers, fit score, sales path, auth gate, CSV
 js/views-dashboard.js       dashboard

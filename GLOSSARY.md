@@ -63,7 +63,22 @@ The row of headline number cards at the top of a dashboard-style page.
 The bordered surface that groups one topic on a page. Every page body is made of cards.
 
 **View tab**:
-A saved filter shown as a tab above a list (for example All, Hot, Renewing). Changes which rows show; never what columns exist.
+A saved filter shown as a tab above a list (for example Priority list and Archive, a contact role, a sector tier). Changes which rows show; never what columns exist. Also used for the readings of one page (Board, Flow, Table).
+
+**Filter bar**:
+The search box and drop-downs between the view tabs and the table, with the grid/table switch and the result count.
+
+**Table card**:
+One card around a table and its footer. The footer says how much of the list is on screen, how many rows the filters hide, and holds the pager.
+
+**Card grid**:
+A set of cards laid out in an even grid, two across (three where it is named so), with a card that needs room spanning the full width.
+
+**Header card**:
+The card that opens a record page: an icon, the name, chips for its state, one line of description and the actions that can be taken on it.
+
+**About card**:
+The fact list on a record page: who or what it is and the figures the desk holds.
 
 **Record page**:
-The page for one off-taker or site: a header card, then a body of three columns (about, activity, related).
+The page for one off-taker, site, sector or municipality: a header card, then About | the working column | who is here. Three columns from 1440px, two below that, one on a phone. Its page header is only a breadcrumb.

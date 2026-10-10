@@ -194,7 +194,7 @@ function newsSummaryHtml(scope) {
   };
 
   const breakdown =
-    '<div class="cols-2">' +
+    '<div class="card-grid">' +
       '<div class="card"><div class="card-header"><div><div class="card-title">By topic</div>' +
         '<div class="card-sub">What the market is talking about</div></div></div>' +
         bars(byTopic, k => NEWS_TOPICS[k] ? NEWS_TOPICS[k].label : k, k => (NEWS_TOPICS[k] || {}).color || 'var(--muted)') +
