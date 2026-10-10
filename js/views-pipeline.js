@@ -37,24 +37,28 @@ function renderPipeline() {
     working.length + ' account' + (working.length === 1 ? '' : 's') + ' being worked · ' +
     open.length + ' live opportunit' + (open.length === 1 ? 'y' : 'ies') + ' · ' +
     fmtNum(pipelineMw()) + ' MW under discussion',
-    viewToggle('pipeView', [['accounts', 'Board'], ['flow', 'Flow'], ['table', 'Table']]) +
     '<button class="btn btn-outline btn-sm" onclick="exportPipeline()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddDeal()">' + icon('plus', 14) + ' New opportunity</button>');
 
+  /* The three readings of the one pipeline are tabs, the way Priority list and
+     Archive are on Off-taker Prospects. */
+  const readingTab = (key, label) => ({ label, active: state.pipeView === key, on: "setViewMode('pipeView','" + key + "')" });
+  const tabs = viewTabsHtml([readingTab('accounts', 'Board'), readingTab('flow', 'Flow'), readingTab('table', 'Table')]);
+
   if (state.pipeView === 'flow') {
-    setContent(pipelineStats() + flowHtml());
+    setContent(tabs + pipelineStats() + flowHtml());
     growBars();
     return;
   }
 
   if (state.pipeView === 'table') {
-    setContent(pipelineStats() + accountTableHtml() +
+    setContent(tabs + pipelineStats() + accountTableHtml() +
       '<div class="fg-hint" style="margin-top:12px">The table reads the whole pipeline in stage order, one row ' +
       'per company. Switch back to the board to move one between stages by dragging it.</div>');
     return;
   }
 
-  setContent(stageDriftCardHtml() + pipelineStats() + accountBoardHtml() +
+  setContent(tabs + stageDriftCardHtml() + pipelineStats() + accountBoardHtml() +
     '<div class="fg-hint" style="margin-top:12px">Drag a company between columns to move it along the sales ' +
     'process. Moving it writes the matching status on the record, brings its opportunities with it, and logs ' +
     'the change against the account. Values on a card assume a ' + Math.round(CAPACITY_FACTOR * 100) +
@@ -176,7 +180,7 @@ function flowHtml() {
   const won = closed.filter(o => !sfIsClosedLost(o)).length;
   const lost = closed.length - won;
   const flowCard =
-    '<div class="card">' +
+    '<div class="card span-all">' +
       '<div class="card-header"><div><div class="card-title">Stage flow</div>' +
       '<div class="card-sub">How far accounts have got, and how many carried on to the next stage</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="setViewMode(\'pipeView\',\'accounts\')">Open board</button></div>' +
@@ -253,7 +257,9 @@ function flowHtml() {
       'read it next to the stage budgets above.</div>' +
     '</div>';
 
-  return flowCard + '<div class="grid-2" style="margin-top:14px">' + stallCard + moveCard + '</div>';
+  /* One card grid: the stage flow across the full width, the two smaller
+     readings of it side by side underneath. */
+  return '<div class="card-grid">' + flowCard + stallCard + moveCard + '</div>';
 }
 
 /* ═══ THE TABLE ═════════════════════════════════════════════════
@@ -269,7 +275,11 @@ function accountTableHtml() {
   const list = pipelineOrdered();
   if (!list.length) return accountBoardHtml();
 
-  return '<div class="table-wrap"><table><thead><tr>' +
+  const foot = tableFooterHtml({
+    from: 1, to: list.length, total: list.length, all: list.length,
+    noun: list.length === 1 ? 'account' : 'accounts', page: 1, pages: 1,
+  });
+  return tableCardHtml('<div class="table-wrap"><table><thead><tr>' +
     '<th>Account</th><th>Sector</th><th>Stage</th><th class="num">GWh/yr</th>' +
     '<th class="num">Open MW</th><th class="num">Weighted</th><th class="num">Fit</th><th>In stage</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
@@ -292,7 +302,7 @@ function accountTableHtml() {
           : dwellChipHtml(o)) + '</td>' +
         '<td style="white-space:nowrap">' + opportunityButtonsHtml(o, deals, true) + '</td>' +
       '</tr>';
-    }).join('') + '</tbody></table></div>';
+    }).join('') + '</tbody></table></div>', foot);
 }
 
 /* ═══ THE BOARD ═════════════════════════════════════════════════ */
