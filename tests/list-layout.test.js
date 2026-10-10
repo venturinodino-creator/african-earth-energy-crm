@@ -130,6 +130,7 @@ console.log('\nContacts');
     assert.ok(/view-tab active"[^>]*>Technical/.test(out.content), 'Technical tab is active');
     assert.ok(!out.content.includes('All roles'), 'role select removed');
     assert.ok(out.content.includes('Showing 1–11 of 11 contacts'), out.content.match(/Showing[^<]*/));
+    assert.ok(!out.content.includes('filters hide'), 'a chosen role tab is not a hidden filter');
   });
   test('the footer pages the list and the old pager is gone', () => {
     const { out } = env(book).run('renderContacts');
