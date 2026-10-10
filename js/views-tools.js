@@ -230,7 +230,7 @@ function initMap() {
   const f = state.mapFilter;
 
   if (f === 'all' || f === 'projects') {
-    state.projects.filter(p => p.status !== 'pipeline').forEach(p => {
+    scopedProjects().filter(p => p.status !== 'pipeline').forEach(p => {
       L.marker([p.lat, p.lng], {
         icon: L.divIcon({
           className: '', iconSize: [26, 26], iconAnchor: [13, 13],
@@ -246,7 +246,7 @@ function initMap() {
   }
 
   if (f !== 'projects') {
-    state.offtakers.filter(o => f === 'all' || sectorGroup(o.sector) === f).forEach(o => {
+    scopedOfftakers().filter(o => f === 'all' || sectorGroup(o.sector) === f).forEach(o => {
       const [lat, lng] = offtakerCoords(o);
       const r = Math.max(7, Math.min(26, Math.sqrt(num(o.annualGwh)) * 0.55));
       const color = GROUP_COLOR[sectorGroup(o.sector)] || '#7C8A94';
@@ -598,8 +598,9 @@ function marketContextHtml() {
    ACTIVITY LOG
    ═══════════════════════════════════════════════════════════════ */
 function renderActivity() {
-  const logs = state.interactions.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const dueDeals = state.deals.filter(d => d.closeDate && d.stage !== 'closed')
+  /* The log and the close dates are those of the accounts in the province scope. */
+  const logs = scopedInteractions().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const dueDeals = scopedDeals().filter(d => d.closeDate && d.stage !== 'closed')
     .sort((a, b) => (a.closeDate || '').localeCompare(b.closeDate || ''));
 
   setPage('Activity', logs.length + ' logged interactions',

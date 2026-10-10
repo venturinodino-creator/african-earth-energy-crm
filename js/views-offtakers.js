@@ -193,7 +193,11 @@ function renderOfftakers() {
   if (state.offArchive) { renderArchive(); return; }
   const list = filteredOfftakers();
   const leads = prospectRecords();
-  const working = state.offtakers.length - leads.length;
+  /* The header counts what the province scope leaves; the filters below are offered
+     from every lead, so a province with nobody in it is still a choice. */
+  const inScopeAll = scopedOfftakers();
+  const scopedLeads = inScopeAll.filter(o => !inPipeline(o));
+  const working = inScopeAll.length - scopedLeads.length;
   const totalGwh = list.reduce((s, o) => s + num(o.annualGwh), 0);
 
   /* The finder's review queue surfaces here too: one press ingests every
@@ -204,7 +208,7 @@ function renderOfftakers() {
   const pendingFinds = state.foundContacts.filter(f => f.status === 'pending').length;
 
   setPage('Off-taker Prospects',
-    leads.length + ' lead' + (leads.length === 1 ? '' : 's') + ' nobody is working yet · ' +
+    scopedLeads.length + ' lead' + (scopedLeads.length === 1 ? '' : 's') + ' nobody is working yet · ' +
     fmtNum(totalGwh) + ' GWh/yr in view · ' + working + ' already in the pipeline',
     (pendingFinds
       ? '<button class="btn btn-primary btn-sm" data-admin-only onclick="acceptAllFoundEverywhere()">' +
@@ -560,9 +564,11 @@ function contactSortVal(c, field) {
 
 function renderContacts() {
   const term = state.contactSearch.toLowerCase();
+  /* The people in the province scope: their company (or municipality) sits there. */
+  const people = scopedContacts();
   /* The role tabs count what the search and the company filter leave, so each
      tab says how many people it would show; the role itself is applied after. */
-  const base = state.contacts.filter(c => {
+  const base = people.filter(c => {
     const o = contactAccountOf(c);
     if (term && !((c.first + ' ' + c.last + ' ' + c.title + ' ' + c.dept + ' ' + (o.name || '')).toLowerCase().includes(term))) return false;
     if (state.contactOfftaker && c.offtakerId !== state.contactOfftaker) return false;
@@ -587,8 +593,8 @@ function renderContacts() {
   const groupCount = {};
   list.forEach(c => { groupCount[accKey(c)] = (groupCount[accKey(c)] || 0) + 1; });
 
-  setPage('Contacts', state.contacts.length + ' people across ' +
-    new Set(state.contacts.map(c => c.offtakerId).filter(Boolean)).size + ' companies',
+  setPage('Contacts', people.length + ' people across ' +
+    new Set(people.map(c => c.offtakerId).filter(Boolean)).size + ' companies',
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'contacts\')">' + icon('upload', 14) + ' Import CSV</button>' +
     '<button class="btn btn-outline btn-sm" onclick="exportContacts()">' + icon('download', 14) + ' Export</button>' +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact()">' + icon('plus', 14) + ' Add contact</button>');
@@ -604,8 +610,8 @@ function renderContacts() {
       'oninput="state.contactSearch=this.value;state.contactPage=1;renderContacts()"></div>' +
       '<select class="flt" onchange="state.contactOfftaker=this.value;state.contactPage=1;renderContacts()">' +
         '<option value="">All companies</option>' +
-        state.offtakers.map(o => '<option value="' + esc(o.id) + '"' + (state.contactOfftaker === o.id ? ' selected' : '') + '>' + esc(o.short || o.name) + '</option>').join('') +
-        SA_MUNICIPALITIES.filter(m => contactsFor(m.id).length)
+        scopedOfftakers().map(o => '<option value="' + esc(o.id) + '"' + (state.contactOfftaker === o.id ? ' selected' : '') + '>' + esc(o.short || o.name) + '</option>').join('') +
+        SA_MUNICIPALITIES.filter(m => contactsFor(m.id).length && accountInScope(m.id))
           .map(m => '<option value="' + esc(m.id) + '"' + (state.contactOfftaker === m.id ? ' selected' : '') + '>' + esc(m.name) + ' Municipality</option>').join('') +
       '</select>' +
       viewToggle('contactView') +
@@ -628,7 +634,7 @@ function renderContacts() {
     from, to: from + page.length - 1, total: list.length,
     /* Everyone in the chosen role tab: the tab is a choice, so only the search
        and the company filter count as hiding rows. */
-    all: state.contacts.filter(c => !state.contactRole || c.role === state.contactRole).length,
+    all: people.filter(c => !state.contactRole || c.role === state.contactRole).length,
     noun: list.length === 1 ? 'contact' : 'contacts', page: state.contactPage, pages,
     prev: 'state.contactPage--;renderContacts()', next: 'state.contactPage++;renderContacts()', standalone: isGrid,
   });
