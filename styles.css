@@ -1032,6 +1032,19 @@ thead th.sel-cell,tbody td.sel-cell{width:36px;padding-left:14px;padding-right:0
 .news-card-footer a:hover{text-decoration:underline}
 .news-nolink{font-size:11px;color:var(--muted);font-style:italic}
 .news-source{font-size:11px;color:var(--muted)}
+.news-card-footer{flex-wrap:wrap}
+.news-actions{margin-left:auto;display:flex;gap:6px}
+.news-actions .btn.on{background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:var(--accent);color:var(--accent)}
+.news-card.saved{border-left:3px solid var(--accent)}
+.news-card.dismissed{opacity:.7}
+.news-matched{margin-top:9px;font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.news-chip{padding:2px 10px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 7%,transparent);font-weight:700;cursor:pointer}
+.news-filter-label{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:2px 0 4px}
+.news-check{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12px;color:var(--text);cursor:pointer}
+.news-check input{margin:0;accent-color:var(--accent)}
+.news-check span:first-of-type{flex:1;min-width:0;overflow-wrap:anywhere}
+.news-check.news-matched{margin-top:8px;padding-top:9px;border-top:1px solid var(--border);display:flex}
 
 .news-sidebar{display:flex;flex-direction:column;gap:12px;position:sticky;top:12px}
 .news-side-card{background:var(--card);border:1px solid var(--border);border-radius:var(--card-radius);padding:13px 14px}

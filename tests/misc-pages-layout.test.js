@@ -44,6 +44,7 @@ function env(over) {
   const ctx = vm.createContext({
     ...scopeStubs(state),
     console, window: {}, setTimeout: () => 0, clearTimeout() {}, document: { querySelectorAll: () => [], getElementById: () => null },
+    STORE_PREFIX: 'aee_crm_', JSON, toast() {}, localStorage: { getItem: () => null, setItem() {} },
     esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))),
     safeHref: u => /^https?:/.test(u || '') ? u : '', todayISO: () => '2026-10-10', relTime: () => 'today', avatarColor: () => '#555', sectorName: s => s,
     getOfftaker: id => state.offtakers.find(o => o.id === id) || {}, fitScore: () => 70, weightedValue: d => num(d.mw) * 1000, STATUS_LABEL: { prospect: 'Prospect' },
@@ -188,6 +189,68 @@ test('choosing a topic marks its tab, and Summary still renders', () => {
   assert.ok(/view-tab active"[^>]*onclick="setNewsTopic\(&quot;renewable_energy|view-tab active"[^>]*onclick="setNewsTopic\('renewable_energy/.test(t.content), 'the topic tab is active');
   const s = env({ view: 'news', newsTopic: 'summary' }).run('renderNews');
   assert.ok(/view-tab active"[^>]*>Summary/.test(s.content) && !/undefined|NaN/.test(s.content));
+});
+
+/* Two real stories (the curated feed in data/news.js, loaded for this sandbox) plus the auto one above. */
+const newsAll = e => JSON.parse(vm.runInContext('JSON.stringify(allNews().map(a => a.id))', e.ctx));
+const newsEnv = over => env(Object.assign({ view: 'news' }, over));
+test('the Saved and Dismissed tabs follow the topics, each with a count', () => {
+  const o = newsEnv({}).run('renderNews');
+  const labels = tabLabels(o.content);
+  assert.deepStrictEqual(labels.slice(-2), ['Saved', 'Dismissed']);
+  assert.ok(/Saved <span class="vt-n">0<\/span>/.test(o.content) && /Dismissed <span class="vt-n">0<\/span>/.test(o.content));
+});
+test('a Filters card sits beside the stories: a box per source, the matched switch, and where Save is kept', () => {
+  const o = newsEnv({}).run('renderNews');
+  const side = o.content.slice(o.content.indexOf('class="news-sidebar"'));
+  assert.ok(side.indexOf('<h4>Filters</h4>') > -1 && side.indexOf('<h4>Filters</h4>') < side.indexOf('<h4>Topics</h4>'), 'Filters comes first in the sidebar');
+  assert.ok(/class="news-check"><input type="checkbox" checked onchange="toggleNewsSource\(/.test(side), 'a source box, ticked');
+  assert.ok(/onchange="toggleNewsMatched\(\)"/.test(side) && side.includes('Only stories that name an off-taker'));
+  assert.ok(/kept in this browser/i.test(side));
+});
+test('unticking a source removes its stories and unticks its box', () => {
+  const e = newsEnv({});
+  const before = e.run('renderNews').content.match(/class="news-card[" ]/g).length;
+  const src = JSON.parse(vm.runInContext('JSON.stringify(newsSourcesOf(allNews())[0].source)', e.ctx));
+  const o = newsEnv({ newsSourcesOff: [src] }).run('renderNews');
+  assert.ok((o.content.match(/class="news-card[" ]/g) || []).length < before);
+  assert.ok(/class="news-check"><input type="checkbox" onchange="toggleNewsSource\(/.test(o.content), 'an unticked box');
+});
+test('each story has Save and Dismiss; a saved one says Saved and appears under the Saved tab', () => {
+  const e = newsEnv({});
+  const id = newsAll(e)[0];
+  const o = newsEnv({ newsMarks: { saved: [id], dismissed: [] } }).run('renderNews');
+  assert.ok(/Dismiss<\/button>/.test(o.content) && /onclick="saveNews\(/.test(o.content));
+  assert.ok(/btn-xs btn-outline on"[^>]*>Saved</.test(o.content), 'the saved one reads Saved');
+  assert.ok(/Saved <span class="vt-n">1<\/span>/.test(o.content));
+  const tab = newsEnv({ newsTopic: 'saved', newsMarks: { saved: [id], dismissed: [] } }).run('renderNews');
+  assert.strictEqual((tab.content.match(/class="news-card[" ]/g) || []).length, 1);
+});
+test('a dismissed story leaves the feed and the counts, and shows under Dismissed with Restore', () => {
+  const e = newsEnv({});
+  const id = newsAll(e)[0];
+  const all = newsEnv({}).run('renderNews').content.match(/class="news-card[" ]/g).length;
+  const o = newsEnv({ newsMarks: { saved: [], dismissed: [id] } }).run('renderNews');
+  assert.strictEqual((o.content.match(/class="news-card[" ]/g) || []).length, all - 1);
+  assert.ok(/Dismissed <span class="vt-n">1<\/span>/.test(o.content));
+  const tab = newsEnv({ newsTopic: 'dismissed', newsMarks: { saved: [], dismissed: [id] } }).run('renderNews');
+  assert.strictEqual((tab.content.match(/class="news-card[" ]/g) || []).length, 1);
+  assert.ok(/onclick="restoreNews\(/.test(tab.content) && !/onclick="dismissNews\(/.test(tab.content));
+});
+test('the empty Saved and Dismissed tabs say what they are for', () => {
+  assert.ok(/Nothing saved yet/.test(newsEnv({ newsTopic: 'saved' }).run('renderNews').content));
+  assert.ok(/Nothing dismissed/.test(newsEnv({ newsTopic: 'dismissed' }).run('renderNews').content));
+});
+test('a story that names an off-taker on file says so, with a link to it', () => {
+  const o = newsEnv({ offtakers: [{ id: 'a', name: 'Eskom Holdings', short: 'Eskom', sector: 'mining', province: 'Gauteng' }] }).run('renderNews');
+  assert.ok(/class="news-matched">Names: <span class="news-chip" onclick="nav\('detail',\{id:&quot;a&quot;\}\)">Eskom</.test(o.content), o.content.match(/news-matched[^<]*<[^>]*>[^<]*/));
+});
+test('only stories that name an off-taker keeps just those', () => {
+  const book = [{ id: 'a', name: 'Eskom Holdings', short: 'Eskom', sector: 'mining', province: 'Gauteng' }];
+  const all = newsEnv({ offtakers: book }).run('renderNews').content.match(/class="news-card[" ]/g).length;
+  const only = newsEnv({ offtakers: book, newsMatchedOnly: true }).run('renderNews').content.match(/class="news-card[" ]/g);
+  assert.ok(only && only.length < all && only.length >= 1, 'only ' + (only && only.length) + ' of ' + all);
+  assert.ok(/class="news-check news-matched"><input type="checkbox" checked/.test(newsEnv({ offtakers: book, newsMatchedOnly: true }).run('renderNews').content));
 });
 
 console.log('\nAnalytics');
