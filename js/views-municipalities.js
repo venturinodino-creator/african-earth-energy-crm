@@ -304,6 +304,7 @@ function renderMunicipality() {
         children.map(c => {
           const cc = contactsFor(c.id).length;
           return '<div class="person-row" style="cursor:pointer" onclick="nav(\'municipality\',{id:\'' + c.id + '\'})">' +
+            avatarTileHtml(c.name) +
             '<div style="min-width:0;flex:1">' +
               '<div class="person-name">' + esc(c.name) + '</div>' +
               '<div class="person-title">' + esc(c.code) + ' · ' + esc(c.seat) + '</div></div>' +

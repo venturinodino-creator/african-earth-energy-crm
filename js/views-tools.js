@@ -173,8 +173,38 @@ function projectTableHtml(list) {
 /* ═══════════════════════════════════════════════════════════════
    ANALYTICS
    ═══════════════════════════════════════════════════════════════ */
+/* The four headline figures at the top of Analytics, worked out once so the page and its Export
+   summary cannot disagree. */
+function analyticsHeadlines(offtakers, deals) {
+  const gwh = offtakers.reduce((s, o) => s + num(o.annualGwh), 0);
+  const tariff = offtakers.length ? offtakers.reduce((s, o) => s + num(o.tariff) * num(o.annualGwh), 0) / Math.max(1, gwh) : 0;
+  const fits = offtakers.map(o => fitScore(o));
+  return {
+    companies: offtakers.length, gwh, tariff,
+    fit: fits.length ? Math.round(fits.reduce((s, f) => s + f, 0) / fits.length) : 0,
+    fit80: fits.filter(f => f >= 80).length,
+    weighted: deals.reduce((s, d) => s + weightedValue(d), 0),
+  };
+}
+/* The summary as rows of a CSV, each number rounded the way the page shows it (the pipeline in
+   whole rand, where the page abbreviates it), with its unit beside it. */
+function analyticsSummaryRows(h) {
+  return [
+    ['Measure', 'Value', 'Unit', 'Note'],
+    ['Addressable load', Math.round(h.gwh), 'GWh a year', 'across ' + h.companies + ' tracked off-takers'],
+    ['Weighted average tariff', Number(h.tariff.toFixed(2)), 'R per kWh', 'consumption-weighted'],
+    ['Average fit score', h.fit, 'out of 100', h.fit80 + ' off-takers score 80+'],
+    ['Weighted pipeline', Math.round(h.weighted), 'R', 'across contract life'],
+  ];
+}
+function exportAnalyticsSummary() {
+  downloadCSV('aee-analytics-summary-' + todayISO() + '.csv', analyticsSummaryRows(analyticsHeadlines(state.offtakers, state.deals)));
+  toast('Exported the analytics summary');
+}
+
 function renderAnalytics() {
-  setPage('Analytics', 'Where the addressable load and the pipeline value actually sit', '');
+  setPage('Analytics', 'Where the addressable load and the pipeline value actually sit',
+    '<button class="btn btn-outline btn-sm" onclick="exportAnalyticsSummary()">' + icon('download', 14) + ' Export summary</button>');
 
   const byProvince = {}, bySector = {}, byStatus = {};
   state.offtakers.forEach(o => {
@@ -183,12 +213,8 @@ function renderAnalytics() {
     byStatus[o.status] = (byStatus[o.status] || 0) + 1;
   });
 
-  const totalGwh = state.offtakers.reduce((s, o) => s + num(o.annualGwh), 0);
-  const avgTariff = state.offtakers.length
-    ? state.offtakers.reduce((s, o) => s + num(o.tariff) * num(o.annualGwh), 0) / Math.max(1, totalGwh) : 0;
-  const avgFit = state.offtakers.length
-    ? Math.round(state.offtakers.reduce((s, o) => s + fitScore(o), 0) / state.offtakers.length) : 0;
-  const weighted = state.deals.reduce((s, d) => s + weightedValue(d), 0);
+  const head = analyticsHeadlines(state.offtakers, state.deals);
+  const totalGwh = head.gwh, avgTariff = head.tariff, avgFit = head.fit, weighted = head.weighted;
 
   const barCard = (title, sub, obj, labelMap, color) => {
     const rows = Object.entries(obj).sort((a, b) => b[1] - a[1]);
@@ -218,8 +244,10 @@ function renderAnalytics() {
     '<th>Offtaker</th><th>Stage</th><th class="num">MW</th><th class="num">Weighted</th></tr></thead><tbody>' +
     (topDeals.length ? topDeals.map(d => {
       const st = PIPELINE_STAGES.find(s => s.id === d.stage) || {};
+      const who = getOfftaker(d.offtakerId);
       return '<tr class="clickable" onclick="nav(\'detail\',{id:\'' + d.offtakerId + '\'})">' +
-        '<td style="font-weight:700">' + esc(getOfftaker(d.offtakerId).short || '—') + '</td>' +
+        '<td style="font-weight:700"><div class="name-cell">' + (who.id ? avatarTileHtml(who.name || who.short) : '') +
+          '<span>' + esc(who.short || who.name || '—') + '</span></div></td>' +
         '<td><span class="badge b-prospect">' + esc(st.label || d.stage) + '</span></td>' +
         '<td class="num">' + fmtNum(d.mw) + '</td>' +
         '<td class="num" style="color:var(--accent);font-weight:800">' + fmtR(weightedValue(d)) + '</td></tr>';

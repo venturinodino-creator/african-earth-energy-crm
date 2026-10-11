@@ -334,6 +334,7 @@ function stageDriftCardHtml() {
       '</div></div></div>' +
     drift.map(d =>
       '<div class="person-row">' +
+        avatarTileHtml(d.rec.name || d.rec.short) +
         '<div style="min-width:0;flex:1;cursor:pointer" onclick="nav(' + jsStr(accountView(d.rec.id)) +
           ',{id:' + jsStr(d.rec.id) + '})">' +
           '<div class="person-name">' + esc(d.rec.short || d.rec.name) + '</div>' +
@@ -433,7 +434,7 @@ function accountCardHtml(o) {
   return '<div class="pipeline-card" draggable="true" data-id="' + esc(o.id) + '" ' +
     'ondragstart="sfDragStart(event)" ondragend="pipeDragEnd(event)" ' +
     'onclick="nav(' + jsStr(accountView(o.id)) + ',{id:' + jsStr(o.id) + '})">' +
-    '<div class="pc-name">' + esc(o.short || o.name) + opportunityButtonsHtml(o, deals) + '</div>' +
+    '<div class="pc-name">' + avatarTileHtml(o.name || o.short) + esc(o.short || o.name) + opportunityButtonsHtml(o, deals) + '</div>' +
     '<div class="pc-sub">' + esc(sectorName(o.sector)) + (o.city ? ' · ' + esc(o.city) : '') + '</div>' +
     /* An account can be worked before anybody has established its load, so
        say so rather than showing a confident nought. */

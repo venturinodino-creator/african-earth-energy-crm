@@ -123,6 +123,20 @@ console.log('\nOff-taker Prospects');
     assert.ok(/Export <span class="btn-n">1<\/span>/.test(out.page.a), out.page.a);
     assert.ok(out.page.a.includes('exportOfftakers(filteredOfftakers())'));
   });
+  test('switching to the Archive tab drops a selection made on the Priority list, and coming back finds nothing ticked', () => {
+    const e = env(Object.assign({ offView: 'table' }, book));
+    e.run('renderOfftakers');
+    vm.runInContext("selectionToggle('offtakers', 'x1', true)", e.ctx);
+    assert.strictEqual(vm.runInContext('selectionCount()', e.ctx), 1);
+    vm.runInContext('state.offArchive = true; renderOfftakers()', e.ctx);
+    assert.strictEqual(vm.runInContext('selectionCount()', e.ctx), 0, 'the archive tab dropped it');
+    vm.runInContext('state.offArchive = false; renderOfftakers()', e.ctx);
+    assert.strictEqual(vm.runInContext('selectionCount()', e.ctx), 0, 'and it is not back on the way round');
+  });
+  test('each archived company carries an avatar tile in place of the sector icon', () => {
+    const { out } = env(Object.assign({ offArchive: true }, book)).run('renderOfftakers');
+    assert.strictEqual((out.content.match(/<div class="name-cell"><span class="nm-tile"/g) || []).length, 1, 'one tile for the one archived company');
+  });
   test('the Archive tab is active in the archive, with its own footer', () => {
     const { out } = env(Object.assign({ offArchive: true }, book)).run('renderOfftakers');
     assert.ok(/view-tab active"[^>]*onclick="setOffArchive\(true\)">Archive/.test(out.content));
@@ -169,6 +183,13 @@ console.log('\nContacts');
     assert.strictEqual((out.content.match(/class="sel-row"/g) || []).length, 20, 'a box on each of the 20 rows');
     assert.ok(out.content.includes('id="sel-bar"') && out.content.indexOf('id="sel-bar"') < out.content.indexOf('class="table-card"'), 'bar above the card');
     assert.ok(out.content.includes('colspan="9"') && !out.content.includes('colspan="8"'));
+  });
+  test('each company heading in the contacts table carries the company\'s avatar tile', () => {
+    const { out } = env(book).run('renderContacts');
+    const heads = out.content.match(/<div class="contact-group-head"[^>]*>(?:(?!<\/div>)[\s\S])*<\/div>/g) || [];
+    assert.ok(heads.length >= 1);
+    heads.forEach(h => assert.ok(/<span class="nm-tile"/.test(h) || /<svg|Not linked/.test(h), h.slice(0, 160)));
+    assert.ok(heads.some(h => /<span class="nm-tile"/.test(h)), 'a linked company gets the tile');
   });
   test('the page Export names the contacts the filters leave, and exports exactly them', () => {
     const { out } = env(Object.assign({ contactRole: 'technical' }, book)).run('renderContacts');

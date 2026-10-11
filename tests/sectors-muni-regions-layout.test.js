@@ -96,6 +96,13 @@ test('a sector is a record page: breadcrumb in the header, the shared card, Abou
   assert.ok(head.includes('Tier') && head.includes('ppa'), 'tier and PPA fit chips');
   assert.ok(o.content.includes('rec-grid two') && o.content.includes('rg-main') && o.content.includes('rg-side'));
 });
+test('the sector page\'s companies and a region\'s targets each carry an avatar tile', () => {
+  const e = env();
+  const company = vm.runInContext('companyRowHtml({ id: "o1", name: "Samancor Chrome", short: "Samancor", annualGwh: 0 })', e.ctx);
+  assert.ok(/class="person-row clickable"[^>]*><span class="nm-tile"[^>]*>SC<\/span><div style="min-width:0;flex:1"><div class="person-name">Samancor/.test(company), company.slice(0, 200));
+  const target = vm.runInContext('regionRowHtml({ kind: "offtaker", id: "o1", name: "Harmony Gold Mining" })', e.ctx);
+  assert.ok(/class="person-row"[^>]*><span class="nm-tile"[^>]*>HG<\/span><div style="min-width:0;flex:1"><div class="person-name">Harmony/.test(target), target.slice(0, 200));
+});
 test('the six sector facts are an About card, not a row of tiles', () => {
   const h = env().run('renderSector').content;
   const about = h.slice(h.indexOf('rg-side'));
@@ -110,6 +117,15 @@ test('the shape of the sector and who to call lead the main column; reference ca
 });
 
 console.log('\nOne municipality');
+test('the local municipalities listed on a district page each carry an avatar tile', () => {
+  const e = env({ view: 'municipality' });
+  e.state.detailId = vm.runInContext('SA_MUNICIPALITIES.find(m => m.cat === "C" && SA_MUNICIPALITIES.some(x => x.districtCode === m.code)).id', e.ctx);
+  const h = e.run('renderMunicipality').content;
+  const card = h.slice(h.indexOf('Local municipalities'));
+  assert.ok(card.length > 100, 'a district with locals');
+  const rows = card.match(/<div class="person-row"[^>]*>(?:<span class="nm-tile"[^>]*>[^<]*<\/span>)?/g) || [];
+  assert.ok(rows.length > 1 && rows.every(r => r.includes('nm-tile')), 'every local has its tile (' + rows.length + ' rows)');
+});
 test('a municipality is a record page with the shared card and an About card', () => {
   const o = env({ view: 'municipality' }).run('renderMunicipality');
   assert.ok(o.page.opts && o.page.opts.record === true && o.page.a === '');

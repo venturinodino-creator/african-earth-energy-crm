@@ -41,7 +41,7 @@ function env(over) {
   const store = {};
   const ctx = vm.createContext({
     console, window: {}, CSS: { escape: s => s }, document: { querySelector: () => null, querySelectorAll: () => [], getElementById: () => null }, setTimeout: () => 0,
-    esc, num: v => Number(v) || 0, fmtNum: v => String(v), fmtR: v => 'R' + v, icon: () => '', growBars() {}, jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))),
+    esc, num: v => Number(v) || 0, fmtNum: v => String(v), fmtR: v => 'R' + v, icon: () => '', growBars() {}, avatarColor: () => '#555', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))),
     statTile: (i, c, label, value, sub) => '<div class="stat-card">' + label + ': ' + value + ' | ' + sub + '</div>',
     viewToggle: k => '<div class="view-toggle" data-key="' + k + '"></div>', CAPACITY_FACTOR: 0.3, contractedMw: () => 20, pipelineMw: () => 20,
     getOfftaker: id => ({ sib: { id: 'sib', name: 'Sibanye-Stillwater', short: 'Sibanye' } }[id] || {}), PIPELINE_STAGES: [{ id: 'proposal', label: 'Proposal' }],

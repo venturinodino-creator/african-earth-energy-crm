@@ -186,5 +186,15 @@ console.log('\nEvery section');
     assert.ok(!/undefined|NaN|\[object/.test(empty));
   }));
 
+console.log('\nOn a phone');
+test('the one-column layout lets its column shrink, so a wide table cannot push the page sideways', () => {
+  /* A plain 1fr will not shrink below its content: on a 375px phone the Pipeline stages and Provinces tabs
+     stretched the column to 581px and the whole page scrolled sideways. */
+  const css = read('styles.css').replace(/\n\s*/g, ' ');
+  assert.ok(/@media\(max-width:820px\)\{\s*\/\*(?:(?!\*\/)[\s\S])*\*\/\s*\.settings-layout\{grid-template-columns:minmax\(0,1fr\)\}\s*\.set-card\{min-width:0\}/.test(css),
+    'on a phone the column is minmax(0,1fr) and the card may shrink');
+  assert.ok(!/\.settings-layout\{grid-template-columns:1fr\}/.test(css), 'no plain 1fr is left');
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exitCode = fail ? 1 : 0;

@@ -401,9 +401,11 @@ function importReviewHtml(s) {
 
   const going = plan.rows.filter(r => r.status === 'import');
   const sample = s.kind === 'contacts'
-    ? importRowsTableHtml(['Name', 'Title', 'Company', 'Email', 'Matched'], going.slice(0, 8).map(r => '<tr><td>' + esc(importWho('contacts', r.draft)) + '</td><td>' + esc(r.draft.title) +
+    ? importRowsTableHtml(['Name', 'Title', 'Company', 'Email', 'Matched'], going.slice(0, 8).map(r => '<tr><td><div class="name-cell">' + avatarTileHtml(importWho('contacts', r.draft)) +
+        '<span>' + esc(importWho('contacts', r.draft)) + '</span></div></td><td>' + esc(r.draft.title) +
         '</td><td>' + esc(r.draft.companyName) + '</td><td>' + esc(r.draft.email) + '</td><td>' + importMatchedHtml(r.draft) + '</td></tr>'))
-    : importRowsTableHtml(['Company', 'Sector', 'Province', 'GWh/yr'], going.slice(0, 10).map(r => '<tr><td>' + esc(r.draft.name) + '</td><td>' +
+    : importRowsTableHtml(['Company', 'Sector', 'Province', 'GWh/yr'], going.slice(0, 10).map(r => '<tr><td><div class="name-cell">' + avatarTileHtml(r.draft.name) +
+        '<span>' + esc(r.draft.name) + '</span></div></td><td>' +
         (r.draft.sector ? sectorBadge(r.draft.sector) : '<span class="badge b-low">unmatched</span>') + '</td><td>' + esc(r.draft.province || '—') +
         '</td><td class="num">' + (r.draft.annualGwh || '—') + '</td></tr>'));
 

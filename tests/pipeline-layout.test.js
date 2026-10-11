@@ -85,6 +85,10 @@ test('the board keeps its stage columns under the KPI row', () => {
   assert.ok(o.content.indexOf('stats-grid') < o.content.indexOf('class="kanban"'));
   assert.strictEqual((o.content.match(/class="pipeline-card"/g) || []).length, 3);
 });
+test('each card carries the company\'s avatar tile beside its name', () => {
+  const o = run({});
+  assert.strictEqual((o.content.match(/<div class="pc-name"><span class="nm-tile"/g) || []).length, 3);
+});
 
 console.log('\nTable');
 test('the table is one card with a footer counting the accounts', () => {

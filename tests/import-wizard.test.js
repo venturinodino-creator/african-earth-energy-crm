@@ -284,9 +284,10 @@ test('Review lists the rows that will go in, with where each is filed', () => {
   open('contacts', CONTACTS_CSV); ev('importContinue()');
   const h = html();
   assert.ok(h.includes('Will be imported'));
-  assert.ok(/<td>Thandi Mokoena<\/td><td>CFO<\/td><td>Sasol<\/td><td>thandi@sasol.com<\/td><td><span class="badge b-contracted">Sasol<\/span>/.test(h));
-  assert.ok(/<td>Sipho Khumalo<\/td>[\s\S]*?<span class="badge b-prospect">Emalahleni<\/span> <span class="wiz-sub">municipality · MP312/.test(h));
-  assert.ok(/<td>Ayanda Ngcobo<\/td>[\s\S]*?<span class="badge b-low">unassigned/.test(h));
+  assert.ok(/<td><div class="name-cell"><span class="nm-tile"[^>]*>TM<\/span><span>Thandi Mokoena<\/span><\/div><\/td><td>CFO<\/td><td>Sasol<\/td><td>thandi@sasol.com<\/td><td><span class="badge b-contracted">Sasol<\/span>/.test(h),
+    'each person has an avatar, then title, company, email and where they are filed');
+  assert.ok(/<span>Sipho Khumalo<\/span><\/div><\/td>[\s\S]*?<span class="badge b-prospect">Emalahleni<\/span> <span class="wiz-sub">municipality · MP312/.test(h));
+  assert.ok(/<span>Ayanda Ngcobo<\/span><\/div><\/td>[\s\S]*?<span class="badge b-low">unassigned/.test(h));
 });
 test('the Import button says how many, and Back, Cancel and the step bar all lead out', () => {
   open('contacts', CONTACTS_CSV); ev('importContinue()');
