@@ -157,5 +157,93 @@ test('a day with neither has no mark at all, and an interaction with no date is 
   assert.strictEqual(marks[''], undefined);
 });
 
+console.log('\nNeeds attention');
+/* Today is 2026-10-10. Accounts: a1 has a deal past its close date, a2 a deal due today, a3 a revisit date that has passed,
+   a4 one due today, a5 one in the future, a6/a7 are leads scoring 80 and 72 with nobody on file, a8 a lead with a contact,
+   a9 is in the pipeline, a10 is contracted, a11 scores 60. */
+const accounts = [
+  { id: 'a1', name: 'One Mining', short: 'One' }, { id: 'a2', name: 'Two Steel', short: 'Two' },
+  { id: 'a3', name: 'Three Cement', short: 'Three', revisitDate: '2026-09-01' }, { id: 'a4', name: 'Four Chem', short: 'Four', revisitDate: '2026-10-10' },
+  { id: 'a5', name: 'Five Glass', short: 'Five', revisitDate: '2026-11-01' },
+  { id: 'a6', name: 'Six Smelting', short: 'Six', fit: 80 }, { id: 'a7', name: 'Seven Foods', short: 'Seven', fit: 72 },
+  { id: 'a8', name: 'Eight Paper', short: 'Eight', fit: 90 }, { id: 'a9', name: 'Nine Ports', short: 'Nine', fit: 95, working: true },
+  { id: 'a10', name: 'Ten Cars', short: 'Ten', fit: 99, status: 'contracted' }, { id: 'a11', name: 'Eleven Tyres', short: 'Eleven', fit: 60 },
+];
+const attDeals = [
+  { id: 'x1', offtakerId: 'a1', name: 'One PPA', stage: 'proposal', mw: 10, closeDate: '2026-10-07' },
+  { id: 'x2', offtakerId: 'a2', name: 'Two PPA', stage: 'proposal', mw: 10, closeDate: '2026-10-10' },
+  { id: 'x3', offtakerId: 'a1', name: 'One old', stage: 'closed', mw: 10, closeDate: '2026-01-01' },
+  { id: 'x4', offtakerId: 'a2', name: 'Two lost', stage: 'lost', mw: 10, closeDate: '2026-01-01' },
+];
+const signals = (over) => call('attentionSignals(Object.assign({ deals: ' + J(attDeals) + ', offtakers: ' + J(accounts) +
+  ', today: "2026-10-10", contactCount: id => ({ a8: 2 }[id] || 0), fit: o => o.fit || 0, working: o => !!o.working }, ' + J(over || {}) + '))');
+const kinds = s => s.map(x => x.kind + ':' + x.accountId);
+test('an open opportunity past its target close date is a signal; one due today is not yet', () => {
+  const s = signals();
+  assert.ok(kinds(s).includes('overdue-deal:a1'));
+  assert.ok(!kinds(s).includes('overdue-deal:a2'));
+});
+test('a closed or lost opportunity is never a signal, however old', () => {
+  assert.ok(!signals().some(x => x.kind === 'overdue-deal' && x.accountId === 'a1' && /2026-01/.test(x.date)));
+  assert.strictEqual(signals().filter(x => x.kind === 'overdue-deal').length, 1);
+});
+test('the reason says how long ago, in the singular and the plural', () => {
+  assert.ok(/Target close 7 Oct 2026, 3 days ago/.test(signals().find(x => x.kind === 'overdue-deal').reason));
+  const one = signals({ deals: [{ id: 'x9', offtakerId: 'a1', name: 'p', stage: 'proposal', mw: 1, closeDate: '2026-10-09' }] }).find(x => x.kind === 'overdue-deal');
+  assert.ok(/1 day ago/.test(one.reason) && !/1 days/.test(one.reason), one.reason);
+});
+test('a revisit date that has passed, or is today, is a signal; a future one is not', () => {
+  const s = kinds(signals());
+  assert.ok(s.includes('revisit-due:a3') && s.includes('revisit-due:a4'));
+  assert.ok(!s.includes('revisit-due:a5'));
+});
+test('the reason for a revisit says passed, or today', () => {
+  const s = signals().filter(x => x.kind === 'revisit-due');
+  assert.ok(/has passed/.test(s.find(x => x.accountId === 'a3').reason));
+  assert.ok(/is today/.test(s.find(x => x.accountId === 'a4').reason));
+});
+test('a lead scoring 70 or more with nobody on file is a signal', () => {
+  const s = kinds(signals());
+  assert.ok(s.includes('no-contact:a6') && s.includes('no-contact:a7'));
+});
+test('not one with a contact, not one already in the pipeline, not a contracted one, not one under 70', () => {
+  const s = kinds(signals());
+  ['a8', 'a9', 'a10', 'a11'].forEach(id => assert.ok(!s.includes('no-contact:' + id), id));
+});
+test('a lead scoring exactly 70 counts, 69 does not', () => {
+  const s = signals({ offtakers: [{ id: 'b1', name: 'B One', fit: 70 }, { id: 'b2', name: 'B Two', fit: 69 }], deals: [] });
+  same(kinds(s), ['no-contact:b1']);
+});
+test('they come in order: overdue opportunities, then revisits, then leads, each most pressing first', () => {
+  same(kinds(signals()), ['overdue-deal:a1', 'revisit-due:a3', 'revisit-due:a4', 'no-contact:a6', 'no-contact:a7']);
+});
+test('each carries the account, the badge and the reason, and never an undefined', () => {
+  signals().forEach(x => {
+    assert.ok(x.account && x.badge && x.reason && x.accountId, J(x));
+    assert.ok(!/undefined|NaN/.test(J(x)));
+  });
+  same(signals().map(x => x.badge), ['Close date', 'Revisit', 'Revisit', 'No contact', 'No contact']);
+});
+test('nothing at all is no signals', () => same(signals({ deals: [], offtakers: [] }), []));
+
+console.log('\nComing up');
+const upcoming = (items, today, n) => call('comingUp(' + J(items) + ', "' + today + '", ' + n + ')');
+test('it is what is due from today on, soonest first, and nothing overdue', () => {
+  const rows = [{ key: 'a', date: '2026-10-05' }, { key: 'b', date: '2026-10-12' }, { key: 'c', date: '2026-10-10' }, { key: 'd', date: '2026-12-01' }];
+  same(upcoming(rows, '2026-10-10', 10).map(i => i.key), ['c', 'b', 'd']);
+});
+test('it is capped, and says how many more there are', () => {
+  const rows = Array.from({ length: 8 }, (_, i) => ({ key: 'k' + i, date: '2026-11-0' + (i + 1) }));
+  const u = upcoming(rows, '2026-10-10', 5);
+  assert.strictEqual(u.length, 5);
+  assert.strictEqual(call('comingUpMore(' + J(rows) + ', "2026-10-10", 5)'), 3);
+});
+test('it matches the follow-ups the Activity page groups as today, next 7 days and later', () => {
+  const all = call('followUps(' + J(deals) + ', ' + J(offtakers) + ', ' + stageLabel + ')');
+  const groups = call('groupFollowUps(' + J(all) + ', "2026-10-10")');
+  const fromGroups = [].concat(...['today', 'next7', 'later'].map(k => groups.find(g => g.key === k).items)).map(i => i.key);
+  same(upcoming(all, '2026-10-10', 100).map(i => i.key), fromGroups);
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exitCode = fail ? 1 : 0;

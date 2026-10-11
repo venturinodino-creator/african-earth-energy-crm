@@ -207,10 +207,47 @@ function renderDashboard() {
         : '<div class="empty" style="padding:28px 10px"><h3>No activity logged yet</h3><p>Log a call or meeting from any offtaker page and it shows up here.</p></div>') +
     '</div>';
 
+  /* ── Needs attention and Coming up ───────────────────────────── */
+  /* Both read the same follow-ups as the Activity page, over what the province scope leaves. */
+  const today = todayISO();
+  const signals = attentionSignals({
+    deals, offtakers, today, contactCount: id => contactsFor(id).length, fit: fitScore, working: inPipeline,
+  });
+  const SIGNALS_SHOWN = 6;
+  const badgeOf = { 'overdue-deal': 'b-high', 'revisit-due': 'b-medium', 'no-contact': 'b-prospect' };
+  const attentionHtml =
+    '<div class="card">' +
+      '<div class="card-header"><div><div class="card-title">Needs attention</div>' +
+      '<div class="card-sub">Opportunities past their close date, parked accounts due back, strong leads nobody has a contact at</div></div>' +
+      '<span class="card-n">' + signals.length + ' signal' + (signals.length === 1 ? '' : 's') + '</span></div>' +
+      (signals.length ? signals.slice(0, SIGNALS_SHOWN).map(s =>
+        '<div class="person-row" style="cursor:pointer" onclick="nav(\'detail\',{id:' + jsStr(s.accountId) + '})">' +
+          avatarTileHtml(s.account) +
+          '<div style="min-width:0;flex:1"><div class="person-name">' + esc(s.account) + '</div>' +
+          '<div class="person-title">' + esc(s.reason) + '</div></div>' +
+          '<div class="person-actions"><span class="badge ' + badgeOf[s.kind] + '">' + esc(s.badge) + '</span></div>' +
+        '</div>').join('') +
+        (signals.length > SIGNALS_SHOWN ? '<div class="fg-hint" style="padding:8px 2px 0">And ' + (signals.length - SIGNALS_SHOWN) + ' more.</div>' : '')
+        : '<div class="empty" style="padding:28px 10px"><h3>Nothing is slipping</h3><p>No opportunity is past its close date, no parked account is due back, and every strong lead has someone on file.</p></div>') +
+    '</div>';
+
+  const items = followUps(deals, offtakers, actStageLabel);
+  const COMING_SHOWN = 5;
+  const next = comingUp(items, today, COMING_SHOWN);
+  const comingHtml =
+    '<div class="card">' +
+      '<div class="card-header"><div><div class="card-title">Coming up</div>' +
+      '<div class="card-sub">The next close dates and revisit dates</div></div>' +
+      '<button class="btn btn-ghost btn-xs" onclick="nav(\'activity\')">All follow-ups</button></div>' +
+      (next.length ? next.map(followUpRowHtml).join('') +
+        (comingUpMore(items, today, COMING_SHOWN) ? '<div class="fg-hint" style="padding:8px 2px 0">And ' + comingUpMore(items, today, COMING_SHOWN) + ' more on the Activity page.</div>' : '')
+        : '<div class="empty" style="padding:28px 10px"><h3>Nothing is coming up</h3><p>Set a target close date on an opportunity, or a revisit date on a parked account, and it appears here.</p></div>') +
+    '</div>';
+
   /* The KPI row, then every card in one even two-column grid, pairing a
      "what to do" card with the numbers behind it. */
   setContent(statsHtml +
-    '<div class="card-grid">' + callHtml + funnelHtml + agentsCardHtml() + actHtml + sectorHtml + projHtml + '</div>');
+    '<div class="card-grid">' + callHtml + attentionHtml + funnelHtml + comingHtml + agentsCardHtml() + actHtml + sectorHtml + projHtml + '</div>');
   growBars();
 }
 
