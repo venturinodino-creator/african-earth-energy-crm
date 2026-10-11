@@ -18,6 +18,7 @@ until someone checks it.
 | `.claude/agents/offtaker-contact-finder.md` | Research at companies — the seven ladder seats |
 | `.claude/agents/municipality-contact-finder.md` | Research at the 20 main municipalities |
 | `scripts/finder-agent.js` | Sign-in and every database write |
+| `scripts/openclaw-run.js` | Runs any of these agents through OpenClaw, one run or the whole queue |
 
 Research is judgement, so it belongs to a model. Signing in and shaping
 a row must be exactly right every time, so it lives in code. The model
@@ -77,6 +78,54 @@ and files each contact under its municipality or company. A row that
 arrived without an email is flagged *No email* but still goes in; the
 *Add email & accept* button on the row lets a reviewer type the address
 first, or it can be added on the contact later.
+
+## Running the agents with OpenClaw
+
+The same four agents can be run by [OpenClaw](https://docs.openclaw.ai) instead of
+Claude Code. `scripts/openclaw-run.js setup` registers each one with OpenClaw as an
+agent called `aeeg-<name>` (`aeeg-offtaker-contact-finder`, `aeeg-municipality-contact-finder`,
+`aeeg-listed-offtaker-contact-finder`, `aeeg-priority-contact-finder`), with a workspace of
+its own (`~/.openclaw/workspace-aeeg-<name>`). That workspace's `AGENTS.md` is the brief
+from `.claude/agents` (there is one copy of what each agent does) under a short preamble:
+where the repository is, how Claude Code's tool names map onto OpenClaw's, and the three
+rules: never open `.env`, never write a file or commit, and nothing found becomes a contact.
+The agents then show in OpenClaw like any other, and each run is its own session there.
+
+```
+node scripts/openclaw-run.js setup                         once: create the workspaces and register the agents (--dry to preview)
+node scripts/openclaw-run.js list                          the agents, their OpenClaw ids and models
+node scripts/openclaw-run.js dispatch                      every queued run, oldest first, each to the right agent
+node scripts/openclaw-run.js run offtaker-contact-finder --run run_xxx
+node scripts/openclaw-run.js run priority-contact-finder --task "Fill the seats at Sasol"
+node scripts/openclaw-run.js brief municipality-contact-finder --run run_xxx    the brief and task, without running anything
+```
+
+`dispatch` reads the queue with `finder-agent.js runs` and routes each run: a municipality
+run to `municipality-contact-finder`, a run queued by `finder-gaps.js queue` to
+`listed-offtaker-contact-finder`, anything else to `offtaker-contact-finder`.
+`priority-contact-finder` is slow and wide on purpose, so it is only ever asked for by
+name. With nothing queued, nothing is started and nothing is spent. Add `--dry` to see
+the plan, `--max 3` to cap how many runs one dispatch takes, `--timeout 3600` to set
+the deadline per run.
+
+Things to know:
+
+- **Run it from the checkout that holds `.env`** (or pass `--repo <dir>`); the finder
+  script reads its sign-in from there, and `setup` refuses a checkout that has none.
+- **It needs OpenClaw installed** (`npm i -g openclaw`) with its gateway running (it is,
+  once OpenClaw is set up) and signed in to a Claude model. `setup` is the only thing
+  that changes OpenClaw's configuration: it adds the four agents and leaves everything
+  else alone. Run it again after editing a brief in `.claude/agents`; it rewrites the
+  workspace files and leaves an agent that is already registered as it is.
+- **Runs go through the gateway**, not OpenClaw's embedded `agent exec`, which stalls when
+  it is started from inside another Claude session (the Claude process it launches
+  inherits that session's environment).
+- **OpenClaw's command line is slow to start** (a minute or two here), so a run costs
+  that on top of the research. The research itself is the model's time.
+- **Exit codes:** 0 done, 1 failed, 2 timed out. The JSON it prints carries the
+  agent's answer, the OpenClaw session key and session id.
+- To run it on a schedule, run `dispatch` from the scheduler of your choice. It is
+  cheap when the queue is empty.
 
 ## What a good find looks like
 
