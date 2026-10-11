@@ -20,6 +20,8 @@ function selectionSync(kind, sig) {
     SELECTION.kind = kind; SELECTION.sig = sig; SELECTION.ids = new Set();
   }
 }
+/* Leaving a page drops its selection, so coming back to a list finds nothing ticked. */
+function selectionReset() { SELECTION.kind = ''; SELECTION.sig = ''; SELECTION.ids = new Set(); }
 function selectionHas(id) { return SELECTION.ids.has(id); }
 function selectionCount() { return SELECTION.ids.size; }
 function selectionClear() { SELECTION.ids = new Set(); selectionRefresh(); }

@@ -2,8 +2,8 @@
    Settings
    One home for the things that belong to the person and to the book rather than to
    any one page: who is signed in, how the pipeline is worked out, where the book sits
-   by province, and every export and import. A sub-navigation on the left, one card on
-   the right.
+   by province, and the whole-book exports and both imports. (A page's own export stays on
+   that page.) A sub-navigation on the left, one card on the right.
 
    It reads and shows; it does not edit. The stages, sectors and provinces are defined
    in the code, so every account and every report reads the same definition, and the
@@ -90,7 +90,8 @@ function settingsProvincesHtml() {
 }
 
 /* ─── DATA AND BACKUP ─────────────────────────────────────────── */
-/* Every export and import the app has, in one place. The sidebar keeps the ones it always had. */
+/* The whole-book exports and both imports, in one place. The sidebar keeps the ones it always had, and a
+   page's own export (Analytics' summary, Export selected on a table) stays on that page. */
 function settingsDataHtml() {
   const exp = [
     ['Off-takers', state.offtakers.length, 'exportOfftakers()', 'Every company on file, with load, fit and contacts'],

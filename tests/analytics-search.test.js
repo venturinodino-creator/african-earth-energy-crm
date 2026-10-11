@@ -160,6 +160,25 @@ test('a "/" typed in any field is left alone', () => {
   assert.strictEqual(press('/', { tagName: 'DIV', isContentEditable: true }).prevented, false, 'an editable region');
   assert.strictEqual(search().focused, 0);
 });
+test('a tick box, radio or button takes no text, so "/" still reaches the search after a row is ticked', () => {
+  reset();
+  ['checkbox', 'radio', 'button', 'range', 'submit', 'color', 'file'].forEach(type => assert.strictEqual(press('/', { tagName: 'INPUT', type }).prevented, true, type));
+  assert.strictEqual(search().focused, 7);
+  reset();
+  ['text', 'search', 'email', 'number', 'password', 'tel', 'url', 'TEXT', undefined].forEach(type =>
+    assert.strictEqual(press('/', { tagName: 'INPUT', type }).prevented, false, 'a ' + type + ' field keeps its slash'));
+  assert.strictEqual(search().focused, 0);
+});
+test('an open menu or the phone sidebar is closed first, so focus never lands behind it', () => {
+  reset();
+  ev('var __closed = 0, __sheet = []; closeMenus = () => { __closed++; }; toggleSidebar = v => { __sheet.push(v); };');
+  press('/', { tagName: 'BODY' });
+  assert.strictEqual(ev('__closed'), 1, 'the + New and account menus are closed');
+  assert.deepStrictEqual(json('__sheet'), [false], 'and so is the sidebar sheet');
+  assert.strictEqual(search().focused, 1);
+  press('a', { tagName: 'BODY' }); press('/', { tagName: 'INPUT', type: 'text' });
+  assert.strictEqual(ev('__closed'), 1, 'but another key, or a slash typed in a field, closes nothing');
+});
 test('a "/" with Ctrl, Cmd or Alt, or any other key, does nothing', () => {
   reset();
   press('/', { tagName: 'BODY' }, { ctrlKey: true }); press('/', { tagName: 'BODY' }, { metaKey: true }); press('/', { tagName: 'BODY' }, { altKey: true });
@@ -199,6 +218,7 @@ test('the hint goes while the box has focus or text, and never shows on a touch 
   assert.ok(/\.gs-input:focus~\.gs-hint,\.gs-input:not\(:placeholder-shown\)~\.gs-hint\{display:none\}/.test(css));
   assert.ok(/@media\(hover:none\)\{\.gs-hint\{display:none\}\}/.test(css));
   assert.ok(/\.gs-input\{[^}]*padding:9px 46px 9px 33px/.test(css), 'the text never runs under the hint');
+  assert.ok(/\.gs-hint\{[^}]*color:var\(--muted2\)/.test(css), 'in the stronger of the two muted inks, which reads at 10.5px in both themes');
 });
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');

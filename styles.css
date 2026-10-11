@@ -158,7 +158,7 @@ h1,h2,h3,h4,.stat-value,.dh-metric-v,.ec-metric-v,.calc-tile-v,.ia-tile-n{font-f
 .gs-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;display:flex}
 /* "( / )": the shortcut, shown while the box is idle and empty, and never on a touch screen. */
 .gs-hint{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:10.5px;font-weight:600;letter-spacing:.3px;
-  color:var(--muted);pointer-events:none;white-space:nowrap}
+  color:var(--muted2);pointer-events:none;white-space:nowrap}
 .gs-input:focus~.gs-hint,.gs-input:not(:placeholder-shown)~.gs-hint{display:none}
 @media(hover:none){.gs-hint{display:none}}
 .gs-results{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border:1px solid var(--border2);

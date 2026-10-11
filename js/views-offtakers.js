@@ -131,7 +131,7 @@ function renderArchive() {
     '<th>Offtaker</th><th>Sector</th><th>Province</th><th class="num">GWh/yr</th><th class="num">Contacts</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
     shown.map(o =>
-      '<tr><td><div class="name-cell"><span style="opacity:.6;display:flex">' + sectorIcon(o.sector, 15) + '</span>' +
+      '<tr><td><div class="name-cell">' + avatarTileHtml(o.name) +
         '<div><div style="font-weight:700">' + esc(o.name) + '</div>' +
         '<div style="font-size:10.5px;color:var(--muted)">' + esc(o.city) + '</div></div></div></td>' +
       '<td>' + sectorBadge(o.sector) + '</td>' +
@@ -190,9 +190,10 @@ async function archiveOfftaker(id) {
 }
 
 function renderOfftakers() {
-  if (state.offArchive) { renderArchive(); return; }
+  /* A ticked row belongs to what is showing now: a new tab, filter, search or reading drops it. The Archive
+     tab has no ticks of its own, but it is a different tab, so it drops them too. */
+  if (state.offArchive) { selectionSync('offtakers', 'archive'); renderArchive(); return; }
   const list = filteredOfftakers();
-  /* A ticked row belongs to what is showing now: a new tab, filter, search or reading drops it. */
   selectionSync('offtakers', JSON.stringify([state.offView, state.offSearch, state.offSector, state.offStatus, state.province]));
   const leads = prospectRecords();
   /* The header counts what the province scope leaves; the filters below are offered

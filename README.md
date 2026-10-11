@@ -13,12 +13,12 @@ Company site: <https://www.aeeg.co.za/en>
 
 | Screen | What it is for |
 | --- | --- |
-| **Dashboard** | The morning view — today's call list, funnel by stage, sector mix, capacity allocation, recent activity |
+| **Dashboard** | The morning view — today's call list, what needs attention (a close date passed, a parked account due back, a strong lead nobody has a contact at), funnel by stage, the next follow-ups, sector mix, capacity allocation, recent activity |
 | **Pipeline** | The companies somebody is working, one board on the five-stage sales path. Each card carries the MW, value and likelihood of the PPA opportunities open on it. **Flow** reads where they stop, **Table** lists the lot in stage order. Drag to move a card, and its opportunities move with it |
 | **Off-taker Prospects** | The leads: researched companies nobody has picked up. No sales stage, no board position. Grid or table, filterable by sector, status and province, sortable by fit score |
 | **Offtaker detail** | Three cards for a lead — who they are, what the desk researched, who works there — plus the sales path once it is in the pipeline |
 | **Contacts** | People at each offtaker, with role in the decision. CSV import and export |
-| **Activity** | Every logged call, email and meeting, plus target close dates |
+| **Activity** | Follow-ups (target close dates and revisit dates, grouped Overdue, Today, Next 7 days, Later), every logged call, email and meeting, and a calendar, with a log form beside it |
 | **Projects** | The AEE generation portfolio and how much of each site is already spoken for |
 | **Map** | Offtaker load plotted against generation sites, sized by annual consumption |
 | **Analytics** | Load by province and sector, fit distribution, where the pipeline value actually sits |
@@ -27,6 +27,10 @@ Company site: <https://www.aeeg.co.za/en>
 | **Contact finder** | Pick a target (Mining by default, another sector with gaps, or the main municipalities), queue a discovery run, and review what comes back before it lands in Contacts |
 | **Regions** | Each generation site against the industrial load in its catchment, ordered by unsold capacity then by distance, with published contacts inline |
 | **Playbook** | Ranked shortlists, market context, cold emails, discovery script, objection handling, qualification checklist |
+| **Municipalities** | The 257 municipalities as their own target list: metros, districts and locals, each with who to call |
+| **News** | The mining-industry stories the desk reads before it dials. A filter card narrows them by source and by whether they name an off-taker; Save and Dismiss are kept in this browser |
+| **Agent HQ** | The contact-finder agents, their runs and what they found |
+| **Settings** | The account, the pipeline stages, the provinces, and the whole-book exports and both imports |
 
 ## The fit score
 
@@ -322,7 +326,9 @@ targets, ladder seats, email inference, the Agent HQ activity card, the OpenClaw
 pages, dashboard, settings, activity, map, news), the province scope, row selection, the
 + New drawer, the Import wizard and its rules, follow-ups, the Analytics export and the search
 shortcut, form validation, shared helpers, the news merge and scan, and the docs themselves
-(`tests/docs.test.js` checks this list, the file map and the glossary against the repo).
+(`tests/docs.test.js` checks the test count, that every script is in the file map and every
+mapped path exists, and that the glossary and ADR-0001 carry the terms and the decision the
+layout work added).
 
 ## Data and storage
 
@@ -431,21 +437,23 @@ engine ([ADR-0001](docs/adr/0001-wireframe-layout-not-engine.md)).
   Pipeline, Activity, News and Map follow it and say which province under their title; Projects,
   Regions, Sectors, Analytics, Agent HQ, Playbook and the Calculator do not, and say "all
   provinces". The scoped lists are in `js/core.js` (`scopedOfftakers()` and friends).
-- **+ New.** Opens one drawer to create an off-taker, contact, opportunity or activity, with a
-  warning (never a block) when it looks like one already on file. Admins only. Editing a record
-  keeps its centred dialog. The drawer is in `js/quickcreate.js`.
+- **+ New.** Opens one drawer to create an off-taker, contact, opportunity or activity, and warns
+  as you type when it looks like one already on file. A near match is only a warning; an exact
+  copy (the same name, or the same person at the same company) is still refused on save. Admins
+  only. Editing a record keeps its centred dialog. The drawer is in `js/quickcreate.js`.
 - **Page header.** Each page's title, subtitle and actions, filled by `setPage()`. A record page
   passes `{ record: true }`: its header keeps only a breadcrumb, because its header card carries
   the name and the actions.
 - **Lists.** View tabs (a saved filter that is on), then a filter bar, then one table card whose
   footer says how much of the list is on screen and holds the pager. The builders are in
-  `js/layout.js`. Rows can be ticked; a selection bar offers Export selected and Clear, and the
-  selection is cleared whenever the page, tab, filter, search or page changes
-  (`js/selection.js`).
+  `js/layout.js`. On the Off-taker Prospects, Contacts, Municipalities and Pipeline tables rows
+  can be ticked; a selection bar offers Export selected and Clear, and the selection is cleared
+  whenever the page, tab, filter, search or page number changes (`js/selection.js`).
 - **Wizard.** Import CSV is a page of four steps (Upload, Map columns, Review, Import) that
   saves nothing until the last (`js/views-import.js`, rules in `js/import-rules.js`).
-- **Settings.** The account, the pipeline stages, the provinces, and every export and import in
-  one place (`js/views-settings.js`).
+- **Settings.** The account, the pipeline stages, the provinces, and the whole-book exports and
+  both imports in one place (`js/views-settings.js`). A page's own export, such as Analytics'
+  Export summary or Export selected on a table, stays on that page.
 - **Activity.** Follow-ups (an opportunity's target close date or an off-taker's revisit date,
   grouped Overdue, Today, Next 7 days, Later), all activity, and a calendar, with a log form
   beside it (`js/views-activity.js`, dates in `js/followups.js`).

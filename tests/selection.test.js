@@ -333,5 +333,17 @@ test('the button carries the count and the call', () => {
   assert.ok(/Export/.test(h) && /<span class="btn-n">12<\/span>/.test(h), h);
 });
 
+console.log('\nLeaving the page');
+test('leaving a page drops its selection, so coming back to a list finds nothing ticked', () => {
+  const { ctx } = require('./core-sandbox')({ files: ['js/selection.js'] });
+  const exec = code => vm.runInContext(code, ctx);
+  exec("render = () => {}; selectionRefresh = () => {}; selectionSync('contacts', 'sig'); selectionToggle('contacts', 'c1', true); selectionToggle('contacts', 'c2', true);");
+  assert.strictEqual(exec('selectionCount()'), 2);
+  exec("nav('dashboard')");
+  assert.strictEqual(exec('selectionCount()'), 0, 'dropped by going to another page');
+  exec("nav('contacts'); selectionSync('contacts', 'sig')");
+  assert.strictEqual(exec('selectionCount()'), 0, 'and still empty on the way back to the same list with the same filters');
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exitCode = fail ? 1 : 0;

@@ -117,6 +117,15 @@ test('the shape of the sector and who to call lead the main column; reference ca
 });
 
 console.log('\nOne municipality');
+test('the local municipalities listed on a district page each carry an avatar tile', () => {
+  const e = env({ view: 'municipality' });
+  e.state.detailId = vm.runInContext('SA_MUNICIPALITIES.find(m => m.cat === "C" && SA_MUNICIPALITIES.some(x => x.districtCode === m.code)).id', e.ctx);
+  const h = e.run('renderMunicipality').content;
+  const card = h.slice(h.indexOf('Local municipalities'));
+  assert.ok(card.length > 100, 'a district with locals');
+  const rows = card.match(/<div class="person-row"[^>]*>(?:<span class="nm-tile"[^>]*>[^<]*<\/span>)?/g) || [];
+  assert.ok(rows.length > 1 && rows.every(r => r.includes('nm-tile')), 'every local has its tile (' + rows.length + ' rows)');
+});
 test('a municipality is a record page with the shared card and an About card', () => {
   const o = env({ view: 'municipality' }).run('renderMunicipality');
   assert.ok(o.page.opts && o.page.opts.record === true && o.page.a === '');

@@ -50,7 +50,7 @@ _Avoid_: Task, reminder
 The frame around every page: the sidebar, the top bar, and on a phone the bottom bar.
 
 **Top bar**:
-The strip across the top of the shell holding search, **+ New** and the account menu. It carries no page title.
+The strip across the top of the shell holding search (press `/` to reach it), the province switcher, **+ New** and the account menu. It carries no page title.
 
 **Page header**:
 The title, subtitle and that page's own actions, shown at the top of the page content below the top bar.
@@ -60,7 +60,7 @@ _Avoid_: Page title bar, toolbar
 The top-bar menu listing every create action that exists (off-taker, contact, opportunity, log activity). Choosing one opens the **Drawer**. Hidden from read-only viewers.
 
 **Drawer**:
-The right-hand panel that **+ New** opens: one form, with pills to switch between off-taker, contact, opportunity and activity. It is for new records only; editing a record keeps the centred dialog, so the drawer means "new" and the dialog means "change". Duplicates are warned about, never blocked.
+The right-hand panel that **+ New** opens: one form, with pills to switch between off-taker, contact, opportunity and activity. It is for new records only; editing a record keeps the centred dialog, so the drawer means "new" and the dialog means "change". A possible duplicate is warned about as you type; an exact copy (the same name, or the same person at the same company) is still refused on save.
 _Avoid_: Modal, sidebar
 
 **Bottom bar**:
