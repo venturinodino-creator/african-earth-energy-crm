@@ -50,11 +50,12 @@ function env(over) {
     SECTOR_LABEL_MAP: { mining: 'Mining' }, PIPELINE_STAGES: [{ id: 'proposal', label: 'Proposal' }], statTile: (i, c, label, value) => '<div class="stat-card">' + label + ' ' + value + '</div>',
     viewToggle: k => '<div class="view-toggle" data-key="' + k + '"></div>', growBars() {}, loadFinderCache() {}, refreshFinderFromServer() {}, analyticsPageGuideHtml: () => '<div class="guide">GUIDE</div>',
     pmProjectFor: () => null, interactionsFor: () => [], exportNews() {}, openLogInteraction() {}, deleteInteraction() {},
+    accountOptions: () => '<option value="a">Alpha</option>', accountView: () => 'detail',
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; }, state,
     SA_PROVINCES: ['Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'],
     NEWS_AUTO: [{ id: 'n1', topic: 'renewable_energy', province: 'Multiple', date: '2026-10-09', title: 'Eskom launches', summary: '', url: 'https://x.co.za', auto: true }],
   });
-  const files = ['js/layout.js', 'data/news.js', 'js/views-agenthq.js', 'js/views-news.js', 'js/views-tools.js'];
+  const files = ['js/layout.js', 'data/news.js', 'js/views-agenthq.js', 'js/views-news.js', 'js/views-tools.js', 'js/followups.js', 'js/views-activity.js'];
   files.forEach(f => { try { vm.runInContext(read(f) + '\n', ctx, { filename: f }); } catch (e) { throw new Error(f + ': ' + e.message); } });
   return { ctx, out, state, run: fn => { vm.runInContext(fn + '();', ctx); return out; } };
 }
@@ -76,25 +77,100 @@ test('Refresh stays in the page header and the footnote stays', () => {
 });
 
 console.log('\nActivity');
-test('Timeline and Table are tabs; the header keeps only Log activity', () => {
-  const o = env().run('renderActivity');
-  assert.deepStrictEqual(tabLabels(o.content), ['*Timeline', 'Table']);
+/* Today is 2026-10-10 in this sandbox. Five accounts, each with one thing due on a different day. */
+const dueBook = {
+  offtakers: ['a', 'b', 'c', 'd', 'e'].map((id, i) => ({ id, name: 'Co ' + id.toUpperCase() + ' Ltd', short: 'Co ' + id.toUpperCase(), sector: 'mining', province: 'Gauteng', annualGwh: 100, tariff: 1.2, status: 'prospect', sfStage: '',
+    revisitDate: id === 'e' ? '2026-10-12' : '' })),
+  deals: [
+    { id: 'd1', offtakerId: 'a', name: 'Co A PPA', stage: 'proposal', mw: 30, closeDate: '2026-10-08' },
+    { id: 'd2', offtakerId: 'b', name: 'Co B PPA', stage: 'proposal', mw: 10, closeDate: '2026-10-10' },
+    { id: 'd3', offtakerId: 'c', name: 'Co C PPA', stage: 'proposal', mw: 5, closeDate: '2027-01-15' },
+  ],
+};
+const act = over => env(Object.assign({ view: 'activity' }, dueBook, over)).run('renderActivity');
+test('Follow-ups, All activity and Calendar are tabs, Follow-ups first; the header keeps only Log activity', () => {
+  const o = act({});
+  assert.deepStrictEqual(tabLabels(o.content), ['*Follow-ups', 'All activity', 'Calendar']);
   assert.ok(o.page.a.includes('Log activity') && !o.page.a.includes('view-toggle'));
 });
-test('the timeline is the log card beside the target close dates, in one grid', () => {
-  const o = env().run('renderActivity');
-  assert.ok(o.content.includes('<div class="card-grid">') && !o.content.includes('cols-2'));
-  assert.ok(o.content.includes('Interaction log') && o.content.includes('Target close dates'));
+test('the tab counts are the follow-ups due and the interactions logged', () => {
+  const o = act({});
+  assert.ok(/Follow-ups <span class="vt-n">4<\/span>/.test(o.content), o.content.match(/Follow-ups[^<]*<span[^>]*>\d+/));
+  assert.ok(/All activity <span class="vt-n">2<\/span>/.test(o.content));
 });
-test('the table view is a table card with a footer, and the close dates follow', () => {
-  const o = env({ activityView: 'table' }).run('renderActivity');
-  assert.ok(/view-tab active"[^>]*>Table/.test(o.content));
+test('follow-ups are grouped overdue, today, next 7 days and later, each row naming its account', () => {
+  const o = act({});
+  const heads = [...o.content.matchAll(/class="fu-head fu-(\w+)">([^<]*)</g)].map(m => m[2].trim());
+  assert.deepStrictEqual(heads, ['Overdue', 'Today', 'Next 7 days', 'Later']);
+  ['Co A', 'Co B', 'Co C', 'Co E'].forEach(n => assert.ok(o.content.includes(n), n));
+  assert.ok(/class="fu-kind">Close</.test(o.content) && /class="fu-kind">Parked</.test(o.content));
+  assert.ok(/onclick="nav\('detail',\{id:&quot;a&quot;\}\)"|onclick="nav\('detail',\{id:"a"\}\)"/.test(o.content) || o.content.includes("nav('detail'"), 'rows open the account');
+});
+test('a group with nothing in it is not drawn', () => {
+  const o = act({ deals: [dueBook.deals[0]], offtakers: dueBook.offtakers.map(x => Object.assign({}, x, { revisitDate: '' })) });
+  assert.deepStrictEqual([...o.content.matchAll(/class="fu-head fu-(\w+)">/g)].map(m => m[1]), ['overdue']);
+});
+test('the month calendar and the Log activity form sit beside the list', () => {
+  const o = act({});
+  const side = o.content.slice(o.content.indexOf('class="act-side"'));
+  assert.ok(side.includes('class="cal"') && side.includes('id="act-offtaker"') && side.includes('saveInlineInteraction()'));
+  assert.ok(o.content.indexOf('class="act-main"') < o.content.indexOf('class="act-side"'));
+});
+test('the form is admin-only, and has the drawer\'s fields', () => {
+  const side = act({}).content.slice(act({}).content.indexOf('class="act-side"'));
+  assert.ok(/data-admin-only[^>]*><div class="card-header"><div class="card-title">Log activity/.test(side));
+  ['act-date', 'act-type', 'act-summary'].forEach(id => assert.ok(side.includes('id="' + id + '"'), id));
+  ['Call', 'Email', 'Meeting', 'Site visit', 'Proposal sent', 'Note'].forEach(t => assert.ok(side.includes('>' + t + '<'), t));
+});
+test('All activity keeps the timeline, with the log card, and a Timeline / Table switch', () => {
+  const o = act({ activityTab: 'all' });
+  assert.ok(/view-tab active"[^>]*>All activity/.test(o.content));
+  assert.ok(o.content.includes('Interaction log') && o.content.includes('Spoke to the CFO'));
+  assert.ok(o.content.includes('view-toggle') && o.content.includes('data-key="activityView"'));
+});
+test('All activity as a table is a table card with a footer, as before', () => {
+  const o = act({ activityTab: 'all', activityView: 'table' });
   assert.ok(o.content.includes('<div class="table-card">') && o.content.includes('Showing 1–2 of 2 interactions'), o.content.match(/Showing[^<]*/));
-  assert.ok(o.content.indexOf('table-card') < o.content.indexOf('Target close dates'));
 });
-test('with nothing logged the tabs and the empty state still show', () => {
-  const o = env({ interactions: [] }).run('renderActivity');
-  assert.ok(o.content.includes('view-tabs') && o.content.includes('Nothing logged yet'));
+test('the Calendar tab draws the month, the days with something on are marked, and the side has only the form', () => {
+  const o = act({ activityTab: 'calendar', actMonth: '2026-10' });
+  assert.ok(o.content.includes('October 2026') && o.content.includes('cal-big'));
+  assert.ok(/class="cal-day has"[^>]*onclick="pickActDay\('2026-10-08'\)"/.test(o.content), 'the 8th has a follow-up');
+  assert.ok(/class="cal-day has"[^>]*onclick="pickActDay\('2026-10-01'\)"/.test(o.content), 'the 1st has a logged call');
+  assert.ok(!/class="cal-day today[^"]*"[^>]*pickActDay\('2026-10-11'\)/.test(o.content));
+  const side = o.content.slice(o.content.indexOf('class="act-side"'));
+  assert.ok(!side.includes('class="cal"') && side.includes('act-offtaker'));
+});
+test('today is marked on the calendar', () => {
+  assert.ok(/class="cal-day today[^"]*"[^>]*onclick="pickActDay\('2026-10-10'\)"/.test(act({ actMonth: '2026-10' }).content));
+});
+test('a chosen day narrows the page to it, says so, and offers the way back', () => {
+  const o = act({ activityTab: 'all', actDay: '2026-10-01' });
+  assert.ok(o.content.includes('Show all') && o.content.includes('1 Oct 2026'));
+  assert.ok(o.content.includes('Spoke to the CFO') && !o.content.includes('Sent the deck'));
+  const f = act({ actDay: '2026-10-08' });
+  assert.ok(f.content.includes('Co A') && !f.content.includes('Co C'));
+});
+test('a day with nothing on says so, on every tab', () => {
+  assert.ok(/Nothing is due on 5 Oct 2026/.test(act({ actDay: '2026-10-05' }).content));
+  assert.ok(/Nothing logged on 5 Oct 2026/.test(act({ activityTab: 'all', actDay: '2026-10-05' }).content));
+  assert.ok(/Nothing is on 5 Oct 2026/.test(act({ activityTab: 'calendar', actDay: '2026-10-05' }).content));
+});
+test('with nothing due and nothing logged the tabs and the empty states still show', () => {
+  const o = act({ interactions: [], deals: [], offtakers: dueBook.offtakers.map(x => Object.assign({}, x, { revisitDate: '' })) });
+  assert.ok(o.content.includes('view-tabs') && o.content.includes('Nothing is due'));
+  assert.ok(act({ activityTab: 'all', interactions: [] }).content.includes('Nothing logged yet'));
+});
+test('the Agents card stays, below the list', () => {
+  const o = act({});
+  assert.ok(o.content.indexOf('class="act-layout"') < o.content.indexOf('Agents in this repo'));
+});
+test('a bad tab or month falls back, so the page always draws', () => {
+  assert.ok(/view-tab active"[^>]*>Follow-ups/.test(act({ activityTab: 'nonsense' }).content));
+  assert.ok(act({ activityTab: 'calendar', actMonth: 'garbage' }).content.includes('October 2026'));
+});
+test('no undefined or NaN anywhere on any tab', () => {
+  ['followups', 'all', 'calendar'].forEach(t => assert.ok(!/undefined|NaN|\[object/.test(act({ activityTab: t }).content), t));
 });
 
 console.log('\nNews');

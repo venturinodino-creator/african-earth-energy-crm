@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Projects · Map · Analytics · Savings calculator · Playbook · Activity
+   Projects · Map · Analytics · Savings calculator · Playbook
+   (Activity is in views-activity.js)
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
@@ -592,82 +593,4 @@ function marketContextHtml() {
       esc(MARKET.openingQuestion) + '&rdquo;</div>' +
       '<div class="fg-hint" style="margin-top:10px">' + esc(MARKET.prioritisation) + '</div>' +
     '</div>';
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ACTIVITY LOG
-   ═══════════════════════════════════════════════════════════════ */
-function renderActivity() {
-  /* The log and the close dates are those of the accounts in the province scope. */
-  const logs = scopedInteractions().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const dueDeals = scopedDeals().filter(d => d.closeDate && d.stage !== 'closed')
-    .sort((a, b) => (a.closeDate || '').localeCompare(b.closeDate || ''));
-
-  setPage('Activity', logs.length + ' logged interactions',
-    '<button class="btn btn-primary btn-sm" data-admin-only onclick="openLogInteraction()">' + icon('plus', 14) + ' Log activity</button>');
-  const readingTab = (key, label) => ({ label, active: (state.activityView === 'table' ? 'table' : 'timeline') === key, on: "setViewMode('activityView','" + key + "')" });
-  const tabs = viewTabsHtml([readingTab('timeline', 'Timeline'), readingTab('table', 'Table')]);
-
-  const dueHtml = dueDeals.length
-    ? '<div class="card"><div class="card-header"><div><div class="card-title">Target close dates</div>' +
-      '<div class="card-sub">Opportunities with a date set, soonest first</div></div></div>' +
-      dueDeals.slice(0, 10).map(d => {
-        const overdue = d.closeDate <= todayISO();
-        return '<div class="person-row" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + d.offtakerId + '\'})">' +
-          '<div style="min-width:0;flex:1"><div class="person-name">' + esc(getOfftaker(d.offtakerId).short || '—') + ' · ' + fmtNum(d.mw) + ' MW</div>' +
-          '<div class="person-title">' + esc((PIPELINE_STAGES.find(s => s.id === d.stage) || {}).label || d.stage) + '</div></div>' +
-          '<span class="badge ' + (overdue ? 'b-high' : 'b-prospect') + '">' + esc(d.closeDate) + '</span></div>';
-      }).join('') + '</div>'
-    : '';
-
-  let logBody;
-  if (!logs.length) {
-    logBody = '<div class="empty"><div class="ei">' + icon('activity', 30) + '</div><h3>Nothing logged yet</h3>' +
-      '<p>Every call, email and meeting logged here is context the next person picking up the account will need.</p></div>';
-  } else if (state.activityView === 'table') {
-    logBody = '';
-  } else {
-    logBody = logs.map(i =>
-      '<div class="int-row"><div class="int-dot"></div><div class="int-body">' +
-      '<div class="int-meta">' + esc(i.type) + ' · <span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + i.offtakerId + '\'})">' +
-      esc(getOfftaker(i.offtakerId).short || 'Unknown') + '</span> · ' + esc(i.date) + '</div>' +
-      '<div class="int-text">' + esc(i.summary) + '</div></div>' +
-      '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('');
-  }
-
-  const logHtml = '<div class="card"><div class="card-header"><div class="card-title">Interaction log</div></div>' +
-    logBody + '</div>';
-
-  /* The table wants the full width, as a table card with its own footer; the
-     timeline reads fine in a column beside the close dates. */
-  let body;
-  if (state.activityView === 'table' && logs.length) {
-    const foot = tableFooterHtml({ from: 1, to: logs.length, total: logs.length, all: logs.length, noun: logs.length === 1 ? 'interaction' : 'interactions', page: 1, pages: 1 });
-    body = '<div class="section-title" style="margin-top:6px">Interaction log</div>' + tableCardHtml(interactionTableHtml(logs), foot) +
-      (dueHtml ? '<div style="margin-top:14px">' + dueHtml + '</div>' : '');
-  } else {
-    body = !dueHtml ? logHtml : '<div class="card-grid">' + logHtml + dueHtml + '</div>';
-  }
-  setContent(ahqActivityCardHtml() + tabs + body);
-}
-
-/* The log read as a register rather than a timeline — newest first either
-   way, but the table puts date and type in fixed columns for scanning. */
-function interactionTableHtml(logs) {
-  return '<div class="table-wrap" style="border:none;background:transparent"><table><thead><tr>' +
-    '<th>Date</th><th>Type</th><th>Offtaker</th><th>Summary</th><th></th>' +
-    '</tr></thead><tbody>' +
-    logs.map(i => {
-      const o = getOfftaker(i.offtakerId);
-      return '<tr>' +
-        '<td style="white-space:nowrap">' + esc(i.date) + '</td>' +
-        '<td>' + esc(i.type) + '</td>' +
-        '<td>' + (o.id
-          ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
-          : '<span style="color:var(--muted)">Unknown</span>') + '</td>' +
-        '<td>' + esc(i.summary) + '</td>' +
-        '<td style="white-space:nowrap">' +
-          '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button>' +
-        '</td></tr>';
-    }).join('') + '</tbody></table></div>';
 }

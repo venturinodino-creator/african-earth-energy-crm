@@ -186,10 +186,9 @@ test('the Pipeline reads scoped deals', () => {
   assert.ok(!/liveDeals\(\)/.test(p), 'the Pipeline should ask liveDeals about the scoped set');
 });
 test('Activity and the Map read scoped sets', () => {
-  const t = src('views-tools');
-  const act = /function renderActivity\(\) \{[\s\S]*?\n\}/.exec(t)[0];
-  assert.ok(act.includes('scopedInteractions()') && act.includes('scopedDeals()'));
-  const map = /function initMap\(\) \{[\s\S]*?\n\}\n/.exec(t)[0];
+  const act = /function renderActivity\(\) \{[\s\S]*?\n\}/.exec(src('views-activity'))[0];
+  assert.ok(act.includes('scopedInteractions()') && act.includes('scopedDeals()') && act.includes('scopedOfftakers()'));
+  const map = /function initMap\(\) \{[\s\S]*?\n\}\n/.exec(src('views-tools'))[0];
   assert.ok(map.includes('scopedOfftakers()') && map.includes('scopedProjects()'));
 });
 test('changing the province drops a company filter that has fallen out of scope', () => {

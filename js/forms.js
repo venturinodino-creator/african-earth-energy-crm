@@ -303,14 +303,16 @@ function openLogInteraction(offtakerId) {
   setTimeout(() => document.getElementById('mi-summary').focus(), 60);
 }
 
-function saveInteraction() {
-  const acc = parseAccountKey(val('mi-offtaker'));
-  const summary = val('mi-summary');
-  if (!acc.offtakerId) { toast('Pick an account', 'warn'); return; }
-  if (!summary) { toast('Write a one-line summary — future you will need it', 'warn'); return; }
+/* Logging an activity, whichever form it came from: the drawer or the form on the Activity
+   page. Returns true when it was saved, so the caller knows whether to close or clear. */
+function logInteraction(f) {
+  const acc = parseAccountKey(f.offtakerId);
+  const summary = String(f.summary || '').trim();
+  if (!acc.offtakerId) { toast('Pick an account', 'warn'); return false; }
+  if (!summary) { toast('Write a one-line summary — future you will need it', 'warn'); return false; }
   const entry = {
     id: uid('int'), offtakerId: acc.offtakerId,
-    date: val('mi-date') || todayISO(), type: val('mi-type'), summary,
+    date: f.date || todayISO(), type: f.type, summary,
   };
   state.interactions.push(entry);
   pushInteraction(entry);
@@ -321,8 +323,14 @@ function saveInteraction() {
     o.status = 'engaged'; o.sfStage = 'needs-analysis'; pushOfftaker(o);
   }
   save();
-  closeModal('modal-interaction');
   toast('Activity logged');
+  return true;
+}
+
+function saveInteraction() {
+  const done = logInteraction({ offtakerId: val('mi-offtaker'), date: val('mi-date'), type: val('mi-type'), summary: val('mi-summary') });
+  if (!done) return;
+  closeModal('modal-interaction');
   render();
 }
 
