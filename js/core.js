@@ -53,6 +53,9 @@ let state = {
   /* The Activity page: which reading (follow-ups, all activity, calendar), the month the
      calendar shows ("YYYY-MM", blank for this month) and a day it is narrowed to, if any. */
   activityTab: 'followups', actMonth: '', actDay: '',
+  /* The import wizard: the file being imported and the step it is on. Held in memory only,
+     so a reload starts the wizard over; null until Import CSV is opened. */
+  imp: null,
   /* Accounts, not Deals. The deal board only holds records that already
      have an opportunity filed, which is the narrower half of the pipeline —
      an account moved in with "Work it" has a stage but no deal yet, so it
@@ -832,6 +835,11 @@ function crumbsFor(view) {
     const m = muniOf(state.detailId);
     if (m) return [{ label: 'Municipalities', on: "nav('municipalities')" }, { label: m.name }];
   }
+  /* The import wizard belongs to the list it fills. */
+  if (view === 'import') {
+    const k = importKind(state.imp && state.imp.kind);
+    return [{ label: k === 'offtakers' ? 'Off-taker Prospects' : 'Contacts', on: "nav('" + IMPORT_KINDS[k].view + "')" }, { label: 'Import CSV' }];
+  }
   return [{ label: 'Dashboard', on: "nav('dashboard')", back: true }];
 }
 
@@ -873,6 +881,7 @@ function render() {
     project: renderProject,
     agenthq: renderAgentHQ,
     settings: renderSettings,
+    import: renderImport,
   };
   (views[state.view] || renderDashboard)();
   renderBackToMain();
@@ -1102,8 +1111,6 @@ function exportPipeline(deals) {
   toast('Exported ' + rows.length + ' opportunities');
 }
 
-/* Import contacts from CSV. Header row is matched loosely so a list
-   exported from LinkedIn, Apollo or a spreadsheet mostly just works. */
 /* The separator a file uses. Excel on South African settings saves "CSV" with
    semicolons (the comma is its decimal mark) and some tools write tabs; read
    it off the header line, ignoring anything inside quotes. */
@@ -1116,67 +1123,29 @@ function csvDelimiter(text) {
   }
   return n[';'] > n[','] && n[';'] >= n['\t'] ? ';' : n['\t'] > n[','] ? '\t' : ',';
 }
+/* The rows of a CSV, blank rows dropped. The array also carries `lines`: for each row, the line of
+   the file it starts on (the first line is 1), so a page can point at the row a person has to fix
+   even when blank rows were dropped or a quoted cell ran over several lines. */
 function parseCSV(text) {
   text = String(text).replace(/^\uFEFF/, '');
   const sep = csvDelimiter(text);
-  const rows = []; let row = [], cell = '', q = false;
+  const rows = [], starts = []; let row = [], cell = '', q = false, line = 1, start = 1;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
+    if (ch === '\n') line++;
     if (q) {
       if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
       else cell += ch;
     } else if (ch === '"') q = true;
     else if (ch === sep) { row.push(cell); cell = ''; }
-    else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (ch === '\n') { row.push(cell); rows.push(row); starts.push(start); row = []; cell = ''; start = line; }
     else if (ch !== '\r') cell += ch;
   }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows.filter(r => r.some(c => String(c).trim()));
-}
-
-/* ─── CSV IMPORT ──────────────────────────────────────────────────
-   One importer, two shapes. A file with a first/last name column is a
-   contact list; one with a company name and no person on it is an
-   offtaker list. Which one it is gets decided from the header row
-   rather than asked, because the answer is never ambiguous and asking
-   would only be a chance to pick wrong.
-
-   Offtaker rows carry no load figures most of the time — a target
-   list is usually just names and places, and the GWh comes later,
-   from the customer. That is fine: a record with no load is honest
-   about it and sorts to the bottom until someone fills it in. What it
-   must NOT do is wear the "estimated load" badge, which promises a
-   desk estimate that nobody made. */
-let _importRows = [];
-let _importKind = 'contacts';
-
-const IMPORT_HINT_CONTACTS =
-  'Choose a CSV with a header row.<br>Recognised columns: ' +
-  '<b style="color:var(--text2)">first, last</b>, title, department, company, email, phone, linkedin, notes, province.<br><br>' +
-  '<b>company</b> matches an offtaker by name, or a municipality by name, id (<i>mun_MP312</i>) or code (<i>MP312</i>). ' +
-  'Where a municipality name is not unique — there are two Emalahlenis — <b>province</b> settles it.<br><br>' +
-  '<b>email</b> is required. A row without a work email is skipped — add the address to the file and import again.';
-
-const IMPORT_HINT_OFFTAKERS =
-  'Choose a CSV with a header row.<br>Recognised columns: ' +
-  '<b style="color:var(--text2)">name</b>, short, sector, province, city, website, gwh, peak mw, tariff, ' +
-  'nmd, supply, wheeling, status, priority, description.<br><br>' +
-  'Sector accepts either the id (<i>mining</i>) or the full name (<i>Mining &amp; Minerals (Producer)</i>). ' +
-  'Province accepts abbreviations — WC, KZN, Limpopo — and is what places the record on the map.';
-
-/* Opened from a specific button, so the kind is known up front rather
-   than guessed from the columns. The guess survives only as a check that
-   the file matches the button that was pressed. */
-function openImport(kind) {
-  _importRows = [];
-  _importKind = kind === 'offtakers' ? 'offtakers' : 'contacts';
-  document.getElementById('imp-title').textContent =
-    _importKind === 'offtakers' ? 'Import offtakers from CSV' : 'Import contacts from CSV';
-  document.getElementById('imp-file').value = '';
-  document.getElementById('imp-preview').innerHTML = '<div class="fg-hint">' +
-    (_importKind === 'offtakers' ? IMPORT_HINT_OFFTAKERS : IMPORT_HINT_CONTACTS) + '</div>';
-  document.getElementById('imp-go').disabled = true;
-  openModal('modal-import');
+  if (cell || row.length) { row.push(cell); rows.push(row); starts.push(start); }
+  const out = [];
+  out.lines = [];
+  rows.forEach((r, i) => { if (r.some(c => String(c).trim())) { out.push(r); out.lines.push(starts[i]); } });
+  return out;
 }
 
 /* The nine provinces, plus the abbreviations and spellings people
@@ -1387,285 +1356,6 @@ function sectorIdFromText(text) {
 function enumFromText(text, allowed, fallback) {
   const v = String(text || '').trim().toLowerCase();
   return allowed.includes(v) ? v : fallback;
-}
-
-function previewImport(input) {
-  const file = input.files && input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const rows = parseCSV(String(reader.result));
-    if (rows.length < 2) { importMsg('That file has no data rows.'); return; }
-    const head = rows[0].map(h => h.trim().toLowerCase());
-    const find = (...names) => { for (const n of names) { const i = head.indexOf(n); if (i >= 0) return i; } return -1; };
-
-    const firstIdx = find('first', 'first name', 'firstname', 'given name');
-    const lastIdx = find('last', 'last name', 'lastname', 'surname', 'family name');
-    const looksLikeContacts = firstIdx >= 0 || lastIdx >= 0;
-
-    /* The button decides what this is. But a contacts file dropped into
-       the offtaker importer would silently create companies named after
-       people, so say so rather than quietly doing the wrong thing. */
-    if (_importKind === 'offtakers' && looksLikeContacts && find('name') < 0) {
-      importMsg('This looks like a <b>contacts</b> file \u2014 it has name columns but no company ' +
-        '<b>name</b> column. Close this and use Import contacts instead.<br><br>' + IMPORT_HINT_OFFTAKERS, true);
-      return;
-    }
-    if (_importKind === 'contacts' && !looksLikeContacts) {
-      importMsg('This does not look like a <b>contacts</b> file \u2014 no first or last name column. ' +
-        'If it is a list of companies, close this and use Import offtakers instead.<br><br>' +
-        IMPORT_HINT_CONTACTS, true);
-      return;
-    }
-
-    if (_importKind === 'offtakers') previewOfftakerImport(rows, head, find);
-    else previewContactImport(rows, find, firstIdx, lastIdx);
-  };
-  reader.readAsText(file);
-}
-
-function importMsg(html, warn) {
-  document.getElementById('imp-preview').innerHTML =
-    '<div class="fg-hint"' + (warn ? ' style="color:var(--warn)"' : '') + '>' + html + '</div>';
-  document.getElementById('imp-go').disabled = true;
-}
-
-function previewContactImport(rows, find, firstIdx, lastIdx) {
-  const idx = {
-    title: find('title', 'job title', 'position', 'role'),
-    dept: find('department', 'dept', 'division'),
-    company: find('company', 'organisation', 'organization', 'offtaker', 'account'),
-    email: find('email', 'email address', 'e-mail'),
-    phone: find('phone', 'mobile', 'telephone', 'cell'),
-    linkedin: find('linkedin', 'linkedin url', 'profile'),
-    notes: find('notes', 'note', 'comment'),
-    province: find('province', 'region'),
-  };
-  _importRows = rows.slice(1).map(r => {
-    const v = i => (i >= 0 ? String(r[i] || '').trim() : '');
-    const companyName = v(idx.company);
-    /* Offtakers first, municipalities second. The company column is one
-       column for both because the contacts table is one table for both;
-       an offtaker match wins so a mine in a town is never mistaken for
-       the council of that town. */
-    const match = state.offtakers.find(o =>
-      companyName && (o.name.toLowerCase().includes(companyName.toLowerCase()) ||
-        (o.short || '').toLowerCase() === companyName.toLowerCase()));
-    const munis = match ? [] : municipalitiesFromText(companyName, v(idx.province));
-    return {
-      first: v(firstIdx), last: v(lastIdx), title: v(idx.title), dept: v(idx.dept),
-      email: v(idx.email), phone: v(idx.phone), linkedin: v(idx.linkedin), notes: v(idx.notes),
-      companyName,
-      offtakerId: match ? match.id : munis.length === 1 ? munis[0].id : '',
-      /* More than one municipality fits the name and no province settled
-         it. Kept, so the preview can say which — the fix is a column in
-         the file, not a guess in here. */
-      ambiguous: munis.length > 1 ? munis : null,
-    };
-  }).filter(c => c.first || c.last);
-
-  /* The email gate. A bulk file is where phone-only people slip into
-     the book unnoticed — 63 came in through here in a day and were
-     deleted again by hand — so the importer refuses them, unlike the
-     Contact finder, where each find is reviewed by hand and a missing
-     email is flagged rather than blocking. A row without a work email
-     is shown, so the reviewer can see what the file is missing, and
-     skipped. */
-  _importRows.forEach(r => { r.noEmail = !findHasEmail(r); });
-  const importable = _importRows.filter(r => !r.noEmail);
-  const noEmail = _importRows.length - importable.length;
-
-  const toOff = importable.filter(r => r.offtakerId && !isMunicipalityId(r.offtakerId)).length;
-  const toMuni = importable.filter(r => isMunicipalityId(r.offtakerId)).length;
-  const ambiguous = importable.filter(r => r.ambiguous).length;
-  const unassigned = importable.length - toOff - toMuni;
-  const emailCell = r => r.noEmail
-    ? '<span class="badge b-medium" title="No work email — this row will not be imported">no email · skipped</span>'
-    : esc(r.email);
-  const matchedCell = r => {
-    if (r.ambiguous) {
-      return '<span class="badge b-medium" title="' +
-        esc(r.ambiguous.map(m => m.name + ' (' + m.code + ', ' + m.province + ')').join(' · ')) + '">' +
-        r.ambiguous.length + ' municipalities fit — add a province column</span>';
-    }
-    if (!r.offtakerId) return '<span class="badge b-low">unassigned</span>';
-    if (isMunicipalityId(r.offtakerId)) {
-      const m = MUNI_BY_ID[r.offtakerId];
-      return '<span class="badge b-prospect">' + esc(m.name) + '</span> ' +
-        '<span style="font-size:10.5px;color:var(--muted)">municipality · ' + esc(m.code) + '</span>';
-    }
-    return '<span class="badge b-contracted">' + esc(getOfftaker(r.offtakerId).short || '') + '</span>';
-  };
-  document.getElementById('imp-preview').innerHTML =
-    '<div class="fg-hint"><b style="color:var(--text2)">' + _importRows.length + ' contacts</b> found, ' +
-    '<b style="color:var(--text2)">' + importable.length + '</b> with a work email will be imported. ' +
-    (noEmail
-      ? '<span style="color:var(--warn)">' + noEmail + ' without one will be skipped' +
-        (importable.length ? '' : ' — nothing to import') + '.</span> '
-      : '') +
-    (importable.length
-      ? toOff + ' matched to an offtaker, ' + toMuni + ' to a municipality; ' + unassigned +
-        ' will be filed as unassigned and can be linked later.'
-      : '') +
-    (ambiguous
-      ? ' <span style="color:var(--warn)">' + ambiguous + ' name' + (ambiguous === 1 ? ' fits' : 's fit') +
-        ' more than one municipality — add a <b>province</b> column, or write the code (MP312) instead.</span>'
-      : '') +
-    '</div>' +
-    '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Email</th><th>Matched</th></tr></thead><tbody>' +
-    _importRows.slice(0, 8).map(r => '<tr' + (r.noEmail ? ' style="opacity:.55"' : '') + '><td>' + esc(r.first + ' ' + r.last) + '</td><td>' + esc(r.title) +
-      '</td><td>' + esc(r.companyName) + '</td><td>' + emailCell(r) + '</td><td>' + matchedCell(r) + '</td></tr>').join('') +
-    '</tbody></table></div>';
-  document.getElementById('imp-go').disabled = !importable.length;
-}
-
-function previewOfftakerImport(rows, head, find) {
-  const idx = {
-    name: find('name', 'company', 'offtaker', 'organisation', 'organization', 'account'),
-    short: find('short', 'short name', 'shortname'),
-    sector: find('sector', 'industry'),
-    province: find('province', 'region'),
-    city: find('city', 'town', 'location'),
-    website: find('website', 'url', 'web'),
-    gwh: find('gwh', 'annual gwh', 'annualgwh', 'gwh/yr', 'annual use'),
-    peak: find('peak mw', 'peakmw', 'peak', 'peak demand'),
-    tariff: find('tariff', 'r/kwh', 'current tariff'),
-    nmd: find('nmd', 'notified max demand', 'mva'),
-    supply: find('supply', 'supply authority'),
-    wheeling: find('wheeling'),
-    status: find('status'),
-    priority: find('priority'),
-    description: find('description', 'notes', 'note'),
-  };
-  if (idx.name < 0) {
-    importMsg('No company name column found. Add a <b>name</b> column and try again.<br><br>' + IMPORT_HINT_OFFTAKERS, true);
-    return;
-  }
-
-  const seen = new Set();
-  _importRows = rows.slice(1).map(r => {
-    const v = i => (i >= 0 ? String(r[i] || '').trim() : '');
-    const name = v(idx.name);
-    if (!name) return null;
-    const gwh = num(v(idx.gwh));
-    return {
-      name,
-      short: v(idx.short) || name,
-      sector: sectorIdFromText(v(idx.sector)),
-      sectorRaw: v(idx.sector),
-      province: provinceFromText(v(idx.province)),
-      provinceRaw: v(idx.province),
-      city: v(idx.city),
-      website: v(idx.website),
-      annualGwh: gwh, peakMw: num(v(idx.peak)), tariff: num(v(idx.tariff)), nmd: num(v(idx.nmd)),
-      supply: enumFromText(v(idx.supply), ['eskom', 'municipal', 'mixed'], 'eskom'),
-      wheeling: enumFromText(v(idx.wheeling), ['yes', 'likely', 'unknown', 'no'], 'unknown'),
-      status: enumFromText(v(idx.status), Object.keys(STATUS_LABEL), 'prospect'),
-      priority: enumFromText(v(idx.priority), ['high', 'medium', 'low'], 'medium'),
-      description: v(idx.description),
-      /* No load figure means no estimate was made. Saying "estimated"
-         here would claim a number that does not exist. */
-      estimated: gwh > 0,
-      dup: false,
-    };
-  }).filter(Boolean);
-
-  /* Two kinds of duplicate: already in the CRM, and repeated inside
-     the file itself. Both are skipped on import and both are counted
-     here, so the number in the preview is what will actually land. */
-  _importRows.forEach(o => {
-    const key = o.name.toLowerCase();
-    const existing = state.offtakers.some(x =>
-      x.name.toLowerCase() === key || (x.short || '').toLowerCase() === o.short.toLowerCase());
-    o.dup = existing || seen.has(key);
-    seen.add(key);
-  });
-
-  const fresh = _importRows.filter(o => !o.dup);
-  const noSector = fresh.filter(o => !o.sector);
-  const noLoad = fresh.filter(o => !o.annualGwh).length;
-  /* A province that did not resolve to one of the nine leaves the record
-     without coordinates, so it never shows on the map or under Regions. */
-  const badProvince = fresh.filter(o => o.provinceRaw && !PROVINCE_COORDS[o.province]);
-
-  document.getElementById('imp-preview').innerHTML =
-    '<div class="fg-hint"><b style="color:var(--text2)">' + fresh.length + ' offtakers</b> will be added' +
-    (_importRows.length - fresh.length ? ', ' + (_importRows.length - fresh.length) + ' skipped as duplicates' : '') + '. ' +
-    (noLoad ? noLoad + ' carry no load figures yet — they will sit at the bottom of the list until someone adds them.' : '') +
-    '</div>' +
-    (noSector.length ? '<div class="fg-hint" style="color:var(--warn);margin-top:8px">' + noSector.length +
-      ' row' + (noSector.length === 1 ? '' : 's') + ' had no sector I could match' +
-      (noSector[0].sectorRaw ? ' (e.g. &ldquo;' + esc(noSector[0].sectorRaw) + '&rdquo;)' : '') +
-      ' — those will be filed under Mining &amp; Minerals. Fix the sector column to place them properly.</div>' : '') +
-    (badProvince.length ? '<div class="fg-hint" style="color:var(--warn);margin-top:8px">' + badProvince.length +
-      ' row' + (badProvince.length === 1 ? '' : 's') + ' had a province I could not match (e.g. &ldquo;' +
-      esc(badProvince[0].provinceRaw) + '&rdquo;) \u2014 those fall back to the centre of the country, so ' +
-      'they will sit in the wrong place on the map and against the wrong site under Regions. ' +
-      'Worth fixing the province column before importing.</div>' : '') +
-    '<div class="table-wrap" style="margin-top:10px;max-height:220px"><table><thead><tr>' +
-    '<th>Company</th><th>Sector</th><th>Province</th><th class="num">GWh/yr</th><th></th></tr></thead><tbody>' +
-    _importRows.slice(0, 10).map(o => '<tr><td>' + esc(o.name) + '</td>' +
-      '<td>' + (o.sector ? sectorBadge(o.sector) : '<span class="badge b-low">unmatched</span>') + '</td>' +
-      '<td>' + esc(o.province || '—') + '</td>' +
-      '<td class="num">' + (o.annualGwh || '—') + '</td>' +
-      '<td>' + (o.dup ? '<span class="badge b-lost">duplicate</span>' : '') + '</td></tr>').join('') +
-    '</tbody></table></div>';
-  document.getElementById('imp-go').disabled = fresh.length === 0;
-}
-
-async function runImport() {
-  if (_importKind === 'offtakers') return runOfftakerImport();
-  const made = [];
-  let skipped = 0;
-  _importRows.forEach(r => {
-    if (r.noEmail) { skipped++; return; }
-    const dup = state.contacts.some(c =>
-      (r.email && c.email && c.email.toLowerCase() === r.email.toLowerCase()) ||
-      (c.first.toLowerCase() === r.first.toLowerCase() && c.last.toLowerCase() === r.last.toLowerCase() && c.offtakerId === r.offtakerId));
-    if (dup) return;
-    const contact = {
-      id: uid('c'), offtakerId: r.offtakerId, first: r.first, last: r.last, title: r.title,
-      dept: r.dept, email: r.email, phone: r.phone, linkedin: r.linkedin,
-      role: 'influencer', priority: 'medium', status: 'active', notes: r.notes,
-    };
-    state.contacts.push(contact);
-    made.push(contact);
-  });
-  save();
-  closeModal('modal-import');
-  toast('Imported ' + made.length + ' new contact' + (made.length === 1 ? '' : 's') +
-    (skipped ? ' · ' + skipped + ' skipped without an email' : ''));
-  nav('contacts');
-
-  /* save() is the local cache only. The offtaker importer has always
-     pushed each record to the server; contacts were not, so an import
-     looked done and then was gone on the next sign-in. */
-  let failed = 0;
-  for (const c of made) {
-    try { await pushContact(c); } catch (e) { failed++; }
-  }
-  if (failed) toast(failed + ' of ' + made.length + ' saved locally only — they will need a re-sync', 'warn');
-}
-
-function runOfftakerImport() {
-  let added = 0;
-  _importRows.forEach(r => {
-    if (r.dup) return;
-    const rec = {
-      id: uid('o'), name: r.name, short: r.short,
-      sector: r.sector || 'mining', province: r.province, city: r.city, website: r.website,
-      annualGwh: r.annualGwh, peakMw: r.peakMw, tariff: r.tariff, nmd: r.nmd,
-      supply: r.supply, wheeling: r.wheeling, status: r.status, priority: r.priority,
-      description: r.description, estimated: r.estimated,
-    };
-    state.offtakers.push(rec);
-    pushOfftaker(rec);
-    added++;
-  });
-  save();
-  closeModal('modal-import');
-  toast('Imported ' + added + ' new offtaker' + (added === 1 ? '' : 's'));
-  nav('offtakers');
 }
 
 /* ─── BOOT / AUTH GATE ────────────────────────────────────────────

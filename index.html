@@ -178,7 +178,7 @@
 
 </div><!-- /app-shell -->
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <!-- ══ MODAL: OFFTAKER ══════════════════════════════════════════ -->
 <div class="overlay" id="modal-offtaker">
@@ -360,21 +360,6 @@
   </div>
 </div>
 
-<!-- ══ MODAL: IMPORT ════════════════════════════════════════════ -->
-<div class="overlay" id="modal-import">
-  <div class="modal">
-    <div class="mh"><h3 id="imp-title">Import from CSV</h3><button class="modal-close" onclick="closeModal('modal-import')">&times;</button></div>
-    <div class="mc">
-      <div class="fg"><label>CSV file</label><input id="imp-file" type="file" accept=".csv,text/csv" onchange="previewImport(this)"></div>
-      <div id="imp-preview" style="margin-top:12px"></div>
-    </div>
-    <div class="mf">
-      <button class="btn btn-outline" onclick="closeModal('modal-import')">Cancel</button>
-      <button class="btn btn-primary" id="imp-go" onclick="runImport()" disabled>Import</button>
-    </div>
-  </div>
-</div>
-
 <script src="data/sectors.js"></script>
 <script src="data/seed.js"></script>
 <script src="data/news.js"></script>
@@ -404,6 +389,8 @@
 <script src="js/views-projectprofile.js"></script>
 <script src="js/views-news.js"></script>
 <script src="js/views-settings.js"></script>
+<script src="js/import-rules.js"></script>
+<script src="js/views-import.js"></script>
 <script src="js/followups.js"></script>
 <script src="js/views-activity.js"></script>
 <script src="js/forms.js"></script>
