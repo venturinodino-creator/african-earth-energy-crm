@@ -864,6 +864,7 @@ function render() {
     news: renderNews,
     project: renderProject,
     agenthq: renderAgentHQ,
+    settings: renderSettings,
   };
   (views[state.view] || renderDashboard)();
   renderBackToMain();
