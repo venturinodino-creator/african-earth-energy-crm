@@ -68,6 +68,57 @@ function groupFollowUps(items, today) {
   return groups;
 }
 
+/* ─── WHAT NEEDS ATTENTION ────────────────────────────────────── */
+/* Whole days from one calendar date to a later one. */
+function daysBetween(from, to) {
+  return Math.round((new Date(String(to) + 'T12:00:00Z') - new Date(String(from) + 'T12:00:00Z')) / 86400000);
+}
+
+/* Three things slipping, the Dashboard's Needs attention:
+     - an open opportunity past its target close date (due today is not late yet);
+     - a parked account whose revisit date has come or gone;
+     - a lead scoring 70 or more that nobody has a contact at.
+   Most pressing first inside each kind, in that order. `contactCount`, `fit` and `working` are the
+   app's own readings of an account, passed in so this stays pure; "working" is in the pipeline. */
+function attentionSignals(o) {
+  const byId = {};
+  o.offtakers.forEach(a => { byId[a.id] = a; });
+  const nameOf = a => a.short || a.name;
+  const overdue = [], revisit = [], lead = [];
+  o.deals.forEach(d => {
+    if (!d.closeDate || d.stage === 'closed' || d.stage === 'lost' || d.closeDate >= o.today) return;
+    const a = byId[d.offtakerId];
+    if (!a) return;
+    const n = daysBetween(d.closeDate, o.today);
+    overdue.push({ kind: 'overdue-deal', key: 'deal-' + d.id, accountId: a.id, account: nameOf(a), date: d.closeDate, badge: 'Close date',
+      reason: 'Target close ' + fuDate(d.closeDate) + ', ' + n + ' day' + (n === 1 ? '' : 's') + ' ago' });
+  });
+  o.offtakers.forEach(a => {
+    if (a.revisitDate && a.revisitDate <= o.today) {
+      revisit.push({ kind: 'revisit-due', key: 'revisit-' + a.id, accountId: a.id, account: nameOf(a), date: a.revisitDate, badge: 'Revisit',
+        reason: 'Revisit date ' + fuDate(a.revisitDate) + (a.revisitDate === o.today ? ' is today' : ' has passed') });
+    }
+    const f = o.fit(a);
+    if (!o.working(a) && f >= 70 && a.status !== 'contracted' && a.status !== 'lost' && !o.contactCount(a.id)) {
+      lead.push({ kind: 'no-contact', key: 'lead-' + a.id, accountId: a.id, account: nameOf(a), fit: f, badge: 'No contact',
+        reason: 'Scores ' + f + ' and nobody is on file' });
+    }
+  });
+  overdue.sort((x, y) => x.date.localeCompare(y.date));
+  revisit.sort((x, y) => x.date.localeCompare(y.date));
+  lead.sort((x, y) => y.fit - x.fit || x.account.localeCompare(y.account));
+  return overdue.concat(revisit, lead);
+}
+
+/* The next follow-ups from today on, soonest first: what the Activity page groups as today, the
+   next seven days and later. Nothing overdue; that is Needs attention's. */
+function comingUp(items, today, n) {
+  return items.filter(i => i.date && i.date >= today).slice().sort((a, b) => a.date.localeCompare(b.date)).slice(0, n);
+}
+function comingUpMore(items, today, n) {
+  return Math.max(0, items.filter(i => i.date && i.date >= today).length - n);
+}
+
 /* ─── THE CALENDAR ────────────────────────────────────────────── */
 /* A month is "YYYY-MM". Anything else is replaced by the default, so a stale or mistyped value
    can never leave the page with no month to show. */
