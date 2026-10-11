@@ -138,6 +138,7 @@ function regionRowHtml(x) {
     ? 'nav(\'detail\',{id:\'' + x.id + '\'})'
     : 'nav(\'prospect\',{id:\'' + esc(x.id) + '\'})';
   return '<div class="person-row" style="cursor:pointer" onclick="' + go + '">' +
+    avatarTileHtml(x.name) +
     '<div style="min-width:0;flex:1">' +
       '<div class="person-name">' + esc(x.name) +
         (x.kind === 'offtaker'

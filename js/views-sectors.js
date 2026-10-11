@@ -264,6 +264,7 @@ function copyQuestions(sectorId) {
    fresh name from an account already being worked. */
 function companyRowHtml(o) {
   return '<div class="person-row clickable" onclick="nav(\'detail\',{id:\'' + esc(o.id) + '\'})">' +
+    avatarTileHtml(o.name || o.short) +
     '<div style="min-width:0;flex:1">' +
       '<div class="person-name">' + esc(o.short || o.name) + '</div>' +
       (o.description ? '<div class="person-title">' + esc(o.description) + '</div>' : '') +

@@ -170,6 +170,13 @@ console.log('\nContacts');
     assert.ok(out.content.includes('id="sel-bar"') && out.content.indexOf('id="sel-bar"') < out.content.indexOf('class="table-card"'), 'bar above the card');
     assert.ok(out.content.includes('colspan="9"') && !out.content.includes('colspan="8"'));
   });
+  test('each company heading in the contacts table carries the company\'s avatar tile', () => {
+    const { out } = env(book).run('renderContacts');
+    const heads = out.content.match(/<div class="contact-group-head"[^>]*>(?:(?!<\/div>)[\s\S])*<\/div>/g) || [];
+    assert.ok(heads.length >= 1);
+    heads.forEach(h => assert.ok(/<span class="nm-tile"/.test(h) || /<svg|Not linked/.test(h), h.slice(0, 160)));
+    assert.ok(heads.some(h => /<span class="nm-tile"/.test(h)), 'a linked company gets the tile');
+  });
   test('the page Export names the contacts the filters leave, and exports exactly them', () => {
     const { out } = env(Object.assign({ contactRole: 'technical' }, book)).run('renderContacts');
     assert.ok(/Export <span class="btn-n">11<\/span>/.test(out.page.a), out.page.a);

@@ -73,9 +73,10 @@ function projectBuyersHtml(site) {
     '<button class="btn btn-ghost btn-xs" onclick="nav(\'pipeline\')">Pipeline</button></div>' +
     (deals.length ? deals.map(d => {
       const o = getOfftaker(d.offtakerId);
-      return '<div class="mkt-row" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + esc(d.offtakerId) + '\'})"><div style="min-width:0">' +
+      return '<div class="mkt-row" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + esc(d.offtakerId) + '\'})"><div class="name-cell" style="min-width:0">' +
+        avatarTileHtml(o.name || d.name || 'Unknown') + '<div style="min-width:0">' +
         '<div style="font-weight:700">' + esc(o.name || d.name || 'Unknown') + '</div>' +
-        '<div class="mkt-note">' + esc(stage(d.stage)) + (d.closeDate ? ' &middot; close ' + esc(d.closeDate) : '') + '</div></div>' +
+        '<div class="mkt-note">' + esc(stage(d.stage)) + (d.closeDate ? ' &middot; close ' + esc(d.closeDate) : '') + '</div></div></div>' +
         '<div class="mkt-value">' + fmtNum(d.mw) + ' MW</div></div>';
     }).join('') : '<div class="fg-hint">No one is in discussion for this site yet.</div>') + '</div>';
 }
@@ -86,8 +87,9 @@ function projectNearbyHtml(site) {
     .sort((a, b) => num(b.peakMw) - num(a.peakMw)).slice(0, 6);
   return '<div class="card"><div class="card-header"><div><div class="card-title">Prospects in ' + esc(site.province) + '</div>' +
     '<div class="card-sub">largest peak load first</div></div></div>' +
-    (near.length ? near.map(o => '<div class="mkt-row" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + esc(o.id) + '\'})"><div style="min-width:0">' +
-      '<div style="font-weight:700">' + esc(o.name) + '</div><div class="mkt-note">' + esc(o.city || o.province) + '</div></div>' +
+    (near.length ? near.map(o => '<div class="mkt-row" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + esc(o.id) + '\'})"><div class="name-cell" style="min-width:0">' +
+      avatarTileHtml(o.name) + '<div style="min-width:0">' +
+      '<div style="font-weight:700">' + esc(o.name) + '</div><div class="mkt-note">' + esc(o.city || o.province) + '</div></div></div>' +
       '<div class="mkt-value">' + fmtNum(o.peakMw) + ' MW</div></div>').join('')
       : '<div class="fg-hint">No prospects with a recorded load in this province.</div>') + '</div>';
 }

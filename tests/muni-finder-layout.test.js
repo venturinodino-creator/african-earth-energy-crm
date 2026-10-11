@@ -158,6 +158,10 @@ console.log('\nContact finder');
     const { out } = run({});
     assert.ok(/Recent runs[\s\S]*No runs yet/.test(out.content));
   });
+  test('the target drop-down never grows past its bar, whatever its longest option says', () => {
+    /* It took the width of its longest option, 363px in a 310px bar on a phone, and the page scrolled sideways. */
+    assert.ok(/\.cf-flt\{[^}]*max-width:100%/.test(read('styles.css')));
+  });
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');

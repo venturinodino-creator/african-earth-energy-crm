@@ -665,7 +665,7 @@ function contactGroupHeadHtml(c, groupCount) {
   const open = a.id ? ' style="cursor:pointer" onclick="nav(\'' + accountView(a.id) + '\',{id:\'' + a.id + '\'})"' : '';
   return '<div class="contact-group-head" style="display:flex;align-items:center;gap:7px;' +
     'margin:16px 2px 8px;padding-bottom:5px;border-bottom:1px solid var(--border)">' +
-    icon(isMunicipalityId(a.id) ? 'pin' : 'building', 14) +
+    (a.id ? avatarTileHtml(a.name || a.short) : icon('building', 14)) +
     '<span class="ext-link"' + open + ' style="font-weight:700;color:var(--text2);cursor:' + (a.id ? 'pointer' : 'default') + '">' + label + '</span>' +
     '<span style="font-size:11px;color:var(--muted)">' + n + ' ' + (n === 1 ? 'person' : 'people') + '</span>' +
   '</div>';

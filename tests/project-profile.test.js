@@ -22,7 +22,7 @@ function env({ role = 'admin' } = {}) {
   const store = {};
   const today = new Date().toISOString().slice(0, 10);
   const ctx = {
-    console, esc, num: v => Number(v) || 0, fmtNum: v => String(v), icon: () => '', growBars() {},
+    console, esc, num: v => Number(v) || 0, fmtNum: v => String(v), icon: () => '', growBars() {}, avatarColor: () => '#555',
     statTile: (i, c, label, value, sub) => '[' + label + ': ' + value + ' | ' + sub + ']',
     setPage: (t, s) => { page = { t, s }; }, setContent: h => { html = h; },
     nav: (v, x) => navs.push([v, x && x.id]), CAPACITY_FACTOR: 0.30,
@@ -133,6 +133,12 @@ test('prospects in the same province are listed, biggest first, and others left 
   assert.ok(!h.includes('Cape Co'));
   assert.ok(h.includes('Two Province Steel'), 'a company in Gauteng and Mpumalanga is nearby a Mpumalanga site');
   assert.ok(h.indexOf('Big Smelter') < h.indexOf('Two Province Steel') && h.indexOf('Two Province Steel') < h.indexOf('Small Mill'), 'ranked by load among them');
+});
+
+test('the buyers on a site and the prospects near it each carry the company\'s avatar tile', () => {
+  const h = render(env(), 'middelburg');
+  assert.ok(/nm-tile"[^>]*>BS<\/span><div style="min-width:0"><div style="font-weight:700">Big Smelter/.test(h), 'a nearby prospect');
+  assert.ok((h.match(/<div class="name-cell" style="min-width:0"><span class="nm-tile"/g) || []).length >= 4, 'every row, buyers and prospects both');
 });
 
 test('notes from agents show with an Agent badge; only an admin gets the note box', () => {

@@ -316,10 +316,13 @@ ls tests/*.test.js | xargs node --test    # all of them
 node tests/finder-agent.test.js           # or one: the finder's validator, loader, sign-in and CLI
 ```
 
-There are 33 files. They cover the contact finder (agent, Apollo helper, gap finder,
+There are 39 files. They cover the contact finder (agent, Apollo helper, gap finder,
 targets, ladder seats, email inference, the Agent HQ activity card, the OpenClaw runner), the Projects area
-(analytics maths and page, site profile, plan editing), form validation, shared
-helpers, and the news merge and scan.
+(analytics maths and page, site profile, plan editing), the page layouts (shell, lists, record
+pages, dashboard, settings, activity, map, news), the province scope, row selection, the
++ New drawer, the Import wizard and its rules, follow-ups, the Analytics export and the search
+shortcut, form validation, shared helpers, the news merge and scan, and the docs themselves
+(`tests/docs.test.js` checks this list, the file map and the glossary against the repo).
 
 ## Data and storage
 
@@ -419,16 +422,33 @@ The layout follows the WireFrame template's screens, re-drawn in this repo's own
 with the AEEG colours and fonts; it does not use WireFrame's code or its config-driven
 engine ([ADR-0001](docs/adr/0001-wireframe-layout-not-engine.md)).
 
-- **Shell.** A light sidebar (every page, in four sections), a top bar with search, **+ New**
-  (off-taker, contact, opportunity, log activity; admins only) and the account menu, and on a
-  phone a five-tab bottom bar (Dashboard, Prospects, Pipeline, Contacts, More) where More opens
-  the sidebar.
+- **Shell.** A light sidebar (every page, in four sections, with Settings last), a top bar with
+  search (press `/` anywhere outside a field to jump to it, Escape to clear it), the province
+  switcher, **+ New** and the account menu, and on a phone a five-tab bottom bar (Dashboard,
+  Prospects, Pipeline, Contacts, More) where More opens the sidebar.
+- **Province scope.** One province filter for the whole app, set from the top bar and remembered
+  on the device. Dashboard, Off-taker Prospects, Contacts, Municipalities, Contact finder,
+  Pipeline, Activity, News and Map follow it and say which province under their title; Projects,
+  Regions, Sectors, Analytics, Agent HQ, Playbook and the Calculator do not, and say "all
+  provinces". The scoped lists are in `js/core.js` (`scopedOfftakers()` and friends).
+- **+ New.** Opens one drawer to create an off-taker, contact, opportunity or activity, with a
+  warning (never a block) when it looks like one already on file. Admins only. Editing a record
+  keeps its centred dialog. The drawer is in `js/quickcreate.js`.
 - **Page header.** Each page's title, subtitle and actions, filled by `setPage()`. A record page
   passes `{ record: true }`: its header keeps only a breadcrumb, because its header card carries
   the name and the actions.
 - **Lists.** View tabs (a saved filter that is on), then a filter bar, then one table card whose
   footer says how much of the list is on screen and holds the pager. The builders are in
-  `js/layout.js`.
+  `js/layout.js`. Rows can be ticked; a selection bar offers Export selected and Clear, and the
+  selection is cleared whenever the page, tab, filter, search or page changes
+  (`js/selection.js`).
+- **Wizard.** Import CSV is a page of four steps (Upload, Map columns, Review, Import) that
+  saves nothing until the last (`js/views-import.js`, rules in `js/import-rules.js`).
+- **Settings.** The account, the pipeline stages, the provinces, and every export and import in
+  one place (`js/views-settings.js`).
+- **Activity.** Follow-ups (an opportunity's target close date or an off-taker's revisit date,
+  grouped Overdue, Today, Next 7 days, Later), all activity, and a calendar, with a log form
+  beside it (`js/views-activity.js`, dates in `js/followups.js`).
 - **Record pages.** An off-taker, a site, a sector and a municipality each open with the same
   header card, then About | the working column | who is here (three columns from 1440px, two
   below that, one on a phone).
@@ -449,11 +469,15 @@ data/seed.js                generation portfolio, sales stages, outreach templat
 data/sectors.js             sector taxonomy, questions, objections, roles, market context
 data/municipalities.js      all 257 municipalities, as consumer and as distributor
 data/news.js                mining-industry stories, and the topics the desk watches
+data/news-auto.js           stories the daily news scan adds; only scripts/news-scan.js writes it
 data/mining-companies.txt   the company list for an Apollo batch run ("Company | domain")
 js/icons.js                 inline SVG icon set
 js/layout.js                page-layout builders: view tabs, table card and footer, record header card
 js/supabase.js              auth, row mapping, reads and writes
-js/core.js                  state, routing, helpers, fit score, sales path, auth gate, CSV
+js/core.js                  state, routing, province scope, helpers, fit score, sales path, auth gate, CSV, search
+js/selection.js             row selection on the list tables, and Export selected
+js/quickcreate.js           the + New drawer: type pills, duplicate warning, Create & open
+js/followups.js             follow-ups, what needs attention, and the calendar's month grid; no DOM
 js/views-dashboard.js       dashboard
 js/views-pipeline.js        the pipeline board, flow and table
 js/views-offtakers.js       the lead list, the record detail, contacts
@@ -465,7 +489,10 @@ js/views-municipalities.js  the 257 as their own target list
 js/views-news.js            the news feed the desk reads before it dials
 js/import-rules.js          CSV import rules, no DOM: which column is which field, and what each row becomes
 js/views-import.js          the Import wizard: Upload, Map columns, Review, Import
-js/views-tools.js           projects, map, analytics, calculator, playbook, activity
+js/views-settings.js        Settings
+js/views-activity.js        Activity: follow-ups, all activity, calendar
+js/views-map.js             the Map, with its side panel of filters
+js/views-tools.js           projects, analytics (and its Export summary), calculator, playbook
 js/views-agenthq.js         Agent HQ: the finder agents, their runs and results
 js/views-projectplans.js    project plans loaded from the ProjectManager copy
 js/views-projectprofile.js  one site: Overview, Analytics and Project plan tabs

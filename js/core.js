@@ -1041,6 +1041,29 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.gs-wrap')) document.getElementById('global-search-results')?.classList.remove('open');
 });
 
+/* "/" jumps to the search box from anywhere that is not a field, and Escape in the box clears it
+   and lets go. A "/" typed into any field, or with Ctrl, Cmd or Alt held, is left alone; so is one
+   pressed while a dialog or drawer is open, or before sign-in, when there is no search to reach. */
+function isTypingTarget(el) {
+  const tag = el && el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!(el && el.isContentEditable);
+}
+function searchShortcut(e) {
+  const shell = document.getElementById('app-shell');
+  return e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.isComposing && !isTypingTarget(e.target) &&
+    !(shell && shell.style.display === 'none') && !document.querySelector('.overlay.open');
+}
+function searchKey(e) {
+  if (e.key !== 'Escape') return;
+  closeSearch();
+  e.target.blur();
+}
+document.addEventListener('keydown', e => {
+  if (!searchShortcut(e)) return;
+  e.preventDefault();
+  document.getElementById('global-search-input').focus();
+});
+
 /* ─── CSV EXPORT / IMPORT ─────────────────────────────────────── */
 function csvCell(v) {
   const s = String(v == null ? '' : v);

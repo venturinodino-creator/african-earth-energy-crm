@@ -38,6 +38,12 @@ _Avoid_: Lead (that is an off-taker), scraped contact
 **Review queue**:
 Where finds wait to be accepted or discarded on the Contact finder page.
 
+### Activity
+
+**Follow-up**:
+A date the CRM already holds that someone should act on: an open opportunity's target close date, or a parked off-taker's revisit date. It is not a separate task record, so nothing is entered twice, and it is completed where it already lives (closing the opportunity, clearing the revisit date). The Activity page groups follow-ups as Overdue, Today, Next 7 days and Later.
+_Avoid_: Task, reminder
+
 ### Layout
 
 **Shell**:
@@ -51,7 +57,11 @@ The title, subtitle and that page's own actions, shown at the top of the page co
 _Avoid_: Page title bar, toolbar
 
 **+ New**:
-The top-bar menu listing every create action that exists (off-taker, contact, opportunity, log activity). Hidden from read-only viewers.
+The top-bar menu listing every create action that exists (off-taker, contact, opportunity, log activity). Choosing one opens the **Drawer**. Hidden from read-only viewers.
+
+**Drawer**:
+The right-hand panel that **+ New** opens: one form, with pills to switch between off-taker, contact, opportunity and activity. It is for new records only; editing a record keeps the centred dialog, so the drawer means "new" and the dialog means "change". Duplicates are warned about, never blocked.
+_Avoid_: Modal, sidebar
 
 **Bottom bar**:
 The five-tab phone navigation (Dashboard, Prospects, Pipeline, Contacts, More) that replaces the hamburger. More opens the full sidebar as a sheet.
@@ -68,8 +78,16 @@ A saved filter shown as a tab above a list (for example Priority list and Archiv
 **Filter bar**:
 The search box and drop-downs between the view tabs and the table, with the grid/table switch and the result count.
 
+**Province scope**:
+The one province filter for the whole app, set from the switcher in the top bar and remembered on this device. "All provinces" means no narrowing. Dashboard, Off-taker Prospects, Contacts, Municipalities, Contact finder, Pipeline, Activity, News and Map follow it; Projects, Regions, Sectors, Analytics, Agent HQ, Playbook and the Calculator do not, and say "all provinces" under their title so the switcher is never read as covering them. A company in two provinces is in scope for either; a contact, an opportunity or a log entry takes its company's province.
+_Avoid_: Region filter, region switcher
+
 **Table card**:
 One card around a table and its footer. The footer says how much of the list is on screen, how many rows the filters hide, and holds the pager.
+
+**Selection bar**:
+The strip that appears over a table when rows are ticked, offering **Export selected** and **Clear** and nothing else (no bulk delete, no bulk edit). The header tick selects the rows on the current page, not the whole result. A selection is cleared when the page, the tab, a filter, the search or the page number changes.
+_Avoid_: Bulk actions bar
 
 **Card grid**:
 A set of cards laid out in an even grid, two across (three where it is named so), with a card that needs room spanning the full width.
@@ -82,3 +100,7 @@ The fact list on a record page: who or what it is and the figures the desk holds
 
 **Record page**:
 The page for one off-taker, site, sector or municipality: a header card, then About | the working column | who is here. Three columns from 1440px, two below that, one on a phone. Its page header is only a breadcrumb.
+
+**Wizard**:
+A task laid out as numbered steps on a page of its own, where nothing is saved until the last step, so leaving at any step costs nothing. There is one today: **Import CSV** (Upload, Map columns, Review, Import). Rows it cannot import are **held back**, listed with the reason, and never silently dropped.
+_Avoid_: Dialog, modal (the old import was one)
