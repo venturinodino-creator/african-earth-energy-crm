@@ -1123,22 +1123,29 @@ function csvDelimiter(text) {
   }
   return n[';'] > n[','] && n[';'] >= n['\t'] ? ';' : n['\t'] > n[','] ? '\t' : ',';
 }
+/* The rows of a CSV, blank rows dropped. The array also carries `lines`: for each row, the line of
+   the file it starts on (the first line is 1), so a page can point at the row a person has to fix
+   even when blank rows were dropped or a quoted cell ran over several lines. */
 function parseCSV(text) {
   text = String(text).replace(/^\uFEFF/, '');
   const sep = csvDelimiter(text);
-  const rows = []; let row = [], cell = '', q = false;
+  const rows = [], starts = []; let row = [], cell = '', q = false, line = 1, start = 1;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
+    if (ch === '\n') line++;
     if (q) {
       if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
       else cell += ch;
     } else if (ch === '"') q = true;
     else if (ch === sep) { row.push(cell); cell = ''; }
-    else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (ch === '\n') { row.push(cell); rows.push(row); starts.push(start); row = []; cell = ''; start = line; }
     else if (ch !== '\r') cell += ch;
   }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows.filter(r => r.some(c => String(c).trim()));
+  if (cell || row.length) { row.push(cell); rows.push(row); starts.push(start); }
+  const out = [];
+  out.lines = [];
+  rows.forEach((r, i) => { if (r.some(c => String(c).trim())) { out.push(r); out.lines.push(starts[i]); } });
+  return out;
 }
 
 /* The nine provinces, plus the abbreviations and spellings people

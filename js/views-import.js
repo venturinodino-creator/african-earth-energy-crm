@@ -43,11 +43,13 @@ function openImport(kind) {
   nav('import');
 }
 
-/* The choice at the top of step one. It drops any file already chosen, since the file was
-   read for the other kind. */
+/* The choice at the top of step one. With no file yet it just changes what the file is expected
+   to be; with a file already chosen, the same file is read again as the other kind. */
 function setImportKind(kind) {
-  state.imp = importFresh(kind);
-  renderImport();
+  const s = importState();
+  if (s.table && importKind(kind) !== s.kind) return importUseKind(kind);
+  if (importKind(kind) !== s.kind) state.imp = importFresh(kind);
+  renderImport('.wiz .view-tab.active');
 }
 
 /* The wrong-file way out: the file stays, and is read again as the other kind. */
@@ -57,7 +59,16 @@ function importUseKind(kind) {
   s.kind = importKind(kind);
   s.mapping = importAutoMap(s.kind, s.table[0]);
   s.step = 2;
-  renderImport();
+  renderImport(STEP_TITLE);
+}
+
+/* Back on Upload with a file already read: carry on with it, mapping as it was left. */
+function importResume() {
+  const s = importState();
+  if (!s.table) return;
+  s.step = 2;
+  window.scrollTo({ top: 0 });
+  renderImport(STEP_TITLE);
 }
 
 function cancelImport() {
@@ -78,10 +89,19 @@ function importFileDropped(ev) {
   const file = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
   if (file) importReadFile(file);
 }
+/* A file dropped on the page skips the chooser's filter, so check what it is. The person may also
+   have left the wizard by the time a slow file has been read; then the read is dropped. */
 function importReadFile(file) {
+  const s = importState();
+  if (!/\.(csv|tsv|txt)$/i.test(file.name || '') && !/^text\//.test(file.type || '')) {
+    s.error = 'That does not look like a CSV file. Save the sheet as CSV (comma separated) and choose that.';
+    renderImport();
+    return;
+  }
   const reader = new FileReader();
-  reader.onload = () => importLoadText(String(reader.result), file.name);
-  reader.onerror = () => { const s = importState(); s.error = 'That file could not be read.'; renderImport(); };
+  const stillHere = fn => () => { if (state.imp === s && state.view === 'import') fn(); };
+  reader.onload = stillHere(() => importLoadText(String(reader.result), file.name));
+  reader.onerror = stillHere(() => { s.error = 'That file could not be read.'; renderImport(); });
   reader.readAsText(file);
 }
 
@@ -97,7 +117,7 @@ function importLoadText(text, name) {
   } else {
     s.table = table; s.mapping = importAutoMap(s.kind, table[0]); s.step = 2; s.error = '';
   }
-  renderImport();
+  renderImport(s.step === 2 ? STEP_TITLE : null);
 }
 
 /* ─── MOVING BETWEEN STEPS ────────────────────────────────────── */
@@ -121,14 +141,24 @@ function goImportStep(n) {
   if (n > 1 && !s.table) return;
   s.step = n;
   window.scrollTo({ top: 0 });
-  renderImport();
+  renderImport(STEP_TITLE);
 }
 function importContinue() {
   const s = importState();
   if (!s.table || importProblemFor(s)) return;
   s.step = 3;
   window.scrollTo({ top: 0 });
-  renderImport();
+  renderImport(STEP_TITLE);
+}
+
+/* The rows held back, as a file to fix and import again. */
+function downloadHeldRows() {
+  const s = importState();
+  if (state.role !== 'admin' || !s.table) return;
+  const rows = importHeldCsv(s.table, importPlanFor(s));
+  if (rows.length < 2) return;
+  downloadCSV('held-' + (String(s.fileName).replace(/\.[^.]*$/, '') || IMPORT_KINDS[s.kind].nouns) + '.csv', rows);
+  toast('Downloaded ' + (rows.length - 1) + ' held row' + (rows.length === 2 ? '' : 's'));
 }
 
 /* ─── IMPORT ──────────────────────────────────────────────────── */
@@ -143,10 +173,15 @@ async function runImportNow() {
   if (!going.length) return;
   s.busy = true;
 
-  const made = going.map(r => s.kind === 'offtakers'
-    ? Object.assign({ id: uid('o') }, importOfftakerRecord(r.draft))
-    : Object.assign({ id: uid('c') }, importContactRecord(r.draft)));
+  /* A whole batch is named in a fraction of a second, and an id is a timestamp and five random
+     characters, so two can meet; one record would then overwrite the other on the server. Every
+     id in the batch is checked against the book and against the batch before it is used. */
   const book = s.kind === 'offtakers' ? state.offtakers : state.contacts;
+  const used = new Set(book.map(rec => rec.id));
+  const mint = prefix => { let id; do { id = uid(prefix); } while (used.has(id)); used.add(id); return id; };
+  const made = going.map(r => s.kind === 'offtakers'
+    ? Object.assign({ id: mint('o') }, importOfftakerRecord(r.draft))
+    : Object.assign({ id: mint('c') }, importContactRecord(r.draft)));
   made.forEach(rec => book.push(rec));
   save();
   updateNavBadges();
@@ -157,7 +192,7 @@ async function runImportNow() {
   toast('Imported ' + made.length + ' new ' + (made.length === 1 ? IMPORT_KINDS[s.kind].noun : IMPORT_KINDS[s.kind].nouns) +
     (held ? ' · ' + held + ' held back' : ''));
   window.scrollTo({ top: 0 });
-  renderImport();
+  renderImport(STEP_TITLE);
 
   /* save() is the local cache only; each record is also sent to the server. A send the
      server refuses toasts from guardWrite and the record stays in this browser. Contacts go
@@ -172,11 +207,29 @@ async function runImportNow() {
   }
   if (s.result) { s.result.saving = false; s.result.failed = failed; }
   if (failed) toast(failed + ' of ' + made.length + ' saved locally only — they will need a re-sync', 'warn');
-  if (state.view === 'import' && state.imp === s) renderImport();
+  importShowStatus(s);
+}
+
+/* The saving line is updated where it stands, not by drawing the page again, so a person who has
+   tabbed to a button keeps their place, and a screen reader hears the change. */
+function importStatusText(r) {
+  return r.saving ? 'Saving to the server…'
+    : r.failed ? r.failed + ' of ' + r.added + ' are saved in this browser only and will need a re-sync.'
+    : 'Finished saving. A record the server refused stays in this browser, and a warning says so.';
+}
+function importShowStatus(s) {
+  const el = document.getElementById('imp-status');
+  if (!el || !s.result || state.imp !== s) return;
+  el.textContent = importStatusText(s.result);
+  el.classList.toggle('warn', !!s.result.failed);
 }
 
 /* ─── RENDER ──────────────────────────────────────────────────── */
-function renderImport() {
+/* Where focus goes after a step is drawn: the step's title, so a keyboard or screen-reader user is
+   told where they have arrived. Drawing the page destroys whatever had focus. */
+const STEP_TITLE = '#imp-step-title';
+
+function renderImport(focus) {
   if (state.role !== 'admin') {
     setPage('Import CSV', 'Read only', '');
     setContent('<div class="card"><div class="empty"><div class="ei">' + icon('lock', 30) + '</div><h3>Importing is for admins</h3>' +
@@ -190,6 +243,10 @@ function renderImport() {
   setPage('Import ' + k.nouns, 'Bring a CSV of ' + k.nouns + ' into the book in four steps', '');
   const body = { 1: importUploadHtml, 2: importMapHtml, 3: importReviewHtml, 4: importDoneHtml }[s.step](s);
   setContent('<div class="wiz">' + importStepsHtml(s) + '<div class="card wiz-card">' + body + '</div></div>');
+  if (focus) {
+    const el = document.querySelector(focus);
+    if (el) el.focus();
+  }
 }
 
 function importStepsHtml(s) {
@@ -203,12 +260,17 @@ function importStepsHtml(s) {
   }).join('') + '</ol>';
 }
 
-function importHeadHtml(title, sub, right) {
-  return '<div class="card-header"><div><div class="card-title">' + esc(title) + '</div><div class="card-sub">' + esc(sub) + '</div></div>' +
+const importPlural = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
+
+/* The step's title. It takes focus when the step is drawn, and says which step it is. */
+function importHeadHtml(step, title, sub, right) {
+  return '<div class="card-header"><div><div class="card-title" id="imp-step-title" tabindex="-1">' +
+    '<span class="wiz-sr">Step ' + step + ' of 4: </span>' + esc(title) + '</div><div class="card-sub">' + esc(sub) + '</div></div>' +
     (right || '') + '</div>';
 }
-function importNoticeHtml(text, extra) {
-  return '<div class="wiz-warn" role="alert">' + icon('alert', 15) + '<div>' + esc(text) + (extra || '') + '</div></div>';
+/* A problem that stops the file is announced; a warning that does not is just shown. */
+function importNoticeHtml(text, extra, quiet) {
+  return '<div class="wiz-warn"' + (quiet ? '' : ' role="alert"') + '>' + icon('alert', 15) + '<div>' + esc(text) + (extra || '') + '</div></div>';
 }
 
 /* ─── STEP 1: UPLOAD ──────────────────────────────────────────── */
@@ -219,13 +281,19 @@ function importUploadHtml(s) {
   })));
   const recognised = k.fields.map(f => '<tr><td><b>' + esc(f.label) + '</b></td><td>' +
     f.aliases.map((a, i) => i === 0 ? '<b>' + esc(a) + '</b>' : esc(a)).join(', ') + '</td></tr>').join('');
-  return importHeadHtml('Choose a file', 'A CSV with a header row. Excel, Google Sheets, LinkedIn and Apollo exports all work.') +
+  /* Back on this step with a file already read: say so, and offer to carry on with it. */
+  const loaded = s.table
+    ? '<div class="wiz-loaded"><div><b>' + esc(s.fileName) + '</b><span class="wiz-sub"> · ' + importPlural(s.table.length - 1, 'row') + ' · ' +
+        importPlural(s.table[0].length, 'column') + ' already read</span></div>' +
+      '<button class="btn btn-primary btn-sm" onclick="importResume()">Continue with this file</button></div>'
+    : '';
+  return importHeadHtml(1, 'Choose a file', 'A CSV with a header row. Excel, Google Sheets, LinkedIn and Apollo exports all work.') +
     '<div class="wiz-label">This file is a list of</div>' + kinds +
-    (s.error ? importNoticeHtml(s.error) : '') +
+    (s.error ? importNoticeHtml(s.error) : '') + loaded +
     '<label class="wiz-drop" ondragover="event.preventDefault()" ondrop="importFileDropped(event)">' +
       '<input type="file" accept=".csv,text/csv" onchange="importFileChosen(this)">' +
       '<span class="wiz-drop-ic">' + icon('upload', 22) + '</span>' +
-      '<span class="wiz-drop-t">Choose a CSV file</span><span class="wiz-drop-s">or drop it here</span>' +
+      '<span class="wiz-drop-t">' + (s.table ? 'Choose a different file' : 'Choose a CSV file') + '</span><span class="wiz-drop-s">or drop it here</span>' +
     '</label>' +
     '<div class="wiz-label">Columns it recognises</div>' +
     '<div class="table-wrap wiz-recog"><table><thead><tr><th>CRM field</th><th>Header names that match it</th></tr></thead><tbody>' + recognised + '</tbody></table></div>' +
@@ -247,7 +315,8 @@ function importMapHtml(s) {
     return '<div class="imp-row' + (key ? '' : ' skip') + '">' +
       '<div class="imp-col"><b>' + esc(String(h).trim() || '(no header)') + '</b><span class="imp-n">column ' + (i + 1) + '</span></div>' +
       '<div class="imp-samples">' + (samples.length ? samples.join('<i>·</i>') : '<span class="imp-none">no values</span>') + '</div>' +
-      '<div class="imp-field"><select id="imp-map-' + i + '" onchange="setImportMap(' + i + ',this.value)" aria-label="CRM field for column ' + (i + 1) + '">' + options(key) + '</select></div>' +
+      '<div class="imp-field"><select id="imp-map-' + i + '" onchange="setImportMap(' + i + ',this.value)" aria-label="CRM field for ' +
+        esc(String(h).trim() || 'column ' + (i + 1)) + '">' + options(key) + '</select></div>' +
       '<div class="imp-state">' + (key ? '<span class="badge b-contracted">Matched</span>' : '<span class="badge b-low">Skip</span>') + '</div>' +
     '</div>';
   }).join('');
@@ -255,9 +324,11 @@ function importMapHtml(s) {
   const switchTo = s.kind === 'offtakers' ? 'contacts' : 'offtakers';
   const way = problem && (problem.code === 'contacts-file' || problem.code === 'no-person')
     ? ' <button class="btn btn-outline btn-xs" onclick="importUseKind(\'' + switchTo + '\')">Import it as ' + IMPORT_KINDS[switchTo].nouns + '</button>' : '';
-  return importHeadHtml('Match your columns', s.fileName + ' · ' + (s.table.length - 1) + ' rows · ' + headers.length + ' columns',
+  const warning = problem ? null : importWarning(s.kind, headers, s.mapping);
+  return importHeadHtml(2, 'Match your columns', s.fileName + ' · ' + importPlural(s.table.length - 1, 'row') + ' · ' + importPlural(headers.length, 'column'),
       '<span class="badge b-contracted">' + matched + ' matched</span>') +
     (problem ? importNoticeHtml(problem.text, way) : '') +
+    (warning ? importNoticeHtml(warning.text, '', true) : '') +
     '<div class="imp-list"><div class="imp-row imp-head" aria-hidden="true"><div>Column in your file</div><div>Sample values</div><div>CRM field</div><div></div></div>' + rows + '</div>' +
     (unused.length ? '<p class="wiz-unused">No column for: ' + esc(unused.join(', ')) + '.</p>' : '') +
     '<div class="wiz-foot"><button class="btn btn-ghost btn-sm" onclick="cancelImport()">Cancel</button><span class="wiz-gap"></span>' +
@@ -290,7 +361,7 @@ function importReviewHtml(s) {
   const stats = '<div class="wiz-stats">' +
     '<div class="wiz-stat"><span class="wiz-stat-n">' + c.importing + '</span><span class="wiz-stat-l">will be imported</span></div>' +
     '<div class="wiz-stat' + (held ? ' warn' : '') + '"><span class="wiz-stat-n">' + held + '</span><span class="wiz-stat-l">held back</span></div>' +
-    '<div class="wiz-stat"><span class="wiz-stat-n">' + c.total + '</span><span class="wiz-stat-l">rows read</span></div></div>';
+    '<div class="wiz-stat"><span class="wiz-stat-n">' + c.read + '</span><span class="wiz-stat-l">rows read</span></div></div>';
 
   let lead;
   if (s.kind === 'contacts') {
@@ -321,8 +392,12 @@ function importReviewHtml(s) {
       importRowsTableHtml(['Line', k.noun === 'contact' ? 'Person' : 'Company', 'Why'], rows.slice(0, 25).map(r =>
         '<tr><td class="num">' + r.line + '</td><td>' + esc(importWho(s.kind, r.draft)) + (s.kind === 'contacts' && r.draft.companyName ? ' <span class="wiz-sub">' + esc(r.draft.companyName) + '</span>' : '') +
         '</td><td class="wiz-why">' + esc(r.detail) + '</td></tr>')) +
-      (rows.length > 25 ? '<div class="wiz-more">and ' + (rows.length - 25) + ' more</div>' : '') + '</div>';
+      (rows.length > 25 ? '<div class="wiz-more">and ' + (rows.length - 25) + ' more. Download the held rows to see them all.</div>' : '') + '</div>';
   }).join('');
+  const heldBar = held
+    ? '<div class="wiz-heldbar"><button class="btn btn-outline btn-xs" onclick="downloadHeldRows()">' + icon('download', 12) + ' Download held rows (CSV)</button>' +
+      '<span class="wiz-sub">each with its line and why, to fix and import again</span></div>'
+    : '';
 
   const going = plan.rows.filter(r => r.status === 'import');
   const sample = s.kind === 'contacts'
@@ -332,12 +407,12 @@ function importReviewHtml(s) {
         (r.draft.sector ? sectorBadge(r.draft.sector) : '<span class="badge b-low">unmatched</span>') + '</td><td>' + esc(r.draft.province || '—') +
         '</td><td class="num">' + (r.draft.annualGwh || '—') + '</td></tr>'));
 
-  return importHeadHtml('Review', s.fileName + ' · nothing is saved until you press Import') + stats +
+  return importHeadHtml(3, 'Review', s.fileName + ' · nothing is saved until you press Import') + stats +
     (lead ? '<p class="wiz-lead">' + esc(lead) + '</p>' : '') +
     warnings.map(w => '<div class="wiz-warn">' + icon('alert', 15) + '<div>' + esc(w) + '</div></div>').join('') +
     (c.importing ? '<div class="wiz-group"><div class="wiz-group-h"><b>Will be imported</b><span class="set-n">' + c.importing + '</span></div>' + sample +
       (going.length > (s.kind === 'contacts' ? 8 : 10) ? '<div class="wiz-more">showing the first ' + (s.kind === 'contacts' ? 8 : 10) + '</div>' : '') + '</div>' : '') +
-    heldHtml +
+    heldBar + heldHtml +
     '<div class="wiz-foot"><button class="btn btn-ghost btn-sm" onclick="cancelImport()">Cancel</button><span class="wiz-gap"></span>' +
       '<button class="btn btn-outline btn-sm" onclick="goImportStep(2)">Back</button>' +
       '<button class="btn btn-primary btn-sm" onclick="runImportNow()"' + (c.importing ? '' : ' disabled') + '>Import ' + c.importing + ' ' + noun(c.importing) + '</button></div>';
@@ -348,13 +423,10 @@ function importDoneHtml(s) {
   const r = s.result || { kind: s.kind, added: 0, held: {}, heldTotal: 0, saving: false, failed: 0 };
   const k = IMPORT_KINDS[r.kind];
   const lines = IMPORT_REASONS[r.kind].filter(x => r.held[x.code]).map(x => '<li>' + r.held[x.code] + ' · ' + esc(x.label.toLowerCase()) + '</li>');
-  const status = r.saving ? 'Saving to the server…'
-    : r.failed ? r.failed + ' of ' + r.added + ' are saved in this browser only and will need a re-sync.'
-    : 'Finished saving. A record the server refused stays in this browser, and a warning says so.';
-  return importHeadHtml('Import', s.fileName) +
+  return importHeadHtml(4, 'Import', s.fileName) +
     '<div class="wiz-done"><div class="wiz-done-ic">' + icon('check', 22) + '</div>' +
     '<h3>Imported ' + r.added + ' new ' + (r.added === 1 ? k.noun : k.nouns) + '</h3>' +
-    '<p class="wiz-status' + (r.failed ? ' warn' : '') + '">' + esc(status) + '</p>' +
+    '<p class="wiz-status' + (r.failed ? ' warn' : '') + '" id="imp-status" role="status">' + esc(importStatusText(r)) + '</p>' +
     (r.heldTotal ? '<p>' + r.heldTotal + ' held back:</p><ul class="wiz-held">' + lines.join('') + '</ul>' : '') + '</div>' +
     '<div class="wiz-foot"><button class="btn btn-outline btn-sm" onclick="importMore()">Import another file</button><span class="wiz-gap"></span>' +
       '<button class="btn btn-primary btn-sm" onclick="nav(\'' + k.view + '\')">View ' + esc(k.nouns) + '</button></div>';

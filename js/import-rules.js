@@ -133,9 +133,13 @@ function importLooksLikeContacts(headers) {
 function importProblem(kind, headers, mapping) {
   kind = importKind(kind);
   if (kind === 'offtakers') {
-    if (importLooksLikeContacts(headers)) {
-      return { code: 'contacts-file', text: 'This looks like a contacts file: it has first or last name columns but no company name column. ' +
-        'Importing it here would add companies named after people. Import it as contacts instead.' };
+    /* The guard stands unless the person has pointed Company name at a column of their own
+       choosing, which is them saying this really is a list of companies. */
+    const chosen = mapping.indexOf('name') !== importAutoMap('offtakers', headers).indexOf('name');
+    if (importLooksLikeContacts(headers) && !chosen) {
+      return { code: 'contacts-file', text: 'This looks like a contacts file: it has first or last name columns and no column headed "name". ' +
+        'Importing it here would add companies named after people. Import it as contacts, or, if it really is a list of companies, ' +
+        'match the column that holds the company to Company name.' };
     }
     if (mapping.indexOf('name') < 0) {
       return { code: 'no-name', text: 'No column is matched to Company name. Choose the column that holds the company, or the importer has nothing to add.' };
@@ -149,11 +153,25 @@ function importProblem(kind, headers, mapping) {
   return null;
 }
 
+/* Something worth saying that does not stop the file going on, or null. A contacts file with no
+   column matched to Work email holds back every row, and "Work Email" and "Email 1" are headers
+   people really use, so say so on the Map step instead of letting Review explain it row by row. */
+function importWarning(kind, headers, mapping) {
+  if (importKind(kind) === 'contacts' && mapping.indexOf('email') < 0) {
+    return { code: 'no-email-column', text: 'No column is matched to Work email, so every row would be held back. Choose the column that holds the address.' };
+  }
+  return null;
+}
+
 /* ─── ROWS ────────────────────────────────────────────────────── */
 function importReader(table, mapping) {
   const col = key => mapping.indexOf(key);
   return (row, key) => { const i = col(key); return i >= 0 ? String(row[i] == null ? '' : row[i]).trim() : ''; };
 }
+const importLower = v => String(v == null ? '' : v).toLowerCase();
+
+/* The line of the file a row starts on, when the reader knew it, else its place among the rows. */
+function importLineOf(table, n) { return (table.lines && table.lines[n + 1]) || n + 2; }
 
 /* Contacts. The email gate: a bulk file is where phone-only people slip into the book
    unnoticed (63 came in through one in a day and were deleted again by hand), so a row
@@ -164,16 +182,43 @@ function importReader(table, mapping) {
    official under Lady Frere would not be noticed until a letter went to the wrong council. */
 function importContactRows(table, mapping, book) {
   const get = importReader(table, mapping);
-  const rows = [], accepted = [];
+  const rows = [];
   let ignored = 0;
+  const emailMapped = mapping.indexOf('email') >= 0;
+
+  /* A big file against a big book must not be a scan of the book per row. The book is indexed once
+     (emails, and name-at-company keys), rows taken from the file are indexed as they go, and a
+     company text is looked up once however many rows carry it. A key uses an account id only when
+     the contact has a text one, because the old comparison was strict and a missing id never
+     equalled a row's. */
+  const nameKey = (first, last, id) => importLower(first) + '\u0001' + importLower(last) + '\u0001' + id;
+  const bookEmails = new Set(), bookNames = new Set(), fileEmails = new Set(), fileNames = new Set();
+  book.contacts.forEach(c => {
+    if (c.email) bookEmails.add(importLower(c.email));
+    if (typeof c.offtakerId === 'string') bookNames.add(nameKey(c.first, c.last, c.offtakerId));
+  });
+  const offtakers = book.offtakers.map(o => ({ o, name: importLower(o.name), short: importLower(o.short) }));
+  const matches = new Map(), municipalities = new Map();
+  const offtakerFor = text => {
+    if (!matches.has(text)) {
+      const want = text.toLowerCase();
+      const hit = offtakers.find(x => x.name.includes(want) || x.short === want);
+      matches.set(text, hit ? hit.o : null);
+    }
+    return matches.get(text);
+  };
+  const municipalitiesFor = (text, province) => {
+    const k = text + '\u0001' + province;
+    if (!municipalities.has(k)) municipalities.set(k, municipalitiesFromText(text, province));
+    return municipalities.get(k);
+  };
+
   table.slice(1).forEach((r, n) => {
     const first = get(r, 'first'), last = get(r, 'last');
     if (!first && !last) { ignored++; return; }
     const companyName = get(r, 'company');
-    const match = companyName ? book.offtakers.find(o =>
-      o.name.toLowerCase().includes(companyName.toLowerCase()) ||
-      (o.short || '').toLowerCase() === companyName.toLowerCase()) : null;
-    const munis = match ? [] : municipalitiesFromText(companyName, get(r, 'province'));
+    const match = companyName ? offtakerFor(companyName) : null;
+    const munis = match ? [] : municipalitiesFor(companyName, get(r, 'province'));
     const draft = {
       first, last, title: get(r, 'title'), dept: get(r, 'dept'),
       email: get(r, 'email'), phone: get(r, 'phone'), linkedin: get(r, 'linkedin'), notes: get(r, 'notes'),
@@ -181,21 +226,20 @@ function importContactRows(table, mapping, book) {
       offtakerId: match ? match.id : munis.length === 1 ? munis[0].id : '',
       ambiguous: munis.length > 1 ? munis.map(m => ({ id: m.id, name: m.name, code: m.code, province: m.province })) : null,
     };
-    const row = { line: n + 2, status: 'import', reason: '', detail: '', draft };
+    const row = { line: importLineOf(table, n), at: n + 1, status: 'import', reason: '', detail: '', draft };
     const skip = (reason, detail) => { row.status = 'skip'; row.reason = reason; row.detail = detail; };
     if (!findHasEmail(draft)) {
-      skip('no-email', 'No work email. Add the address to the file and import again.');
+      skip('no-email', emailMapped ? 'No work email. Add the address to the file and import again.'
+        : 'No column is matched to Work email. Go back to Map columns and choose it.');
     } else if (draft.ambiguous) {
       skip('ambiguous', draft.ambiguous.length + ' municipalities fit (' +
         draft.ambiguous.map(m => m.name + ', ' + m.province + ', ' + m.code).join('; ') +
         '). Add a province column, or write the code.');
     } else {
-      const same = c => (draft.email && c.email && String(c.email).toLowerCase() === draft.email.toLowerCase()) ||
-        (String(c.first || '').toLowerCase() === first.toLowerCase() && String(c.last || '').toLowerCase() === last.toLowerCase() &&
-          c.offtakerId === draft.offtakerId);
-      if (book.contacts.some(same)) skip('duplicate', 'Already in the CRM: same email, or same name at the same company.');
-      else if (accepted.some(same)) skip('duplicate', 'Repeats an earlier row in this file.');
-      else accepted.push(draft);
+      const email = importLower(draft.email), name = nameKey(first, last, draft.offtakerId);
+      if (bookEmails.has(email) || bookNames.has(name)) skip('duplicate', 'Already in the CRM: same email, or same name at the same company.');
+      else if (fileEmails.has(email) || fileNames.has(name)) skip('duplicate', 'Repeats an earlier row in this file.');
+      else { fileEmails.add(email); fileNames.add(name); }
     }
     rows.push(row);
   });
@@ -210,6 +254,8 @@ function importContactRows(table, mapping, book) {
 function importOfftakerRows(table, mapping, book) {
   const get = importReader(table, mapping);
   const rows = [], seen = new Set();
+  const bookNames = new Set(book.offtakers.map(x => importLower(x.name)));
+  const bookShorts = new Set(book.offtakers.map(x => importLower(x.short)));
   let ignored = 0;
   table.slice(1).forEach((r, n) => {
     const name = get(r, 'name');
@@ -229,10 +275,10 @@ function importOfftakerRows(table, mapping, book) {
       estimated: gwh > 0,
     };
     const key = name.toLowerCase();
-    const onFile = book.offtakers.some(x => x.name.toLowerCase() === key || (x.short || '').toLowerCase() === draft.short.toLowerCase());
+    const onFile = bookNames.has(key) || bookShorts.has(draft.short.toLowerCase());
     const repeat = seen.has(key);
     seen.add(key);
-    const row = { line: n + 2, status: onFile || repeat ? 'skip' : 'import', reason: '', detail: '', draft };
+    const row = { line: importLineOf(table, n), at: n + 1, status: onFile || repeat ? 'skip' : 'import', reason: '', detail: '', draft };
     if (onFile) { row.reason = 'duplicate'; row.detail = 'Already in the CRM: same name or short name.'; }
     else if (repeat) { row.reason = 'duplicate'; row.detail = 'Repeats an earlier row in this file.'; }
     rows.push(row);
@@ -248,7 +294,8 @@ function importPlan(kind, table, mapping, book) {
   const going = built.rows.filter(r => r.status === 'import');
   const held = {};
   IMPORT_REASONS[kind].forEach(x => { held[x.code] = built.rows.filter(r => r.reason === x.code).length; });
-  const counts = { total: built.rows.length, importing: going.length, held, ignored: built.ignored };
+  /* `read` is every data row in the file; `total` leaves out the rows with no name at all. */
+  const counts = { total: built.rows.length, read: built.rows.length + built.ignored, importing: going.length, held, ignored: built.ignored };
   if (kind === 'contacts') {
     counts.toOfftaker = going.filter(r => r.draft.offtakerId && !isMunicipalityId(r.draft.offtakerId)).length;
     counts.toMunicipality = going.filter(r => isMunicipalityId(r.draft.offtakerId)).length;
@@ -265,6 +312,16 @@ function importPlan(kind, table, mapping, book) {
     counts.badProvinceExample = badProvince.length ? badProvince[0].draft.provinceRaw : '';
   }
   return { kind, rows: built.rows, counts };
+}
+
+/* The rows held back, as a file to fix and import again: each as the file had it, with the
+   reason and the line it was on added at the end. */
+function importHeldCsv(table, plan) {
+  const labels = {};
+  IMPORT_REASONS[plan.kind].forEach(x => { labels[x.code] = x.label; });
+  return [table[0].concat(['Held because', 'Details', 'Line'])].concat(plan.rows
+    .filter(r => r.status === 'skip')
+    .map(r => table[r.at].concat([labels[r.reason] || r.reason, r.detail, r.line])));
 }
 
 /* The records a judged row becomes, less the id the caller gives them. A company with no

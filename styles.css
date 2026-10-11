@@ -554,6 +554,10 @@ button.wiz-btn:hover .wiz-l{color:var(--text2)}
 .wiz-warn>svg{flex-shrink:0;margin-top:1px;color:var(--c-amber)}
 .wiz-warn .btn{margin-left:6px}
 .wiz-unused{margin-top:10px;font-size:11.5px;color:var(--muted)}
+.wiz-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.wiz-loaded{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 14px;margin-top:12px;padding:12px 14px;
+  border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:12.5px}
+.wiz-heldbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:14px}
 .imp-list{margin-top:12px;border:1px solid var(--border);border-radius:var(--card-radius);overflow:hidden}
 .imp-row{display:grid;grid-template-columns:minmax(120px,1.1fr) minmax(0,1.6fr) minmax(150px,1fr) 78px;gap:12px;align-items:center;
   padding:10px 12px;border-top:1px solid var(--border)}
@@ -568,7 +572,8 @@ button.wiz-btn:hover .wiz-l{color:var(--text2)}
 .imp-none{color:var(--muted);font-style:italic}
 .imp-field select{width:100%;padding:7px 9px;border:1px solid var(--border2);border-radius:6px;font:inherit;font-size:12.5px;
   background:var(--bg3);color:var(--text)}
-.imp-field select:focus{outline:none;border-color:color-mix(in srgb,var(--accent) 40%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 7%,transparent)}
+.imp-field select:focus{border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.imp-field select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .wiz-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:4px 0 12px}
 .wiz-stat{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
 .wiz-stat.warn{border-color:color-mix(in srgb,var(--c-amber) 40%,var(--border))}
@@ -595,6 +600,10 @@ button.wiz-btn:hover .wiz-l{color:var(--text2)}
 @media(max-width:560px){
   .wiz-step:not(.cur) .wiz-l{display:none}
   .wiz-step:not(:last-child)::after{margin:0 6px}
+  /* The current step keeps its whole label and the others share what is left; at 375px an equal
+     share was too small for "Map columns" and it ran into the next circle. */
+  .wiz-step.cur{flex:0 0 auto}
+  .wiz-step.cur:not(:last-child)::after{flex:0 0 24px}
   .wiz-card{padding:16px 14px}
   .wiz-stat{padding:10px 11px}
 }

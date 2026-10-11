@@ -352,5 +352,116 @@ test('re-mapping the sector column changes what is filed where', () => {
   assert.strictEqual(plan.counts.noSector, plan.counts.importing, 'with no sector column nothing has one');
 });
 
+/* ─── FROM THE INDEPENDENT REVIEW ─────────────────────────────── */
+console.log('\nFrom the independent review');
+ctx.__lines = 'First,Last,Email\nA,One,a@x.co.za\n\nB,Two,\nC,"Three\ncontinues",c@x.co.za\nD,Four,\n';
+const NOBODY = { offtakers: [], contacts: [] };
+
+test('the reader records the line each row starts on, through blank lines and cells that run over two', () => {
+  assert.deepStrictEqual(run('parseCSV(__lines).lines'), [1, 2, 4, 5, 7]);
+  assert.deepStrictEqual(run('parseCSV("\\uFEFFa,b\\r\\n1,2\\r\\n\\r\\n3,4\\r\\n").lines'), [1, 2, 4], 'CRLF and a BOM');
+  assert.deepStrictEqual(run('parseCSV("\\n\\nname,city\\nAcme,CT\\n").lines'), [3, 4], 'blank lines above the header too');
+});
+test('the rows a person is told to fix carry the file\'s own line numbers', () => {
+  const rows = run('importPlan("contacts", parseCSV(__lines), ["first","last","email"], { offtakers: [], contacts: [] }).rows.map(r => [r.draft.first, r.line, r.at])');
+  assert.deepStrictEqual(rows, [['A', 2, 1], ['B', 4, 2], ['C', 5, 3], ['D', 7, 4]]);
+});
+test('a table that did not record its lines falls back to the row\'s place', () => {
+  const rows = call('importPlan', 'contacts', csv(lines('first,last,email', 'A,One,a@x.co.za', 'B,Two,')), ['first', 'last', 'email'], NOBODY).rows.map(r => r.line);
+  assert.deepStrictEqual(rows, [2, 3]);
+});
+test('rows read is every data row, the nameless ones included', () => {
+  assert.strictEqual(contactPlan.counts.read, 12);
+  assert.strictEqual(contactPlan.counts.read, contactPlan.counts.total + contactPlan.counts.ignored);
+  assert.strictEqual(otPlan.counts.read, otPlan.counts.total + otPlan.counts.ignored);
+});
+test('a contacts file with no email column matched gets a warning, and a reason that points back at Map columns', () => {
+  const heads = ['First Name', 'Last Name', 'Work Email'];
+  const auto = call('importAutoMap', 'contacts', heads);
+  assert.strictEqual(call('importWarning', 'contacts', heads, auto).code, 'no-email-column');
+  assert.strictEqual(call('importWarning', 'contacts', heads, call('importRemap', 'contacts', auto, 2, 'email')), null, 'matched by hand, no warning');
+  assert.strictEqual(call('importWarning', 'offtakers', ['Name'], ['name']), null, 'off-takers have no email gate');
+  const t = csv(lines('First Name,Last Name,Work Email', 'Ann,Lee,ann@lee.co'));
+  const row = call('importPlan', 'contacts', t, auto, NOBODY).rows[0];
+  assert.strictEqual(row.reason, 'no-email');
+  assert.ok(/No column is matched to Work email/.test(row.detail) && !/Add the address/.test(row.detail), row.detail);
+});
+test('the wrong-file stop is lifted when the company column is matched by hand, and not before', () => {
+  const heads = ['First Name', 'Last Name', 'Organisation Name', 'Sector'];
+  const auto = call('importAutoMap', 'offtakers', heads);
+  const p = call('importProblem', 'offtakers', heads, auto);
+  assert.strictEqual(p.code, 'contacts-file');
+  assert.ok(/match the column that holds the company to Company name/.test(p.text), 'the message says what to do');
+  assert.strictEqual(call('importProblem', 'offtakers', heads, call('importRemap', 'offtakers', auto, 2, 'name')), null);
+  const withCompany = ['First Name', 'Last Name', 'Company'];
+  assert.strictEqual(call('importProblem', 'offtakers', withCompany, call('importAutoMap', 'offtakers', withCompany)).code, 'contacts-file',
+    'a company column the importer found for itself does not lift it: that is the contacts file the guard exists for');
+});
+test('the held rows come back as a file to fix: the file\'s own cells, then why, then the line', () => {
+  /* A plan is built inside the sandbox: the table's `lines` do not survive being turned into plain JSON. */
+  const held = run('(() => { const t = parseCSV(__lines); const p = importPlan("contacts", t, ["first","last","email"], { offtakers: [], contacts: [] }); return importHeldCsv(t, p); })()');
+  assert.deepStrictEqual(held, [
+    ['First', 'Last', 'Email', 'Held because', 'Details', 'Line'],
+    ['B', 'Two', '', 'No work email', 'No work email. Add the address to the file and import again.', 4],
+    ['D', 'Four', '', 'No work email', 'No work email. Add the address to the file and import again.', 7],
+  ]);
+  assert.deepStrictEqual(run('importHeldCsv(parseCSV("name\\nAcme\\n"), importPlan("offtakers", parseCSV("name\\nAcme\\n"), ["name"], { offtakers: [], contacts: [] }))'),
+    [['name', 'Held because', 'Details', 'Line']], 'nothing held: just the header');
+});
+
+/* The duplicate checks are indexed so a big file against a big book is not a scan per row. The index must say
+   exactly what the scan said, so each edge of the old comparison is pinned. */
+console.log('\nIndexed duplicate checks');
+const dupePlan = (book, rows) => call('importPlan', 'contacts', csv(lines('first,last,company,email', ...rows)), ['first', 'last', 'company', 'email'], book);
+test('an email matches whatever its case, and a book contact with no email is not matched on it', () => {
+  const book = { offtakers: [], contacts: [{ first: 'X', last: 'Y', offtakerId: '', email: 'ANN@X.CO.ZA' }, { first: 'P', last: 'Q', offtakerId: '', email: null }] };
+  assert.deepStrictEqual(dupePlan(book, ['Ann,Lee,,ann@x.co.za']).rows.map(r => r.reason), ['duplicate']);
+  assert.deepStrictEqual(dupePlan(book, ['Zed,Zee,,zed@x.co.za']).rows.map(r => r.reason), ['']);
+});
+test('a name at a company matches only the same company, and "no company" is a company of its own', () => {
+  const book = { offtakers: [{ id: 'o1', name: 'Sasol Limited', short: 'Sasol' }], contacts: [
+    { first: 'Ann', last: 'Lee', offtakerId: 'o1', email: '' }, { first: 'Bo', last: 'Ray', offtakerId: '', email: '' }] };
+  assert.deepStrictEqual(dupePlan(book, ['ann,LEE,Sasol,a@x.co.za', 'Ann,Lee,,a2@x.co.za', 'Bo,Ray,,b@x.co.za', 'Bo,Ray,Sasol,b2@x.co.za']).rows.map(r => r.reason),
+    ['duplicate', '', 'duplicate', '']);
+});
+test('a book contact whose company is not text never equals a row\'s, as the old strict comparison said', () => {
+  const book = { offtakers: [], contacts: [{ first: 'Ann', last: 'Lee', email: '' }, { first: 'Bo', last: 'Ray', offtakerId: null, email: '' }] };
+  assert.deepStrictEqual(dupePlan(book, ['Ann,Lee,,a@x.co.za', 'Bo,Ray,,b@x.co.za']).rows.map(r => r.reason), ['', '']);
+});
+test('a book contact with no first name matches a row with none', () => {
+  const book = { offtakers: [], contacts: [{ last: 'Lee', offtakerId: '', email: '' }] };
+  assert.deepStrictEqual(dupePlan(book, [',Lee,,a@x.co.za']).rows.map(r => r.reason), ['duplicate']);
+});
+test('rows later in the file are checked against the ones taken earlier, by email or by name, and the reason says so', () => {
+  const r = dupePlan(NOBODY, ['Ann,Lee,,a@x.co.za', 'Ann,Lee,,other@x.co.za', 'Bo,Chen,,A@X.CO.ZA', 'Cy,Dube,,c@x.co.za']).rows;
+  assert.deepStrictEqual(r.map(x => x.reason), ['', 'duplicate', 'duplicate', '']);
+  assert.ok(/earlier row/.test(r[1].detail) && /earlier row/.test(r[2].detail));
+});
+test('a company text is looked up once, but the same text with another province is settled again', () => {
+  const t = csv(lines('first,last,company,province,email', 'A,One,Emalahleni,,a@x.co.za', 'B,Two,Emalahleni,Mpumalanga,b@x.co.za', 'C,Three,Emalahleni,,c@x.co.za', 'D,Four,Emalahleni,Eastern Cape,d@x.co.za'));
+  const rows = call('importPlan', 'contacts', t, ['first', 'last', 'company', 'province', 'email'], NOBODY).rows;
+  assert.deepStrictEqual(rows.map(r => r.reason || r.draft.offtakerId), ['ambiguous', 'mun_MP312', 'ambiguous', 'mun_EC136']);
+});
+test('an off-taker with no short name matches nothing on short name, and a short name matches on its own', () => {
+  const book = { offtakers: [{ name: 'A Co' }, { name: 'Some Long Name', short: 'SLN' }], contacts: [] };
+  const t = csv(lines('name,short', 'B Co,', 'Fresh Name,sln', 'Fresh Two,'));
+  assert.deepStrictEqual(call('importPlan', 'offtakers', t, ['name', 'short'], book).rows.map(r => r.reason), ['', 'duplicate', '']);
+});
+test('a big file against a big book is planned in moments, not a scan of the book per row', () => {
+  const offtakers = Array.from({ length: 2000 }, (_, i) => ({ id: 'o' + i, name: 'Company ' + i + ' Holdings', short: 'C' + i }));
+  const contacts = Array.from({ length: 5000 }, (_, i) => ({ id: 'c' + i, offtakerId: 'o' + (i % 2000), first: 'First' + i, last: 'Last' + i, email: 'person' + i + '@book.co.za' }));
+  const rows = Array.from({ length: 5000 }, (_, i) => ['New' + i, 'Person' + i, i % 3 ? 'Company ' + (i % 2000) + ' Holdings' : 'Emalahleni', 'new' + i + '@file.co.za']);
+  rows[10] = ['First7', 'Last7', 'Company 7 Holdings', 'x@y.co.za'];              // the same name at the same company as a book contact
+  rows[11] = ['New11', 'Person11', 'Company 11 Holdings', 'person11@book.co.za'];   // the same email as a book contact
+  ctx.__perf = { table: [['first', 'last', 'company', 'email']].concat(rows), mapping: ['first', 'last', 'company', 'email'], book: { offtakers, contacts } };
+  const t0 = Date.now();
+  const counts = run('importPlan("contacts", __perf.table, __perf.mapping, __perf.book).counts');
+  const ms = Date.now() - t0;
+  assert.strictEqual(counts.total, 5000);
+  assert.strictEqual(counts.held.duplicate, 2);
+  assert.ok(counts.held.ambiguous > 1000, 'the Emalahleni rows are held back');
+  assert.ok(ms < 4000, 'planning 5,000 rows against 5,000 contacts took ' + ms + ' ms; scanning the book per row took ~25 s');
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

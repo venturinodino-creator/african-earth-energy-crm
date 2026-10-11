@@ -27,6 +27,16 @@ vm.runInContext(`var __html = '', __page = null, __navs = [], __toasts = [], __s
   nav = v => { __navs.push(v); }; toast = (m, k) => { __toasts.push([m, k || '']); }; save = () => { __saves++; };
   pushContact = async r => { if (__failOn && __failOn(r)) throw new Error('refused'); __pushed.push(r); };
   pushOfftaker = async r => { __pushed.push(r); }; updateNavBadges = () => {};`, ctx);
+/* Recorders for what a browser would do: where focus went, how often the page was drawn, the saving line
+   (updated in place), files offered for download, and a FileReader the test finishes by hand. */
+vm.runInContext(`var __status = { textContent: '', warn: false, classList: { toggle(c, on) { __status.warn = !!on; } } },
+  __focus = [], __renders = 0, __downloads = [], __reader = null, __fields = {};
+  var __getEl = document.getElementById;
+  document.getElementById = id => id === 'imp-status' ? __status : (id.indexOf('imp-map-') === 0 ? (__fields[id] = __fields[id] || { focus() { __focus.push(id); } }) : __getEl(id));
+  document.querySelector = sel => ({ focus() { __focus.push(sel); } });
+  var __setContent = setContent; setContent = h => { __renders++; __setContent(h); };
+  downloadCSV = (name, rows) => { __downloads.push({ name, rows }); };
+  class FileReader { readAsText(f) { this.file = f; __reader = this; } }`, ctx);
 
 let pass = 0, fail = 0;
 const queue = [];
@@ -50,7 +60,8 @@ function fresh(role) {
   ev(`state.role = ${JSON.stringify(role || 'admin')}; state.imp = null; state.view = 'import';
     state.offtakers.length = 0; state.contacts.length = 0;
     __off.forEach(o => state.offtakers.push(Object.assign({}, o))); __con.forEach(c => state.contacts.push(Object.assign({}, c)));
-    __html = ''; __page = null; __navs = []; __toasts = []; __saves = 0; __pushed = []; __failOn = null;`);
+    __html = ''; __page = null; __navs = []; __toasts = []; __saves = 0; __pushed = []; __failOn = null;
+    __status.textContent = ''; __status.warn = false; __focus = []; __renders = 0; __downloads = []; __reader = null;`);
 }
 const open = (kind, csvText, name) => { fresh(); ev(`openImport(${JSON.stringify(kind)})`); ev('renderImport()'); if (csvText != null) ev(`importLoadText(${JSON.stringify(csvText)}, ${JSON.stringify(name || 'people.csv')})`); };
 const step = () => ev('state.imp.step');
@@ -305,7 +316,8 @@ test('a long list of held rows shows the first 25 and counts the rest', () => {
 test('a row with no name is not counted, and Review says it was ignored', () => {
   open('contacts', lines('First,Last,Email', ',,x@y.co.za', 'Ann,Lee,a@x.co.za')); ev('importContinue()');
   assert.ok(text().includes('1 row has no name and is ignored.'));
-  assert.ok(/ 1 rows read/.test(text()), 'the blank row is not among the rows read');
+  assert.ok(/ 2 rows read/.test(text()), 'rows read is every data row, the same number Map columns gave');
+  assert.ok(/ 1 will be imported/.test(text()) && /0 held back/.test(text()), 'and the ignored row is neither imported nor held');
 });
 test('the off-takers review warns about what would land in the wrong place', () => {
   open('offtakers', OFFTAKERS_CSV); ev('importContinue()');
@@ -361,6 +373,7 @@ test('cancelling at any step imports nothing and returns to the list', () => {
 console.log('\nStep 4: Import');
 test('contacts: Import stores what Review promised, sends each to the server, and shows the result', async () => {
   open('contacts', CONTACTS_CSV); ev('importContinue()');
+  ev('__renders = 0');
   await ev('runImportNow()');
   assert.strictEqual(step(), 4);
   const added = json('state.contacts.slice(1)');
@@ -372,7 +385,10 @@ test('contacts: Import stores what Review promised, sends each to the server, an
   const t = text();
   assert.ok(t.includes('Imported 3 new contacts'), t);
   assert.ok(t.includes('3 held back') && t.includes('1 · no work email') && t.includes('1 · municipality unclear') && t.includes('1 · already on file'));
-  assert.ok(t.includes('Finished saving'));
+  assert.ok(t.includes('Saving to the server'), 'the page is drawn once, while the server is still being written to');
+  assert.ok(ev('__status.textContent').includes('Finished saving'), 'and the saving line is updated where it stands');
+  assert.ok(html().includes('id="imp-status" role="status"'), 'a live region, so a screen reader hears it change');
+  assert.strictEqual(ev('__renders'), 1, 'the page is not drawn again when the saving finishes, so focus is not lost');
   assert.ok(html().includes("nav('contacts')") && t.includes('View contacts') && t.includes('Import another file'));
   assert.ok(json('__toasts')[0][0].startsWith('Imported 3 new contacts · 3 held back'));
   assert.strictEqual(count(html(), /wiz-step done/g), 3, 'steps one to three are done');
@@ -419,7 +435,8 @@ test('a record the server refuses is counted, kept locally, and reported', async
   await ev('runImportNow()');
   assert.strictEqual(ev('state.contacts.length'), 4, 'still stored in this browser');
   assert.ok(json('__toasts').some(([m, k]) => /1 of 3 saved locally only/.test(m) && k === 'warn'));
-  assert.ok(text().includes('1 of 3 are saved in this browser only'));
+  assert.ok(ev('__status.textContent').includes('1 of 3 are saved in this browser only'));
+  assert.strictEqual(ev('__status.warn'), true, 'and the line is marked as a warning');
 });
 test('Import another file starts a fresh wizard for the same kind', async () => {
   open('offtakers', OFFTAKERS_CSV); ev('importContinue()'); await ev('runImportNow()');
@@ -427,6 +444,144 @@ test('Import another file starts a fresh wizard for the same kind', async () => 
   assert.deepStrictEqual(json('__navs').slice(-1), ['import']);
   assert.strictEqual(ev('state.imp.kind'), 'offtakers');
   assert.strictEqual(step(), 1);
+});
+
+/* ─── FROM THE INDEPENDENT REVIEW ─────────────────────────────── */
+console.log('\nFrom the independent review');
+test('back on Upload with a file already read, the page says so and offers to carry on with the mapping as left', () => {
+  open('contacts', CONTACTS_CSV); ev("setImportMap(7, 'notes')");
+  ev('goImportStep(1)');
+  assert.ok(text().includes('people.csv · 6 rows · 8 columns already read'));
+  assert.ok(html().includes('onclick="importResume()">Continue with this file') && text().includes('Choose a different file'));
+  ev('importResume()');
+  assert.strictEqual(step(), 2);
+  assert.strictEqual(ev('state.imp.mapping[7]'), 'notes', 'the hand-made match is still there');
+  open('contacts');
+  assert.ok(!html().includes('importResume'), 'and with no file read there is nothing to carry on with');
+});
+test('with a file already read, choosing the other kind reads the same file again for it', () => {
+  open('contacts', lines('Name,Sector', 'Cape Smelters,mining'));
+  ev('goImportStep(1)');
+  ev("setImportKind('offtakers')");
+  assert.strictEqual(ev('state.imp.kind'), 'offtakers');
+  assert.strictEqual(step(), 2);
+  assert.strictEqual(ev('state.imp.table.length'), 2, 'the file was kept');
+  assert.ok(!/importContinue\(\)" disabled/.test(html()), 'and read as off-takers it has its company name');
+});
+test('a file that is not a CSV is refused with a reason before it is read', () => {
+  open('contacts');
+  ev("importReadFile({ name: 'targets.xlsx', type: 'application/vnd.ms-excel' })");
+  assert.ok(text().includes('does not look like a CSV file'));
+  assert.strictEqual(ev('__reader'), null, 'it was never read');
+  assert.strictEqual(step(), 1);
+});
+test('a slow read that finishes after the person has left is dropped, and one that finishes in time loads', () => {
+  open('contacts');
+  ev("importReadFile({ name: 'a.csv', type: 'text/csv' })");
+  ev("cancelImport(); state.view = 'dashboard'");
+  const before = html();
+  ev('__reader.result = ' + JSON.stringify(CONTACTS_CSV) + '; __reader.onload()');
+  assert.strictEqual(html(), before, 'nothing was drawn over the page the person is on');
+  assert.strictEqual(ev('state.imp'), null);
+  open('contacts');
+  ev("importReadFile({ name: 'a.csv', type: 'text/csv' })");
+  ev("state.view = 'dashboard'");
+  const elsewhere = html();
+  ev('__reader.result = ' + JSON.stringify(CONTACTS_CSV) + '; __reader.onload()');
+  assert.strictEqual(html(), elsewhere, 'nor over another page when the person simply went there by the sidebar');
+  assert.strictEqual(step(), 1);
+  open('contacts');
+  ev("importReadFile({ name: 'a.csv', type: 'text/csv' })");
+  ev('__reader.result = ' + JSON.stringify(CONTACTS_CSV) + '; __reader.onload()');
+  assert.strictEqual(step(), 2);
+});
+test('each step takes focus on its title, which says which step it is', () => {
+  open('contacts');
+  assert.ok(/id="imp-step-title" tabindex="-1"><span class="wiz-sr">Step 1 of 4: <\/span>Choose a file/.test(html()));
+  ev('__focus = []'); ev('importLoadText(' + JSON.stringify(CONTACTS_CSV) + ", 'p.csv')");
+  assert.deepStrictEqual(json('__focus'), ['#imp-step-title']);
+  assert.ok(html().includes('Step 2 of 4: </span>Match your columns'));
+  ev('__focus = []'); ev('importContinue()');
+  assert.deepStrictEqual(json('__focus'), ['#imp-step-title']);
+  assert.ok(html().includes('Step 3 of 4: </span>Review'));
+  ev('__focus = []'); ev('goImportStep(2)');
+  assert.deepStrictEqual(json('__focus'), ['#imp-step-title']);
+  ev('__focus = []'); ev('importContinue()'); ev('__focus = []');
+  return ev('runImportNow()').then(() => {
+    assert.deepStrictEqual(json('__focus'), ['#imp-step-title'], 'and so does the result');
+    assert.ok(html().includes('Step 4 of 4: </span>Import'));
+  });
+});
+test('choosing a kind keeps focus on the tab, and re-pointing a column keeps it on that column', () => {
+  open('contacts'); ev('__focus = []'); ev("setImportKind('offtakers')");
+  assert.deepStrictEqual(json('__focus'), ['.wiz .view-tab.active']);
+  open('contacts', CONTACTS_CSV); ev('__focus = []'); ev("setImportMap(7, 'notes')");
+  assert.deepStrictEqual(json('__focus'), ['imp-map-7']);
+});
+test('each select is named for its column, so a screen reader knows which one it is on', () => {
+  open('contacts', CONTACTS_CSV);
+  assert.ok(html().includes('aria-label="CRM field for First Name"') && html().includes('aria-label="CRM field for Favourite colour"'));
+  open('contacts', lines('First,,Email', 'Ann,,a@x.co.za'));
+  assert.ok(html().includes('aria-label="CRM field for column 2"'));
+});
+test('a contacts file with no email column matched is warned about on Map columns, not left for Review to explain row by row', () => {
+  open('contacts', lines('First Name,Last Name,Work Email,Company', 'Ann,Lee,ann@lee.co,Sasol', 'Bo,Ray,bo@ray.co,Harmony'));
+  assert.ok(text().includes('No column is matched to Work email, so every row would be held back'));
+  const warn = html().match(/<div class="wiz-warn"[^>]*>(?:(?!<\/div><\/div>)[\s\S])*?No column is matched to Work email/)[0];
+  assert.ok(!warn.includes('role="alert"'), 'a warning, not an alert');
+  assert.ok(!/importContinue\(\)" disabled/.test(html()), 'it can still go on');
+  ev('importContinue()');
+  assert.ok(text().includes('No column is matched to Work email. Go back to Map columns and choose it.'));
+  assert.ok(!text().includes('Add the address to the file'), 'the addresses are in the file; the match is what is missing');
+  ev('goImportStep(2)'); ev("setImportMap(2, 'email')");
+  assert.ok(!text().includes('every row would be held back'));
+  ev('importContinue()');
+  assert.ok(/ 2 will be imported/.test(text()));
+});
+test('the wrong-file stop is lifted when the person matches a company column by hand', () => {
+  open('offtakers', lines('First Name,Last Name,Organisation Name,Sector', 'Ann,Lee,Cape Smelters,mining'));
+  assert.ok(text().includes('This looks like a contacts file') && /importContinue\(\)" disabled/.test(html()));
+  assert.ok(text().includes('match the column that holds the company to Company name'), 'and the message says how');
+  ev("setImportMap(2, 'name')");
+  assert.ok(!text().includes('This looks like a contacts file'));
+  assert.ok(!/importContinue\(\)" disabled/.test(html()));
+  ev('importContinue()');
+  assert.strictEqual(step(), 3);
+  assert.ok(text().includes('Cape Smelters'));
+});
+test('the held rows can be downloaded to fix and import again, each with its line and why', () => {
+  open('contacts', CONTACTS_CSV, 'people-2026-10.csv'); ev('importContinue()');
+  assert.ok(html().includes('onclick="downloadHeldRows()"') && text().includes('Download held rows (CSV)'));
+  ev('downloadHeldRows()');
+  const d = json('__downloads')[0];
+  assert.strictEqual(d.name, 'held-people-2026-10.csv');
+  assert.deepStrictEqual(d.rows[0].slice(-3), ['Held because', 'Details', 'Line']);
+  assert.deepStrictEqual(d.rows.slice(1).map(r => [r[0], r[r.length - 3], r[r.length - 1]]),
+    [['Pieter', 'No work email', 3], ['Lerato', 'Municipality unclear', 4], ['Existing', 'Already on file', 6]]);
+  assert.strictEqual(d.rows[1][1], 'Botha', 'the cells are the file\'s own');
+  assert.ok(json('__toasts').slice(-1)[0][0].includes('Downloaded 3 held rows'));
+  open('contacts', lines('First,Last,Email', 'Ann,Lee,a@x.co.za')); ev('importContinue()');
+  assert.ok(!html().includes('downloadHeldRows'), 'nothing held, nothing to download');
+  ev('downloadHeldRows()');
+  assert.deepStrictEqual(json('__downloads'), []);
+  open('contacts', CONTACTS_CSV); ev('importContinue()'); ev("state.role = 'viewer'"); ev('downloadHeldRows()');
+  assert.deepStrictEqual(json('__downloads'), [], 'and a viewer cannot');
+});
+test('line numbers are the file\'s own, even with a blank line and a cell that runs over two lines', () => {
+  open('contacts', 'First,Last,Email\nA,One,a@x.co.za\n\nB,Two,\nC,"Three\ncontinues",c@x.co.za\nD,Four,\n'); ev('importContinue()');
+  const held = [...html().matchAll(/<td class="num">(\d+)<\/td><td>([^<]+)/g)].map(m => [m[2], Number(m[1])]);
+  assert.deepStrictEqual(held, [['B Two', 4], ['D Four', 7]]);
+});
+test('one row and one column are not plural', () => {
+  open('contacts', lines('First', 'Ann'));
+  assert.ok(text().includes('people.csv · 1 row · 1 column'));
+});
+test('every id in a batch is new, even when the id generator repeats itself', async () => {
+  open('contacts', lines('First,Last,Email', 'A,One,a@x.co.za', 'B,Two,b@x.co.za', 'C,Three,c@x.co.za')); ev('importContinue()');
+  ev("var __n = 0, __realUid = uid; uid = p => ['c1', 'c1', 'x', 'x', 'y'][__n++] || ('z' + __n);");
+  await ev('runImportNow()');
+  ev('uid = __realUid');
+  assert.deepStrictEqual(json('state.contacts.map(c => c.id)'), ['c1', 'x', 'y', 'z6'], 'none meets the book\'s c1, and none meets another in the batch');
 });
 
 /* ─── EVERY STEP, BOTH KINDS ──────────────────────────────────── */
@@ -466,6 +621,13 @@ test('no class the wizard styles is also styled by another page: the Map page on
   const owned = [...new Set(block.match(/\.[a-z][\w-]*/g).map(c => c.slice(1)))].filter(c => !shared.has(c));
   assert.ok(owned.length > 30, 'the classes were found');
   owned.forEach(c => assert.ok(!new RegExp('\\.' + c + '(?![\\w-])').test(rest), '.' + c + ' is styled elsewhere in styles.css'));
+});
+test('the selects keep a visible focus ring, the current step is never squeezed on a phone, and toasts are announced', () => {
+  assert.ok(/\.imp-field select:focus-visible\{outline:2px solid var\(--accent\)/.test(block));
+  assert.ok(!/\.imp-field select:focus\{[^}]*outline:none/.test(block), 'no rule removes the ring');
+  assert.ok(/@media\(max-width:560px\)\{[^@]*\.wiz-step\.cur\{flex:0 0 auto\}/.test(block.replace(/\n\s*/g, '')), 'the current step sizes to its content');
+  assert.ok(/\.wiz-sr\{position:absolute/.test(block));
+  assert.ok(read('index.html').includes('<div id="toast" role="status" aria-live="polite">'));
 });
 test('on a phone the step bar keeps only the current label, and the mapping table stacks', () => {
   assert.ok(/@media\(max-width:560px\)\{[^}]*\.wiz-step:not\(\.cur\) \.wiz-l\{display:none\}/.test(block.replace(/\n\s*/g, '')), 'labels');
