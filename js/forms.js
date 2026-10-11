@@ -26,7 +26,9 @@ function openAddOfftaker() {
   setVal('mo-wheeling', 'unknown');
   setVal('mo-status', 'prospect');
   setVal('mo-priority', 'medium');
+  qcMode('modal-offtaker', true);
   openModal('modal-offtaker');
+  setTimeout(() => document.getElementById('mo-name').focus(), 60);
 }
 
 function openEditOfftaker(id) {
@@ -41,10 +43,12 @@ function openEditOfftaker(id) {
   setVal('mo-supply', o.supply); setVal('mo-wheeling', o.wheeling); setVal('mo-nmd', o.nmd);
   setVal('mo-status', o.status); setVal('mo-priority', o.priority); setVal('mo-desc', o.description);
   setVal('mo-revisit', o.revisitDate || '');
+  qcMode('modal-offtaker', false);
   openModal('modal-offtaker');
 }
 
-function saveOfftaker() {
+/* `andOpen` is Create & open: save, then go to the new company's page. */
+function saveOfftaker(andOpen) {
   const name = val('mo-name');
   if (!name) { toast('An offtaker needs a name', 'warn'); return; }
   if (!state.editOfftakerId) {
@@ -74,12 +78,13 @@ function saveOfftaker() {
     saved = { id: uid('off'), estimated: true, ...rec };
     state.offtakers.push(saved);
   }
+  const isNew = !state.editOfftakerId;
   save();
   pushOfftaker(saved);
   closeModal('modal-offtaker');
-  toast(state.editOfftakerId ? 'Offtaker updated' : 'Offtaker added');
+  toast(isNew ? 'Offtaker added' : 'Offtaker updated');
   state.editOfftakerId = null;
-  render();
+  if (andOpen && isNew) nav('detail', { id: saved.id }); else render();
 }
 
 /* ─── CONTACT ─────────────────────────────────────────────────── */
@@ -112,7 +117,9 @@ function openAddContact(offtakerId) {
   setVal('mc-role', 'influencer');
   setVal('mc-priority', 'medium');
   setVal('mc-status', 'active');
+  qcMode('modal-contact', true);
   openModal('modal-contact');
+  setTimeout(() => document.getElementById('mc-first').focus(), 60);
 }
 
 function openEditContact(id) {
@@ -125,10 +132,12 @@ function openEditContact(id) {
   setVal('mc-dept', c.dept); setVal('mc-email', c.email); setVal('mc-phone', c.phone);
   setVal('mc-linkedin', c.linkedin); setVal('mc-role', c.role);
   setVal('mc-priority', c.priority); setVal('mc-status', c.status); setVal('mc-notes', c.notes);
+  qcMode('modal-contact', false);
   openModal('modal-contact');
 }
 
-function saveContact() {
+/* `andOpen` is Create & open: save, then go to the company the person works at. */
+function saveContact(andOpen) {
   const first = val('mc-first'), last = val('mc-last');
   if (!first && !last) { toast('A contact needs a name', 'warn'); return; }
   const email = val('mc-email');
@@ -150,12 +159,13 @@ function saveContact() {
     saved = { id: uid('c'), ...rec };
     state.contacts.push(saved);
   }
+  const isNew = !state.editContactId;
   save();
   pushContact(saved);
   closeModal('modal-contact');
-  toast(state.editContactId ? 'Contact updated' : 'Contact added');
+  toast(isNew ? 'Contact added' : 'Contact updated');
   state.editContactId = null;
-  render();
+  if (andOpen && isNew && saved.offtakerId) nav(accountView(saved.offtakerId), { id: saved.offtakerId }); else render();
 }
 
 /* ─── OPPORTUNITY ─────────────────────────────────────────────── */
@@ -189,6 +199,7 @@ function openAddDeal(offtakerId) {
   setVal('md-close', '');
   setVal('md-notes', '');
   document.getElementById('md-delete').style.display = 'none';
+  qcMode('modal-deal', true);
   openModal('modal-deal');
   updateDealPreview();
 }
@@ -204,6 +215,7 @@ function openEditDeal(id) {
   setVal('md-stage', d.stage); setVal('md-probability', d.probability);
   setVal('md-close', d.closeDate); setVal('md-notes', d.notes);
   document.getElementById('md-delete').style.display = '';
+  qcMode('modal-deal', false);
   openModal('modal-deal');
   updateDealPreview();
 }
@@ -286,6 +298,7 @@ function openLogInteraction(offtakerId) {
   setVal('mi-date', todayISO());
   setVal('mi-type', 'call');
   setVal('mi-summary', '');
+  qcMode('modal-interaction', true);
   openModal('modal-interaction');
   setTimeout(() => document.getElementById('mi-summary').focus(), 60);
 }

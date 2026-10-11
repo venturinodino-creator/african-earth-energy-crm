@@ -177,10 +177,12 @@
 <!-- ══ MODAL: OFFTAKER ══════════════════════════════════════════ -->
 <div class="overlay" id="modal-offtaker">
   <div class="modal">
-    <div class="mh"><h3 id="mo-title">Add offtaker</h3><button class="modal-close" onclick="closeModal('modal-offtaker')">&times;</button></div>
+    <div class="mh"><div><div class="qc-eyebrow">Quick create</div><h3 id="mo-title">Add offtaker</h3></div><button class="modal-close" onclick="closeModal('modal-offtaker')">&times;</button></div>
+    <div class="qc-pills-slot" id="modal-offtaker-pills"></div>
     <div class="mc">
+      <div class="qc-dupe" id="mo-dupe" hidden></div>
       <div class="fgrid">
-        <div class="fg full"><label>Company name *</label><input id="mo-name" placeholder="e.g. Samancor Chrome — Middelburg Ferrochrome"></div>
+        <div class="fg full"><label>Company name *</label><input id="mo-name" oninput="qcCheckOfftaker()" placeholder="e.g. Samancor Chrome — Middelburg Ferrochrome"></div>
         <div class="fg"><label>Short name</label><input id="mo-short" placeholder="Samancor"></div>
         <div class="fg"><label>Sector</label>
           <select id="mo-sector"></select>
@@ -235,7 +237,8 @@
     </div>
     <div class="mf">
       <button class="btn btn-outline" onclick="closeModal('modal-offtaker')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveOfftaker()">Save</button>
+      <button class="btn btn-outline" id="mo-save-open" onclick="saveOfftaker(true)">Create &amp; open</button>
+      <button class="btn btn-primary" id="mo-save" onclick="saveOfftaker()">Save</button>
     </div>
   </div>
 </div>
@@ -243,15 +246,17 @@
 <!-- ══ MODAL: CONTACT ═══════════════════════════════════════════ -->
 <div class="overlay" id="modal-contact">
   <div class="modal">
-    <div class="mh"><h3 id="mc-title">Add contact</h3><button class="modal-close" onclick="closeModal('modal-contact')">&times;</button></div>
+    <div class="mh"><div><div class="qc-eyebrow">Quick create</div><h3 id="mc-title">Add contact</h3></div><button class="modal-close" onclick="closeModal('modal-contact')">&times;</button></div>
+    <div class="qc-pills-slot" id="modal-contact-pills"></div>
     <div class="mc">
+      <div class="qc-dupe" id="mc-dupe" hidden></div>
       <div class="fgrid">
-        <div class="fg"><label>First name *</label><input id="mc-first" placeholder="Thabo"></div>
-        <div class="fg"><label>Last name *</label><input id="mc-last" placeholder="Nkosi"></div>
+        <div class="fg"><label>First name *</label><input id="mc-first" oninput="qcCheckContact()" placeholder="Thabo"></div>
+        <div class="fg"><label>Last name *</label><input id="mc-last" oninput="qcCheckContact()" placeholder="Nkosi"></div>
         <div class="fg full"><label>Job title</label><input id="mc-jobtitle" placeholder="Group Energy Procurement Manager"></div>
         <div class="fg full"><label>Department</label><input id="mc-dept" placeholder="Supply Chain"></div>
-        <div class="fg full"><label>Offtaker</label><select id="mc-offtaker"></select></div>
-        <div class="fg"><label>Email</label><input id="mc-email" type="text" placeholder="name@company.co.za"></div>
+        <div class="fg full"><label>Offtaker</label><select id="mc-offtaker" onchange="qcCheckContact()"></select></div>
+        <div class="fg"><label>Email</label><input id="mc-email" type="text" oninput="qcCheckContact()" placeholder="name@company.co.za"></div>
         <div class="fg"><label>Phone</label><input id="mc-phone" placeholder="+27 11 123 4567"></div>
         <div class="fg full"><label>LinkedIn</label><input id="mc-linkedin" placeholder="https://linkedin.com/in/..."></div>
         <div class="fg"><label>Role in the decision</label>
@@ -273,7 +278,8 @@
     </div>
     <div class="mf">
       <button class="btn btn-outline" onclick="closeModal('modal-contact')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveContact()">Save</button>
+      <button class="btn btn-outline" id="mc-save-open" onclick="saveContact(true)">Create &amp; open</button>
+      <button class="btn btn-primary" id="mc-save" onclick="saveContact()">Save</button>
     </div>
   </div>
 </div>
@@ -285,7 +291,8 @@
 <!-- ══ MODAL: OPPORTUNITY ═══════════════════════════════════════ -->
 <div class="overlay" id="modal-deal">
   <div class="modal">
-    <div class="mh"><h3 id="md-title">New opportunity</h3><button class="modal-close" onclick="closeModal('modal-deal')">&times;</button></div>
+    <div class="mh"><div><div class="qc-eyebrow">Quick create</div><h3 id="md-title">New opportunity</h3></div><button class="modal-close" onclick="closeModal('modal-deal')">&times;</button></div>
+    <div class="qc-pills-slot" id="modal-deal-pills"></div>
     <div class="mc">
       <div class="fgrid">
         <div class="fg full"><label>Account *</label><select id="md-offtaker" onchange="updateDealPreview()"></select>
@@ -316,7 +323,7 @@
     <div class="mf">
       <button class="btn btn-danger" id="md-delete" onclick="deleteDeal()" style="margin-right:auto">Delete</button>
       <button class="btn btn-outline" onclick="closeModal('modal-deal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDeal()">Save</button>
+      <button class="btn btn-primary" id="md-save" onclick="saveDeal()">Save</button>
     </div>
   </div>
 </div>
@@ -324,7 +331,8 @@
 <!-- ══ MODAL: LOG ACTIVITY ══════════════════════════════════════ -->
 <div class="overlay" id="modal-interaction">
   <div class="modal" style="max-width:480px">
-    <div class="mh"><h3>Log activity</h3><button class="modal-close" onclick="closeModal('modal-interaction')">&times;</button></div>
+    <div class="mh"><div><div class="qc-eyebrow">Quick create</div><h3>Log activity</h3></div><button class="modal-close" onclick="closeModal('modal-interaction')">&times;</button></div>
+    <div class="qc-pills-slot" id="modal-interaction-pills"></div>
     <div class="mc">
       <div class="fgrid">
         <div class="fg full"><label>Account *</label><select id="mi-offtaker"></select></div>
@@ -341,7 +349,7 @@
     </div>
     <div class="mf">
       <button class="btn btn-outline" onclick="closeModal('modal-interaction')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveInteraction()">Save</button>
+      <button class="btn btn-primary" id="mi-save" onclick="saveInteraction()">Save</button>
     </div>
   </div>
 </div>
@@ -390,6 +398,7 @@
 <script src="js/views-news.js"></script>
 <script src="js/forms.js"></script>
 <script src="js/forms-leads.js"></script>
+<script src="js/quickcreate.js"></script>
 <script src="animations.js"></script>
 </body>
 </html>
