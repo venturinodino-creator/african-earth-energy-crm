@@ -359,14 +359,23 @@ they happen.
   dropped connection shows the last known data instead of an empty app. It is
   never written back to the server.
 - **Export offtakers / contacts / pipeline** produces CSV for sharing or backup.
-- **Import contacts** reads a CSV with a header row and matches the company
-  column to an existing offtaker by name, or to a municipality by name, id
-  (`mun_MP312`) or code (`MP312`); a `province` column settles a municipality
-  name that is not unique. Anything unmatched is filed as unassigned. A row
-  without a work email is skipped — a bulk file is the one place a person
-  nobody can write to slips in unnoticed, so the importer refuses it. (The
-  Contact finder is looser: a find without an email is accepted and flagged,
-  because each row there is reviewed by hand.)
+- **Import CSV** is a four-step page (Upload, Map columns, Review, Import), opened from
+  the sidebar, the Import CSV buttons and Settings, for admins only. The file is read
+  with a header row and each column is matched to a CRM field by its header; any column can
+  be re-pointed or skipped. Review lists what will be imported and what is held back, and
+  why, and nothing is saved until Import. Leaving at any step imports nothing.
+  - **Contacts:** the company column matches an existing offtaker by name or short name,
+    or a municipality by name, id (`mun_MP312`) or code (`MP312`); a `province` column
+    settles a municipality name that is not unique, and a name that still fits more than
+    one municipality is held back rather than guessed. Anything unmatched is filed as
+    unassigned. A row without a work email is held back — a bulk file is the one place a
+    person nobody can write to slips in unnoticed, so the importer refuses it. (The
+    Contact finder is looser: a find without an email is accepted and flagged, because
+    each row there is reviewed by hand.) Someone already on file, by email or by name at
+    the same company, is held back too.
+  - **Off-takers:** sector takes its id or its full name, province an abbreviation or a
+    spelling; a company already in the CRM, or repeated in the file, is held back.
+  - The rules are in `js/import-rules.js` and are tested in `tests/import-rules.test.js`.
 
 The URL and publishable key in `js/supabase.js` are meant to be public — they
 identify the project and grant nothing on their own.
@@ -454,6 +463,8 @@ js/views-sectors.js         sectors and the one-sector page
 js/views-regions.js         per-site catchment and the regional target list
 js/views-municipalities.js  the 257 as their own target list
 js/views-news.js            the news feed the desk reads before it dials
+js/import-rules.js          CSV import rules, no DOM: which column is which field, and what each row becomes
+js/views-import.js          the Import wizard: Upload, Map columns, Review, Import
 js/views-tools.js           projects, map, analytics, calculator, playbook, activity
 js/views-agenthq.js         Agent HQ: the finder agents, their runs and results
 js/views-projectplans.js    project plans loaded from the ProjectManager copy
