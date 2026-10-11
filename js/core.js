@@ -97,7 +97,9 @@ let state = {
   cfRoles: ['decision'],
   contactRuns: null, foundContacts: null,
 
-  mapFilter: 'all',
+  /* The Map's Show checklist: what has been unticked ("projects" is the AEE sites, the rest are
+     sector groups). Nothing is hidden to begin with. */
+  mapHidden: [],
   pbFilter: '',
 };
 linkProvinceFilters(state);
