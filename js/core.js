@@ -50,6 +50,9 @@ let state = {
   muniView: storedView('muniView', 'table'),
   projectView: storedView('projectView', 'grid'),
   activityView: storedView('activityView', 'timeline'),
+  /* The Activity page: which reading (follow-ups, all activity, calendar), the month the
+     calendar shows ("YYYY-MM", blank for this month) and a day it is narrowed to, if any. */
+  activityTab: 'followups', actMonth: '', actDay: '',
   /* Accounts, not Deals. The deal board only holds records that already
      have an opportunity filed, which is the narrower half of the pipeline —
      an account moved in with "Work it" has a stage but no deal yet, so it
