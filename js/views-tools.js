@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Projects · Map · Analytics · Savings calculator · Playbook
-   (Activity is in views-activity.js)
+   Projects · Analytics · Savings calculator · Playbook
+   (Activity is in views-activity.js, the Map in views-map.js)
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
@@ -168,98 +168,6 @@ function projectTableHtml(list) {
         '<td>' + (buyers.length ? esc(buyers.join(', ')) : '<span style="color:var(--muted)">—</span>') + '</td>' +
       '</tr>';
     }).join('') + '</tbody></table></div>';
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   MAP — offtakers against generation sites
-   ═══════════════════════════════════════════════════════════════ */
-let _map = null, _mapLayers = [];
-
-/* Matches the .b-grp-* badge palette in styles.css, so a group reads the
-   same colour on the map as it does on a card. */
-const GROUP_COLOR = {
-  'heavy-industry': '#C0452B', 'manufacturing': '#C48A1E', 'commercial': '#8A5FA3',
-  'digital': '#BE4F7A', 'logistics': '#3F7F9A', 'utilities-public': '#7C8A94',
-  'primary': '#6F8A2E', 'emerging': '#3F8A74',
-};
-
-function renderMap() {
-  setPage('Map', 'Offtaker load against generation sites across South Africa', '');
-  /* Filter by sector GROUP, not by sector — thirty chips would not fit,
-     and the group is the cut a rep actually wants. */
-  const legend =
-    '<div class="map-legend">' +
-      mapChip('all', 'Everything', 'var(--text2)') +
-      mapChip('projects', 'AEE sites', 'var(--accent)') +
-      Object.entries(SECTOR_GROUPS).map(([k, v]) =>
-        mapChip(k, v, GROUP_COLOR[k] || '#7C8A94')).join('') +
-    '</div>';
-
-  setContent(legend + '<div id="map-canvas" style="height:calc(100vh - 210px);min-height:440px"></div>' +
-    '<div class="fg-hint" style="margin-top:10px">Circle size reflects annual consumption. Offtakers without exact coordinates are placed at the centre of their province.</div>');
-  setTimeout(initMap, 60);
-}
-
-function mapChip(id, label, color) {
-  return '<div class="map-legend-item ' + (state.mapFilter === id ? 'active' : '') + '" onclick="setMapFilter(\'' + id + '\')">' +
-    '<span class="map-dot" style="background:' + color + '"></span>' + esc(label) + '</div>';
-}
-function setMapFilter(f) { state.mapFilter = f; renderMap(); }
-
-/* The basemap follows the page theme: forced by data-theme, else the system setting. */
-function mapIsDark() {
-  const t = document.documentElement.dataset.theme;
-  if (t) return t === 'dark';
-  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-}
-function initMap() {
-  const el = document.getElementById('map-canvas');
-  if (!el || typeof L === 'undefined') return;
-  if (_map) { _map.remove(); _map = null; }
-  _map = L.map(el, { scrollWheelZoom: true }).setView([-28.8, 25.0], 5.4);
-  /* Esri's gray canvas, light or dark — keyless, and the same basemap the other regional
-     CRMs use, so the maps read consistently side by side. Labels come as a
-     separate reference layer drawn over the markers' basemap. */
-  const tone = mapIsDark() ? 'Dark' : 'Light';
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_' + tone + '_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    attribution: '&copy; Esri', maxZoom: 16,
-  }).addTo(_map);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_' + tone + '_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 16, pane: 'shadowPane',
-  }).addTo(_map);
-
-  const f = state.mapFilter;
-
-  if (f === 'all' || f === 'projects') {
-    scopedProjects().filter(p => p.status !== 'pipeline').forEach(p => {
-      L.marker([p.lat, p.lng], {
-        icon: L.divIcon({
-          className: '', iconSize: [26, 26], iconAnchor: [13, 13],
-          html: '<div style="width:26px;height:26px;border-radius:7px;background:var(--accent);' +
-            'display:flex;align-items:center;justify-content:center;color:var(--on-accent);box-shadow:0 2px 10px rgba(31,20,16,.35)">' +
-            icon('sun', 15) + '</div>',
-        }),
-      }).addTo(_map).bindPopup(
-        '<b style="color:var(--accent)">' + esc(p.name) + '</b><br>' +
-        fmtNum(p.mw) + ' MW · ' + esc(p.town) + ', ' + esc(p.province) + '<br>' +
-        '<span style="color:var(--muted)">COD ' + esc(p.cod) + '</span>');
-    });
-  }
-
-  if (f !== 'projects') {
-    scopedOfftakers().filter(o => f === 'all' || sectorGroup(o.sector) === f).forEach(o => {
-      const [lat, lng] = offtakerCoords(o);
-      const r = Math.max(7, Math.min(26, Math.sqrt(num(o.annualGwh)) * 0.55));
-      const color = GROUP_COLOR[sectorGroup(o.sector)] || '#7C8A94';
-      L.circleMarker([lat, lng], {
-        radius: r, color, weight: 1.5, fillColor: color, fillOpacity: .28,
-      }).addTo(_map).bindPopup(
-        '<b>' + esc(o.name) + '</b><br>' +
-        fmtNum(o.annualGwh) + ' GWh/yr · ' + fmtNum(o.peakMw) + ' MW peak<br>' +
-        esc(sectorName(o.sector)) + '<br>R' + num(o.tariff).toFixed(2) + '/kWh · fit ' + fitScore(o) + '/100<br>' +
-        '<span style="color:var(--accent);cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">Open record &rarr;</span>');
-    });
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════════

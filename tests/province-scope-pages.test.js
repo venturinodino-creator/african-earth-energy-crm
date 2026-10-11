@@ -188,8 +188,10 @@ test('the Pipeline reads scoped deals', () => {
 test('Activity and the Map read scoped sets', () => {
   const act = /function renderActivity\(\) \{[\s\S]*?\n\}/.exec(src('views-activity'))[0];
   assert.ok(act.includes('scopedInteractions()') && act.includes('scopedDeals()') && act.includes('scopedOfftakers()'));
-  const map = /function initMap\(\) \{[\s\S]*?\n\}\n/.exec(src('views-tools'))[0];
+  const map = /function initMap\(\) \{[\s\S]*?\n\}\n/.exec(src('views-map'))[0];
   assert.ok(map.includes('scopedOfftakers()') && map.includes('scopedProjects()'));
+  const panel = /function renderMap\(\) \{[\s\S]*?\n\}\n/.exec(src('views-map'))[0];
+  assert.ok(panel.includes('scopedOfftakers()') && panel.includes('scopedProjects()'), 'the panel counts what the scope leaves');
 });
 test('changing the province drops a company filter that has fallen out of scope', () => {
   const body = /function onProvinceSwitch\([^)]*\) \{[\s\S]*?\n\}/.exec(core)[0];
