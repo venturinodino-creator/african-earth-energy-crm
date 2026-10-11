@@ -91,6 +91,9 @@ let state = {
   muniPage: 1,
 
   newsTopic: 'all', newsSearch: '',
+  /* News: publishers unticked in the Filters card, the "only stories that name an off-taker"
+     switch, and the Save / Dismiss marks (loaded from this browser on first use). */
+  newsSourcesOff: [], newsMatchedOnly: false, newsMarks: null,
 
   /* Contact finder: the scope a discovery run will be queued against. */
   cfTarget: 'mining',

@@ -32,30 +32,126 @@ function allNews() {
   return mergeNews(NEWS_ARTICLES, typeof NEWS_AUTO === 'undefined' ? [] : NEWS_AUTO);
 }
 
-/* Everything matching the province and search filters. The topic chip is
-   applied separately, so the summary can count across all topics while the
-   feed shows one. */
-function newsInScope() {
-  const term = (state.newsSearch || '').toLowerCase();
-  return allNews().filter(a => {
-    if (state.newsProvince && a.province !== state.newsProvince) return false;
-    if (term && !(a.title + ' ' + a.summary + ' ' + (a.whyItMatters || '') + ' ' + a.province)
-      .toLowerCase().includes(term)) return false;
+/* ─── WHICH COMPANY A STORY NAMES ─────────────────────────────── */
+/* A story has no link to the CRM's companies, so "matched" means it names one on file, as
+   whole words (so "Rain" is not found inside "Rainbow"). A company is looked for by its short
+   name, its full name, and its name without brackets or a Ltd. Anything under four letters is
+   never looked for: it would be found in almost every story. */
+function newsWords(s) { return ' ' + String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() + ' '; }
+function newsNameForms(o) {
+  const bare = String(o.name || '').replace(/\([^)]*\)/g, ' ').replace(/\b(pty|ltd|limited|holdings)\b/gi, ' ');
+  return [o.short, o.name, bare].map(newsWords).filter(w => w.trim().length >= 4);
+}
+function newsMatches(a, offtakers) {
+  const text = newsWords(a.title + ' ' + (a.summary || '') + ' ' + (a.whyItMatters || ''));
+  return offtakers.filter(o => newsNameForms(o).some(w => text.includes(w)));
+}
+
+/* ─── SOURCES ─────────────────────────────────────────────────── */
+/* Each publisher once, with how many stories it has, biggest first. A story with no source
+   is under "Other", so every story can be ticked or unticked by something. */
+function newsSourceOf(a) { return a.source || 'Other'; }
+function newsSourcesOf(stories) {
+  const n = {};
+  stories.forEach(a => { const s = newsSourceOf(a); n[s] = (n[s] || 0) + 1; });
+  return Object.entries(n).map(([source, count]) => ({ source, n: count })).sort((a, b) => b.n - a.n || a.source.localeCompare(b.source));
+}
+
+/* ─── FILTERING ───────────────────────────────────────────────── */
+/* Every story the filters leave, newest first: province, search, the sources still ticked,
+   and optionally only those that name a company on file. */
+function newsFilter(stories, f) {
+  const term = String(f.term || '').toLowerCase();
+  const off = f.sourcesOff || [];
+  return stories.filter(a => {
+    if (f.province && a.province !== f.province) return false;
+    if (term && !(a.title + ' ' + a.summary + ' ' + (a.whyItMatters || '') + ' ' + a.province).toLowerCase().includes(term)) return false;
+    if (off.includes(newsSourceOf(a))) return false;
+    if (f.matchedOnly && !newsMatches(a, f.offtakers || []).length) return false;
     return true;
   }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
+/* ─── SAVE AND DISMISS ────────────────────────────────────────── */
+/* Kept in this browser only, under their own keys, and labelled that way on the page. A story is
+   saved or dismissed, never both. The marks are held in memory for the visit as well, so a
+   browser that blocks storage (a private window) still works until the page is closed. */
+function newsKey(which) { return STORE_PREFIX + 'news_' + which; }
+function newsReadList(key) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v.filter(x => typeof x === 'string') : []; }
+  catch (e) { return []; }
+}
+function newsLoadMarks() {
+  if (!state.newsMarks) state.newsMarks = { saved: newsReadList(newsKey('saved')), dismissed: newsReadList(newsKey('dismissed')) };
+  return state.newsMarks;
+}
+function newsStoreMarks(m) {
+  state.newsMarks = m;
+  try { localStorage.setItem(newsKey('saved'), JSON.stringify(m.saved)); localStorage.setItem(newsKey('dismissed'), JSON.stringify(m.dismissed)); }
+  catch (e) { /* kept for this visit only */ }
+}
+/* save toggles, dismiss and restore set; each clears the other mark. */
+function applyNewsMark(m, id, action) {
+  const without = list => list.filter(x => x !== id);
+  if (action === 'save') return m.saved.includes(id) ? { saved: without(m.saved), dismissed: m.dismissed } : { saved: m.saved.concat(id), dismissed: without(m.dismissed) };
+  if (action === 'dismiss') return { saved: without(m.saved), dismissed: without(m.dismissed).concat(id) };
+  if (action === 'restore') return { saved: m.saved, dismissed: without(m.dismissed) };
+  return m;
+}
+/* The feed is everything not dismissed; Saved and Dismissed are the stories carrying those marks.
+   A mark on a story that is not in the list (a filter, or a story since removed) is ignored, so
+   a tab's count is always the number of stories on it. */
+function newsTabSets(stories, m) {
+  const s = new Set(m.saved), d = new Set(m.dismissed);
+  return { feed: stories.filter(a => !d.has(a.id)), saved: stories.filter(a => s.has(a.id) && !d.has(a.id)), dismissed: stories.filter(a => d.has(a.id)) };
+}
+
+function newsMark(id, action) {
+  newsStoreMarks(applyNewsMark(newsLoadMarks(), id, action));
+  toast(action === 'save' ? (newsLoadMarks().saved.includes(id) ? 'Story saved on this device' : 'Save removed')
+    : action === 'dismiss' ? 'Story dismissed. It is under Dismissed if you want it back' : 'Story restored');
+  renderNews();
+}
+function saveNews(id) { newsMark(id, 'save'); }
+function dismissNews(id) { newsMark(id, 'dismiss'); }
+function restoreNews(id) { newsMark(id, 'restore'); }
+
+function toggleNewsSource(name) {
+  const off = state.newsSourcesOff || [];
+  state.newsSourcesOff = off.includes(name) ? off.filter(x => x !== name) : off.concat(name);
+  renderNews();
+}
+function toggleNewsMatched() { state.newsMatchedOnly = !state.newsMatchedOnly; renderNews(); }
+
+/* What the filters leave, as the three sets the tabs read. Every tab narrows by the same
+   province, search, sources and match switch; only the marks differ. */
+function newsSets() {
+  const base = newsFilter(allNews(), {
+    province: state.newsProvince, term: state.newsSearch, sourcesOff: state.newsSourcesOff,
+    matchedOnly: state.newsMatchedOnly, offtakers: state.offtakers,
+  });
+  return newsTabSets(base, newsLoadMarks());
+}
+
+/* The stories in scope for the topic counts, the Summary and the sidebar: the feed, without
+   anything dismissed. The topic chip is applied separately, so the summary can count across
+   all topics while the feed shows one. */
+function newsInScope() { return newsSets().feed; }
+
 function filteredNews() {
-  const list = newsInScope();
-  if (!state.newsTopic || state.newsTopic === 'all' || state.newsTopic === 'summary') return list;
-  return list.filter(a => a.topic === state.newsTopic);
+  const sets = newsSets();
+  if (state.newsTopic === 'saved') return sets.saved;
+  if (state.newsTopic === 'dismissed') return sets.dismissed;
+  if (!state.newsTopic || state.newsTopic === 'all' || state.newsTopic === 'summary') return sets.feed;
+  return sets.feed.filter(a => a.topic === state.newsTopic);
 }
 
 function setNewsTopic(t) { state.newsTopic = t; renderNews(); }
 function setNewsProvince(p) { state.newsProvince = p === state.newsProvince ? '' : p; renderNews(); }
 
 function renderNews() {
-  const scope = newsInScope();
+  const sets = newsSets();
+  const scope = sets.feed;
   const news = allNews();
   const sampleCount = news.filter(a => a.sample).length;
 
@@ -69,7 +165,8 @@ function renderNews() {
   const topicTab = (id, label, count) => ({ label, count, active: topic === id, on: "setNewsTopic('" + id + "')" });
   const chips = viewTabsHtml(
     [topicTab('all', 'All Topics', scope.length), topicTab('summary', 'Summary')].concat(
-      Object.entries(NEWS_TOPICS).map(([id, t]) => topicTab(id, t.label, scope.filter(a => a.topic === id).length))));
+      Object.entries(NEWS_TOPICS).map(([id, t]) => topicTab(id, t.label, scope.filter(a => a.topic === id).length)),
+      [topicTab('saved', 'Saved', sets.saved.length), topicTab('dismissed', 'Dismissed', sets.dismissed.length)]));
 
   const toolbar =
     '<div class="toolbar">' +
@@ -94,7 +191,7 @@ function renderNews() {
   const body = state.newsTopic === 'summary'
     ? newsSummaryHtml(scope)
     : '<div class="news-layout"><div class="news-feed">' + newsFeedHtml(filteredNews()) + '</div>' +
-      '<div class="news-sidebar">' + newsSidebarHtml(scope) + '</div></div>';
+      '<div class="news-sidebar">' + newsFiltersHtml() + newsSidebarHtml(scope) + '</div></div>';
 
   setContent(banner + chips + toolbar + body);
   growBars();
@@ -102,18 +199,43 @@ function renderNews() {
 
 function newsFeedHtml(list) {
   if (!list.length) {
+    const t = state.newsTopic;
     return '<div class="empty"><div class="ei">' + icon('search', 30) + '</div>' +
-      '<h3>No stories match</h3><p>Loosen the topic, province or search filter to see more of the feed.</p></div>';
+      '<h3>' + (t === 'saved' ? 'Nothing saved yet' : t === 'dismissed' ? 'Nothing dismissed' : 'No stories match') + '</h3><p>' +
+      (t === 'saved' ? 'Press Save on a story to keep it here. Saved stories are kept in this browser.'
+        : t === 'dismissed' ? 'Dismissed stories leave the feed and wait here, in case you want one back.'
+        : 'Loosen the topic, province, source or search filter to see more of the feed.') + '</p></div>';
   }
-  return list.map(newsCardHtml).join('');
+  const marks = newsLoadMarks();
+  return list.map(a => newsCardHtml(a, marks)).join('');
+}
+
+/* The Filters card: which publishers to read, and whether to keep only stories that name a company
+   on file. Save and Dismiss are kept in this browser, and the card says so. */
+function newsFiltersHtml() {
+  const off = state.newsSourcesOff || [];
+  const sources = newsSourcesOf(allNews());
+  return '<div class="news-side-card"><h4>Filters</h4>' +
+    '<div class="news-filter-label">Sources</div>' +
+    sources.map(s =>
+      '<label class="news-check"><input type="checkbox"' + (off.includes(s.source) ? '' : ' checked') +
+      ' onchange="toggleNewsSource(' + esc(JSON.stringify(s.source)) + ')"><span>' + esc(s.source) + '</span>' +
+      '<span class="news-legend-n">' + s.n + '</span></label>').join('') +
+    '<label class="news-check news-matched"><input type="checkbox"' + (state.newsMatchedOnly ? ' checked' : '') +
+      ' onchange="toggleNewsMatched()"><span>Only stories that name an off-taker</span></label>' +
+    '<div class="fg-hint" style="margin-top:8px">Save and Dismiss are kept in this browser, so a colleague does not see yours.</div>' +
+  '</div>';
 }
 
 /* The badge carries the province — this desk sells by geography, so where a
    story happened matters more than who it happened to. */
-function newsCardHtml(a) {
+function newsCardHtml(a, marks) {
   const t = newsTopicOf(a);
   const href = safeHref(a.url);
-  return '<div class="news-card">' +
+  const m = marks || { saved: [], dismissed: [] };
+  const isSaved = m.saved.includes(a.id), isDismissed = m.dismissed.includes(a.id);
+  const named = newsMatches(a, state.offtakers || []);
+  return '<div class="news-card' + (isSaved ? ' saved' : '') + (isDismissed ? ' dismissed' : '') + '">' +
     '<div class="news-card-top">' +
       '<span class="news-province-badge">' + icon('pin', 11) + ' ' + esc(a.province) + '</span>' +
       '<span class="news-topic-tag" style="background:' + t.color + '22;color:' + t.color + ';border-color:' + t.color + '55">' +
@@ -130,7 +252,16 @@ function newsCardHtml(a) {
         ? '<a href="' + esc(href) + '" target="_blank" rel="noopener">Read full article →</a>'
         : '<span class="news-nolink">No source link on this entry</span>') +
       (a.source ? '<span class="news-source">· ' + esc(a.source) + '</span>' : '') +
+      '<span class="news-actions">' +
+        (isDismissed
+          ? '<button class="btn btn-xs btn-outline" onclick="restoreNews(' + esc(JSON.stringify(a.id)) + ')">Restore</button>'
+          : '<button class="btn btn-xs btn-outline' + (isSaved ? ' on' : '') + '" onclick="saveNews(' + esc(JSON.stringify(a.id)) + ')">' + (isSaved ? 'Saved' : 'Save') + '</button>' +
+            '<button class="btn btn-xs btn-outline" onclick="dismissNews(' + esc(JSON.stringify(a.id)) + ')">Dismiss</button>') +
+      '</span>' +
     '</div>' +
+    (named.length
+      ? '<div class="news-matched">Names: ' + named.slice(0, 4).map(o => '<span class="news-chip" onclick="nav(\'detail\',{id:' + esc(JSON.stringify(o.id)) + '})">' + esc(o.short || o.name) + '</span>').join('') + '</div>'
+      : '') +
   '</div>';
 }
 

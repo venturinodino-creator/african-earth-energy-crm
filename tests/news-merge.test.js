@@ -26,7 +26,8 @@ function page(curated, auto) {
     NEWS_TOPICS: { ppa_contracts: { label: 'PPA Contracts', color: '#a78bfa' }, renewable_energy: { label: 'Renewable Energy', color: '#3ddc84' } },
     NEWS_PROVINCES: ['Gauteng', 'Mpumalanga', 'Multiple'],
     NEWS_ARTICLES: curated,
-    state: { newsSearch: '', newsProvince: '', newsTopic: 'all' },
+    state: { newsSearch: '', newsProvince: '', newsTopic: 'all', newsSourcesOff: [], newsMatchedOnly: false, newsMarks: null, offtakers: [] },
+    STORE_PREFIX: 'aee_crm_', JSON, localStorage: { getItem: () => null, setItem() {} },   // the Save / Dismiss marks read the browser store
     esc: s => String(s == null ? '' : s),
     icon: () => '', safeHref: u => u || '',
     downloadCSV: (name, rows) => { calls.csv = rows; }, toast: () => {}, todayISO: () => '2026-10-02',
