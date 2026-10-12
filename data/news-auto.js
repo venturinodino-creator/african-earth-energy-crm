@@ -4,6 +4,30 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-1wjnxz",
+    "topic": "ppa_contracts",
+    "province": "Multiple",
+    "date": "2026-10-12",
+    "title": "South Africa: Yellow Door starts construction at wheeling project",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "African Energy",
+    "url": "https://www.africa-energy.com/news-centre/article/south-africa-yellow-door-starts-construction-wheeling-project",
+    "auto": true
+  },
+  {
+    "id": "auto-fp8c2s",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-12",
+    "title": "Yellow Door Energy Breaks Ground on 49 MWp Lion Thorn Solar Park, Advancing South Africa’s Just Energy Transition",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Infrastructure News",
+    "url": "https://infrastructurenews.co.za/2026/10/12/yellow-door-energy-breaks-ground-on-49-mwp-lion-thorn-solar-park-advancing-south-africas-just-energy-transition/",
+    "auto": true
+  },
+  {
     "id": "auto-u32ey5",
     "topic": "renewable_energy",
     "province": "Multiple",
