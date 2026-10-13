@@ -53,30 +53,42 @@ const PROVINCE_COORDS = {
 };
 
 /* Stages the sales team moves an opportunity through. These are the same
-   five stages the account sales path runs on (SF_STAGES below), deliberately
+   seven stages the account sales path runs on (SF_STAGES below), deliberately
    so: the stage on the board reads the same as the stage on the account, and
    the pipeline page gives the position of every opportunity at a glance
-   without opening each one. */
+   without opening each one.
+
+   The order follows how AEEG actually sells power: reach several people at
+   the company by email and LinkedIn, meet them online, meet them in person,
+   then work out the need, put a commercial proposition on the table and
+   finalise the PPA. The ids of the last four are the ones the five-stage
+   path used, so accounts and opportunities already at those stages need no
+   rewriting; only Prospecting became Outreach (see the legacy maps below). */
 const PIPELINE_STAGES = [
-  { id:'prospecting',    label:'Prospecting',    hint:'Load and site identified as a fit. No conversation yet.' },
-  { id:'needs-analysis', label:'Needs Analysis', hint:'Talking to them. Establishing load, wheeling route and who decides.' },
-  { id:'proposal',       label:'Proposal',       hint:'Indicative tariff and volume on the table.' },
-  { id:'negotiation',    label:'Negotiation',    hint:'Diligence under way and the PPA being drafted.' },
-  { id:'closed',         label:'Closed',         hint:'PPA executed.' },
+  { id:'outreach',       label:'Outreach',               hint:'Reaching several people at the company by email, LinkedIn and phone. No meeting yet.' },
+  { id:'online-meeting', label:'Online meeting',         hint:'First call or video meeting held, one-to-one or as a group.' },
+  { id:'in-person',      label:'In-person meeting',      hint:'Met face to face: at their office, on site or at a conference.' },
+  { id:'needs-analysis', label:'Needs analysis',         hint:'Establishing load, tariff, supply route, timing and who decides.' },
+  { id:'proposal',       label:'Commercial proposition', hint:'Indicative tariff, volume and tenor on the table.' },
+  { id:'negotiation',    label:'PPA finalisation',       hint:'Term sheet, diligence and the PPA being drafted and signed.' },
+  { id:'closed',         label:'Closed',                 hint:'PPA executed.' },
 ];
 
-/* Opportunities saved under the older seven-stage PPA board still carry its
-   ids. Read those onto the five stages above so nothing sits off the board.
-   'lost' has never had a column and is left as it is. */
+/* Opportunities saved under older boards still carry their ids. Read those
+   onto the stages above so nothing sits off the board. 'prospecting' is the
+   first stage of the five-stage path, renamed Outreach. 'lost' has never
+   had a column and is left as it is. */
 const LEGACY_DEAL_STAGES = {
-  identified: 'prospecting', contacted: 'needs-analysis', qualified: 'needs-analysis',
+  prospecting: 'outreach',
+  identified: 'outreach', contacted: 'needs-analysis', qualified: 'needs-analysis',
   proposal: 'proposal', diligence: 'negotiation', negotiation: 'negotiation', signed: 'closed',
 };
 /* The same for stage names quoted in logged sentences: a move written
-   before the rename says "moved from Identified to Term Sheet", and
-   without this the whole history reads as directionless. */
+   before a rename says "moved from Prospecting to Proposal", and without
+   this the whole history reads as directionless. */
 const LEGACY_STAGE_LABELS = {
-  'identified': 'prospecting', 'contacted': 'needs-analysis', 'qualified': 'needs-analysis',
+  'prospecting': 'outreach', 'needs analysis': 'needs-analysis', 'proposal': 'proposal', 'negotiation': 'negotiation',
+  'identified': 'outreach', 'contacted': 'needs-analysis', 'qualified': 'needs-analysis',
   'term sheet': 'proposal', 'due diligence': 'negotiation', 'ppa negotiation': 'negotiation',
   'signed': 'closed',
 };
@@ -84,12 +96,21 @@ const LEGACY_STAGE_LABELS = {
 function normalizeDealStage(stage) {
   const s = String(stage || '');
   if (s === 'lost' || PIPELINE_STAGES.some(x => x.id === s)) return s;
-  return LEGACY_DEAL_STAGES[s] || 'prospecting';
+  return LEGACY_DEAL_STAGES[s] || 'outreach';
+}
+
+/* The account's stored stage, read onto the current path. Empty stays
+   empty: a lead has no stage, and that is what keeps it off the Pipeline. */
+function normalizeSfStage(stage) {
+  const s = String(stage || '');
+  if (!s) return '';
+  if (SF_STAGES.some(x => x.id === s)) return s;
+  return LEGACY_DEAL_STAGES[s] || '';
 }
 
 
 /* The Salesforce sales process, run on the ACCOUNT rather than on a single
-   opportunity. PIPELINE_STAGES above carries the same five stages for the
+   opportunity. PIPELINE_STAGES above carries the same seven stages for the
    deal board, so the two read alike — this is the same question asked of a
    company rather than of one opportunity: where is this one in the process?
 
@@ -100,27 +121,74 @@ function normalizeDealStage(stage) {
 /* stallDays: how long an account may sit at a stage before it is worth a
    nudge. Not an SLA and nothing enforces it — a PPA runs a 9 to 18 month
    cycle, so these are the points at which silence starts to mean something
-   rather than deadlines. Closed does not stall; it is finished. */
+   rather than deadlines. Closed does not stall; it is finished.
+
+   Outreach gets 21 days: three email touches five working days apart run
+   about that long, and an account still without a single meeting after a
+   full round needs a new angle (another person, another channel). */
 const SF_STAGES = [
-  { id:'prospecting',    label:'Prospecting',    prob:10,  status:'prospect',    stallDays:30,
-    hint:'Identified and being researched. No conversation yet.' },
-  { id:'needs-analysis', label:'Needs Analysis', prob:25,  status:'engaged',     stallDays:45,
-    hint:'Talking to them. Establishing load, tariff, supply route and who decides.' },
-  { id:'proposal',       label:'Proposal',       prob:50,  status:'qualified',   stallDays:30,
-    hint:'Indicative tariff and volume with the customer.' },
-  { id:'negotiation',    label:'Negotiation',    prob:75,  status:'negotiating', stallDays:60,
-    hint:'Terms on the table and the PPA being drafted.' },
-  { id:'closed',         label:'Closed',         prob:100, status:'contracted',  stallDays:null,
+  { id:'outreach',       label:'Outreach',               prob:5,   status:'prospect',    stallDays:21,
+    hint:'Reaching several people at the company by email, LinkedIn and phone. Moves on when a first meeting is held.' },
+  { id:'online-meeting', label:'Online meeting',         prob:10,  status:'engaged',     stallDays:30,
+    hint:'First call or video meeting held, one-to-one or as a group. Moves on when you meet in person, or skip straight to needs analysis.' },
+  { id:'in-person',      label:'In-person meeting',      prob:15,  status:'engaged',     stallDays:30,
+    hint:'Met face to face: at their office, on site or at a conference. Moves on when they agree to share consumption data.' },
+  { id:'needs-analysis', label:'Needs analysis',         prob:25,  status:'engaged',     stallDays:45,
+    hint:'Establishing load, tariff, supply route, when they need power and who decides.' },
+  { id:'proposal',       label:'Commercial proposition', prob:50,  status:'qualified',   stallDays:30,
+    hint:'Indicative tariff, volume and tenor with the customer.' },
+  { id:'negotiation',    label:'PPA finalisation',       prob:75,  status:'negotiating', stallDays:60,
+    hint:'Term sheet, diligence and the PPA being drafted and signed.' },
+  { id:'closed',         label:'Closed',                 prob:100, status:'contracted',  stallDays:null,
     hint:'Signed, or closed lost. Either way it is off the working board.' },
 ];
 
 /* Records created before the path existed carry no stage, so read it back
    out of the status they already have. That means the board is populated
-   on the first load rather than every account sitting in Prospecting. */
+   on the first load rather than every account sitting in Outreach. Engaged
+   reads as Needs analysis, not as a meeting stage, because that is what it
+   meant on the five-stage path. */
 const STATUS_TO_SF_STAGE = {
-  prospect:'prospecting', engaged:'needs-analysis', qualified:'proposal',
+  prospect:'outreach', engaged:'needs-analysis', qualified:'proposal',
   negotiating:'negotiation', contracted:'closed', lost:'closed',
 };
+
+/* ─── OUTREACH ────────────────────────────────────────────────────
+   How a touch was made. `type` is the older, coarser activity type the
+   log has always carried, kept so every page that reads it (calendar,
+   timeline, exports) still works. `outreach` marks the channels that count
+   as reaching out to a person, and so get a touch number and a follow-up.
+   `stage` is where the account is moved forward to when a meeting of that
+   kind is logged as held: never backward, and only for meetings. */
+const OUTREACH_CHANNELS = [
+  { id:'email',          label:'Email',                       type:'email',      outreach:true },
+  { id:'linkedin-connect', label:'LinkedIn connection request', type:'linkedin', outreach:true },
+  { id:'linkedin-message', label:'LinkedIn message',          type:'linkedin',   outreach:true },
+  { id:'call',           label:'Call',                        type:'call',       outreach:true },
+  { id:'online-meeting', label:'Online meeting',              type:'meeting',    meeting:true, stage:'online-meeting' },
+  { id:'in-person',      label:'In-person meeting',           type:'meeting',    meeting:true, stage:'in-person' },
+  { id:'conference',     label:'Met at a conference or event', type:'meeting',   meeting:true, stage:'in-person' },
+  { id:'site-visit',     label:'Site visit',                  type:'site visit', meeting:true, stage:'in-person' },
+  { id:'proposal',       label:'Proposal sent',               type:'proposal' },
+  { id:'note',           label:'Note',                        type:'note' },
+];
+
+/* What came of it. `result` marks the outcomes the rollups count as a
+   result (decision D3): a reply, a booked meeting and a held meeting are
+   counted separately; a plain send is activity, not a result. */
+const OUTREACH_OUTCOMES = [
+  { id:'sent',           label:'Sent' },
+  { id:'replied',        label:'Replied',          result:true },
+  { id:'meeting-booked', label:'Meeting booked',   result:true },
+  { id:'held',           label:'Meeting held',     result:true },
+  { id:'declined',       label:'Declined' },
+  { id:'no-answer',      label:'No answer' },
+];
+
+/* Decision D4: three touches per person, five working days apart. After
+   the third unanswered touch the person reads as cold. */
+const OUTREACH_FOLLOW_UP_WORKDAYS = 5;
+const OUTREACH_MAX_TOUCHES = 3;
 
 
 const STATUS_LABEL = {

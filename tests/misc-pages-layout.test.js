@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const scopeStubs = require('./scope-stubs');
+const outreachVocab = require('./outreach-vocab');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -42,7 +43,7 @@ function env(over) {
     foundContacts: [{ id: 'f1', runId: 'r1', status: 'pending', email: 'x@a.co.za' }],
   }, over);
   const ctx = vm.createContext({
-    ...scopeStubs(state),
+    ...scopeStubs(state), ...outreachVocab(),
     console, window: {}, setTimeout: () => 0, clearTimeout() {}, document: { querySelectorAll: () => [], getElementById: () => null },
     STORE_PREFIX: 'aee_crm_', JSON, toast() {}, localStorage: { getItem: () => null, setItem() {} },
     esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))),
@@ -56,7 +57,7 @@ function env(over) {
     SA_PROVINCES: ['Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'],
     NEWS_AUTO: [{ id: 'n1', topic: 'renewable_energy', province: 'Multiple', date: '2026-10-09', title: 'Eskom launches', summary: '', url: 'https://x.co.za', auto: true }],
   });
-  const files = ['js/layout.js', 'data/news.js', 'js/views-agenthq.js', 'js/views-news.js', 'js/views-tools.js', 'js/followups.js', 'js/views-activity.js'];
+  const files = ['js/layout.js', 'data/news.js', 'js/views-agenthq.js', 'js/views-news.js', 'js/views-tools.js', 'js/followups.js', 'js/outreach.js', 'js/views-activity.js'];
   files.forEach(f => { try { vm.runInContext(read(f) + '\n', ctx, { filename: f }); } catch (e) { throw new Error(f + ': ' + e.message); } });
   return { ctx, out, state, run: fn => { vm.runInContext(fn + '();', ctx); return out; } };
 }
@@ -120,8 +121,9 @@ test('the month calendar and the Log activity form sit beside the list', () => {
 test('the form is admin-only, and has the drawer\'s fields', () => {
   const side = act({}).content.slice(act({}).content.indexOf('class="act-side"'));
   assert.ok(/data-admin-only[^>]*><div class="card-header"><div class="card-title">Log activity/.test(side));
-  ['act-date', 'act-type', 'act-summary'].forEach(id => assert.ok(side.includes('id="' + id + '"'), id));
-  ['Call', 'Email', 'Meeting', 'Site visit', 'Proposal sent', 'Note'].forEach(t => assert.ok(side.includes('>' + t + '<'), t));
+  ['act-date', 'act-channel', 'act-outcome', 'act-people', 'act-followup', 'act-summary'].forEach(id => assert.ok(side.includes('id="' + id + '"'), id));
+  ['Email', 'LinkedIn message', 'Call', 'Online meeting', 'In-person meeting', 'Site visit', 'Proposal sent', 'Note'].forEach(t => assert.ok(side.includes('>' + t + '<'), t));
+  ['Replied', 'Meeting booked', 'Meeting held'].forEach(t => assert.ok(side.includes('>' + t + '<'), t));
 });
 test('All activity keeps the timeline, with the log card, and a Timeline / Table switch', () => {
   const o = act({ activityTab: 'all' });

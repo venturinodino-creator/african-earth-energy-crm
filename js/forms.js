@@ -192,8 +192,8 @@ function openAddDeal(offtakerId) {
   /* Open it where the account already is: a second opportunity on a
      company in negotiation does not start from scratch. A closed account
      is the exception — new work on it is new work, not a signed PPA. */
-  const at = o.id ? sfStageFor(o) : 'prospecting';
-  const startStage = at === 'closed' ? 'prospecting' : at;
+  const at = o.id ? sfStageFor(o) : 'outreach';
+  const startStage = at === 'closed' ? 'outreach' : at;
   setVal('md-stage', startStage);
   setVal('md-probability', stageProbability(startStage) ?? 10);
   setVal('md-close', '');
@@ -296,39 +296,79 @@ function openLogInteraction(offtakerId) {
   document.getElementById('mi-offtaker').innerHTML =
     accountOptions(accountKey(offtakerId) || here || '');
   setVal('mi-date', todayISO());
-  setVal('mi-type', 'call');
   setVal('mi-summary', '');
+  document.getElementById('mi-outreach').innerHTML = outreachFieldsHtml('mi');
+  outreachFormSync('mi', 'init');
   qcMode('modal-interaction', true);
   openModal('modal-interaction');
-  setTimeout(() => document.getElementById('mi-summary').focus(), 60);
+  setTimeout(() => document.getElementById('mi-channel').focus(), 60);
 }
 
 /* Logging an activity, whichever form it came from: the drawer or the form on the Activity
-   page. Returns true when it was saved, so the caller knows whether to close or clear. */
+   page. Returns true when it was saved, so the caller knows whether to close or clear.
+
+   Besides the entry itself this does three things, each so nothing is typed twice:
+     - a person typed in under "Someone not on file yet" is saved as a contact first;
+     - a reaching-out touch gets its number in the round, and a line written for it when
+       the summary is left empty;
+     - the account is moved forward when the entry says it should be (stageFromEntry):
+       a held meeting moves it to that meeting's stage, a first touch on a lead starts it
+       at Outreach. Never backwards. */
 function logInteraction(f) {
   const acc = parseAccountKey(f.offtakerId);
-  const summary = String(f.summary || '').trim();
   if (!acc.offtakerId) { toast('Pick an account', 'warn'); return false; }
-  if (!summary) { toast('Write a one-line summary — future you will need it', 'warn'); return false; }
+  const channel = outreachChannel(f.channel);
+  const contactIds = (f.contactIds || []).slice();
+
+  const fresh = f.newPerson;
+  let added = null;
+  if (fresh && (fresh.first || fresh.last)) {
+    if (fresh.email && !FORM_EMAIL_RE.test(fresh.email)) { toast('That does not look like an email address', 'warn'); return false; }
+    const dupe = state.contacts.find(c => c.offtakerId === acc.offtakerId && formKey(c.first) === formKey(fresh.first) && formKey(c.last) === formKey(fresh.last));
+    if (dupe) {
+      if (!contactIds.includes(dupe.id)) contactIds.push(dupe.id);
+    } else {
+      added = {
+        id: uid('c'), offtakerId: acc.offtakerId, first: fresh.first, last: fresh.last, title: fresh.title || '', dept: '',
+        email: fresh.email || '', phone: '', linkedin: fresh.linkedin || '',
+        role: 'influencer', priority: 'medium', status: 'active', notes: '',
+      };
+      contactIds.push(added.id);
+    }
+  }
+
   const entry = {
     id: uid('int'), offtakerId: acc.offtakerId,
-    date: f.date || todayISO(), type: f.type, summary,
+    date: f.date || todayISO(),
+    type: channel ? channel.type : (f.type || 'note'),
+    summary: String(f.summary || '').trim(),
+    channel: channel ? channel.id : '',
+    contactIds,
+    touchNo: channel && channel.outreach && contactIds.length ? nextTouchNumber(contactIds, state.interactions) : 0,
+    outcome: f.outcome || '',
+    followUpOn: f.followUpOn || '',
+    createdAt: new Date().toISOString(),
   };
+  if (!entry.summary) entry.summary = autoSummary(entry, added ? state.contacts.concat([added]) : state.contacts);
+  if (!entry.summary) {
+    toast(channel && channel.outreach ? 'Tick who it went to, or write a line about it' : 'Write a one-line summary — future you will need it', 'warn');
+    return false;
+  }
+
+  if (added) { state.contacts.push(added); pushContact(added); }
   state.interactions.push(entry);
   pushInteraction(entry);
-  /* Logging the first real contact nudges a cold account forward, so the
-     record stops lying about where it stands. */
+
   const o = state.offtakers.find(x => x.id === acc.offtakerId);
-  if (o && o.status === 'prospect') {
-    o.status = 'engaged'; o.sfStage = 'needs-analysis'; pushOfftaker(o);
-  }
+  const target = o ? stageFromEntry(entry, inPipeline(o)) : '';
+  const moved = target ? advanceStageFromActivity(o, target, entry) : null;
   save();
-  toast('Activity logged');
+  toast('Activity logged' + (added ? ' · ' + (added.first + ' ' + added.last).trim() + ' added as a contact' : '') + (moved ? ' · moved to ' + moved : ''));
   return true;
 }
 
 function saveInteraction() {
-  const done = logInteraction({ offtakerId: val('mi-offtaker'), date: val('mi-date'), type: val('mi-type'), summary: val('mi-summary') });
+  const done = logInteraction(outreachFormValues('mi'));
   if (!done) return;
   closeModal('modal-interaction');
   render();

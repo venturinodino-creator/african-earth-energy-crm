@@ -55,6 +55,10 @@ test('"Head of Projects" fills Engineering', () => fills('Head of Projects', 'En
 test('"Executive Vice President: People and Sustainability" fills Sustainability / ESG', () =>
   fills('Executive Vice President: People and Sustainability', 'Sustainability', 'sustain'));
 test('"Chairperson" fills CEO / MD, like "Chairman"', () => fills('Chairperson', 'Board', 'exec'));
+test('"VP Sustainability" fills Sustainability / ESG, with no department on file', () => fills('VP Sustainability', '', 'sustain'));
+test('"Vice President: Energy" fills Energy / utilities', () => fills('Vice President: Energy', '', 'energy'));
+test('"SVP Operations" fills Operations / site', () => fills('SVP Operations', '', 'ops'));
+test('a VP in Finance fills CFO / finance through the department', () => fills('VP', 'Finance', 'finance'));
 
 console.log('\nthe department fills a seat when the title is a senior role');
 test('a Director in Finance fills CFO / finance', () => fills('Executive Director: Finance', 'Finance', 'finance'));

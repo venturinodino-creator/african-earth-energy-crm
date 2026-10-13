@@ -19,7 +19,7 @@ An off-taker that somebody is actively working. It has a sales stage and sits on
 _Avoid_: Deal (in user-facing text)
 
 **Work it**:
-The act of moving a lead into the Pipeline at its first sales stage. Never happens by merely opening a record.
+The act of moving a lead into the Pipeline at its first sales stage, Outreach. Done with the Work it button, or by logging a first touch to someone there. Never happens by merely opening a record.
 
 **Site**:
 One of African Earth Energy's own generation projects, with a catchment of off-takers around it.
@@ -41,7 +41,18 @@ Where finds wait to be accepted or discarded on the Contact finder page.
 ### Activity
 
 **Follow-up**:
-A date the CRM already holds that someone should act on: an open opportunity's target close date, or a parked off-taker's revisit date. It is not a separate task record, so nothing is entered twice, and it is completed where it already lives (closing the opportunity, clearing the revisit date). The Activity page groups follow-ups as Overdue, Today, Next 7 days and Later.
+A date the CRM already holds that someone should act on: an open opportunity's target close date, a parked off-taker's revisit date, or a touch's follow-up date while nobody has answered it. It is not a separate task record, so nothing is entered twice, and it is completed where it already lives (closing the opportunity, clearing the revisit date, logging the next touch or the reply). The Activity page groups follow-ups as Overdue, Today, Next 7 days and Later; a touch's follow-up is labelled **Chase**.
+
+**Touch**:
+One logged activity aimed at one or more people at an off-taker: an email, a LinkedIn connection request or message, a call, or a meeting. It records who it went to, the channel, which touch it was in the round, what came of it (sent, replied, meeting booked, meeting held, declined, no answer) and when to follow up.
+_Avoid_: Ping, hit
+
+**Round**:
+The reaching-out touches to one person: up to three, five working days apart. The touch number counts them; meetings and notes are not part of the round.
+_Avoid_: Sequence, cadence (in user-facing text)
+
+**Engagement**:
+Where one person stands, worked out from the touches logged against them: Not contacted, Contacted, Replied, Engaging (a meeting booked or held), Declined, or Gone cold (three unanswered touches and the last one more than five working days old). Never typed in.
 _Avoid_: Task, reminder
 
 ### Layout

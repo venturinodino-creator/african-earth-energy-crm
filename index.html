@@ -312,10 +312,12 @@
         <div class="fg"><label>Probability (%)</label><input id="md-probability" type="number" step="5" min="0" max="100" oninput="updateDealPreview()"></div>
         <div class="fg"><label>Stage</label>
           <select id="md-stage">
-            <option value="prospecting">Prospecting</option>
-            <option value="needs-analysis">Needs Analysis</option>
-            <option value="proposal">Proposal</option>
-            <option value="negotiation">Negotiation</option>
+            <option value="outreach">Outreach</option>
+            <option value="online-meeting">Online meeting</option>
+            <option value="in-person">In-person meeting</option>
+            <option value="needs-analysis">Needs analysis</option>
+            <option value="proposal">Commercial proposition</option>
+            <option value="negotiation">PPA finalisation</option>
             <option value="closed">Closed</option>
           </select>
         </div>
@@ -338,21 +340,15 @@
 
 <!-- ══ MODAL: LOG ACTIVITY ══════════════════════════════════════ -->
 <div class="overlay" id="modal-interaction">
-  <div class="modal" style="max-width:480px">
+  <div class="modal" style="max-width:560px">
     <div class="mh"><div><div class="qc-eyebrow">Quick create</div><h3>Log activity</h3></div><button class="modal-close" onclick="closeModal('modal-interaction')">&times;</button></div>
     <div class="qc-pills-slot" id="modal-interaction-pills"></div>
     <div class="mc">
       <div class="fgrid">
-        <div class="fg full"><label>Account *</label><select id="mi-offtaker"></select></div>
-        <div class="fg"><label>Date</label><input id="mi-date" type="date"></div>
-        <div class="fg"><label>Type</label>
-          <select id="mi-type">
-            <option value="call">Call</option><option value="email">Email</option>
-            <option value="meeting">Meeting</option><option value="site visit">Site visit</option>
-            <option value="proposal">Proposal sent</option><option value="note">Note</option>
-          </select>
-        </div>
-        <div class="fg full"><label>What happened *</label><textarea id="mi-summary" placeholder="Spoke to the energy manager. They will share half-hourly data next week; decision sits with the CFO."></textarea></div>
+        <div class="fg full"><label>Account *</label><select id="mi-offtaker" onchange="outreachFormSync('mi','account')"></select></div>
+        <div class="fg"><label>Date</label><input id="mi-date" type="date" onchange="outreachFormSync('mi','date')"></div>
+        <div class="ow-wrap" id="mi-outreach"></div>
+        <div class="fg full"><label id="mi-summary-label">What happened *</label><textarea id="mi-summary" placeholder="Spoke to the energy manager. They will share half-hourly data next week; decision sits with the CFO."></textarea></div>
       </div>
     </div>
     <div class="mf">
@@ -394,6 +390,7 @@
 <script src="js/import-rules.js"></script>
 <script src="js/views-import.js"></script>
 <script src="js/followups.js"></script>
+<script src="js/outreach.js"></script>
 <script src="js/views-activity.js"></script>
 <script src="js/forms.js"></script>
 <script src="js/forms-leads.js"></script>

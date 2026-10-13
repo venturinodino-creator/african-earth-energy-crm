@@ -322,7 +322,7 @@ function renderMunicipality() {
       '<button class="btn btn-ghost btn-xs" onclick="openLogInteraction(\'' + m.id + '\')">Log</button></div>' +
       (logs.length ? logs.map(i =>
         '<div class="int-row"><div class="int-dot"></div><div class="int-body">' +
-        '<div class="int-meta">' + esc(i.type) + ' · ' + esc(i.date) + ' · ' + relTime(i.date) + '</div>' +
+        '<div class="int-meta">' + esc(entryMetaText(i)) + ' · ' + esc(i.date) + ' · ' + relTime(i.date) + '</div>' +
         '<div class="int-text">' + esc(i.summary) + '</div></div>' +
         '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('')
         : '<div class="empty" style="padding:26px 10px"><h3>Nothing logged</h3>' +

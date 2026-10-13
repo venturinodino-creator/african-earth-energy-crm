@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const scopeStubs = require('./scope-stubs');
+const outreachVocab = require('./outreach-vocab');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -32,7 +33,7 @@ function run(book) {
   const out = { page: null, content: '' };
   const state = Object.assign({ contactRuns: [], foundContacts: [] }, book);
   const ctx = vm.createContext({
-    ...scopeStubs(state),
+    ...scopeStubs(state), ...outreachVocab(),
     console, setTimeout: () => 0, document: { querySelectorAll: () => [] },
     esc, num, fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v)), icon: () => '', jsStr: v => JSON.stringify(String(v)),
     relTime: () => 'today', avatarColor: () => '#555', sectorName: s => s, STATUS_LABEL: { prospect: 'Prospect' },
@@ -45,8 +46,8 @@ function run(book) {
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; },
     state,
   });
-  /* followups.js and views-activity.js are the shared follow-up logic and its row, which the Dashboard reuses. */
-  ['views-dashboard', 'followups', 'views-activity'].forEach(f => vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), ctx));
+  /* followups.js, outreach.js and views-activity.js are the shared follow-up logic and its row, which the Dashboard reuses. */
+  ['views-dashboard', 'followups', 'outreach', 'views-activity'].forEach(f => vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), ctx));
   vm.runInContext('renderDashboard();', ctx);
   return out;
 }

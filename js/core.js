@@ -417,8 +417,10 @@ async function load() {
     console.warn('Could not reach Supabase, falling back to the local cache:', e);
     const cache = lsGet('cache', null);
     if (cache) {
-      state.offtakers = cache.offtakers || [];
-      state.archived = cache.archived || [];
+      /* A cache written before a stage rename still holds the old ids. */
+      const restage = o => ({ ...o, sfStage: normalizeSfStage(o.sfStage) });
+      state.offtakers = (cache.offtakers || []).map(restage);
+      state.archived = (cache.archived || []).map(restage);
       state.archivedContacts = cache.archivedContacts || [];
       state.contacts = cache.contacts || [];
       state.deals = (cache.deals || []).map(d => ({ ...d, stage: normalizeDealStage(d.stage) }));
@@ -461,7 +463,7 @@ function weightedValue(d) {
 
 /* ─── SALESFORCE SALES PATH ───────────────────────────────────────
    One stage per ACCOUNT — an offtaker, or a prospect that is being worked
-   before it has been promoted. The deal board runs the same five stages
+   before it has been promoted. The deal board runs the same seven stages
    on one opportunity at a time; this is the same question asked of the
    company itself, and the two are kept in step (see below). */
 function sfStageOf(id) { return SF_STAGES.find(s => s.id === id) || null; }
@@ -470,14 +472,14 @@ function sfStageIndex(id) { return SF_STAGES.findIndex(s => s.id === id); }
 /* The stage on the record, or the one implied by the status it already
    carries, so nothing has to be back-filled before the board is useful. */
 function sfStageFor(rec) {
-  if (!rec) return 'prospecting';
+  if (!rec) return 'outreach';
   if (rec.sfStage && sfStageOf(rec.sfStage)) return rec.sfStage;
-  return STATUS_TO_SF_STAGE[rec.status] || 'prospecting';
+  return STATUS_TO_SF_STAGE[rec.status] || 'outreach';
 }
 function sfStageLabel(rec) { return (sfStageOf(sfStageFor(rec)) || {}).label || '—'; }
 
 /* ─── ONE STAGE, TWO BOARDS ──────────────────────────────────────
-   The deal board and the account path run the same five stages, so they
+   The deal board and the account path run the same seven stages, so they
    are held together rather than left to drift apart: an account sits
    where its furthest-along opportunity sits, and moving the account
    brings its opportunities with it.
@@ -596,7 +598,7 @@ function sfStageBadge(rec) {
   const cls = stage === 'closed' ? (sfIsClosedLost(rec) ? 'b-lost' : 'b-contracted')
     : stage === 'negotiation' ? 'b-negotiating'
     : stage === 'proposal' ? 'b-qualified'
-    : stage === 'needs-analysis' ? 'b-engaged' : 'b-prospect';
+    : stage === 'outreach' ? 'b-prospect' : 'b-engaged';
   const label = stage === 'closed'
     ? (sfIsClosedLost(rec) ? 'Closed lost' : 'Closed won')
     : (sfStageOf(stage) || {}).label;
@@ -710,7 +712,7 @@ function sfPathHtml(rec) {
 }
 
 /* There is deliberately no card for a company outside the pipeline. A
-   greyed-out path used to sit on every lead, and drawing the five stages
+   greyed-out path used to sit on every lead, and drawing the stages
    at all - even idle - claims a sales process that does not exist. The
    move that starts one is the "Work it" button in the record's header;
    the stages appear the moment it lands in the Pipeline. */
