@@ -158,5 +158,36 @@ test('a touch logged with no summary gets one; a meeting does not', () => {
   assert.strictEqual(call('autoSummary(' + J({ channel: 'email', contactIds: [] }) + ', ' + J(people) + ')'), '', 'nobody ticked, nothing to say');
 });
 
+console.log('\nOn the pipeline');
+test('a reply logged as an email is not one of our touches', () => {
+  const log = [
+    { offtakerId: 'o1', date: '2026-10-01', channel: 'email', outcome: 'sent', contactIds: ['c1'] },
+    { offtakerId: 'o1', date: '2026-10-02', channel: 'email', outcome: 'replied', contactIds: ['c1'] },
+  ];
+  assert.strictEqual(call('nextTouchNumber(["c1"], ' + J(log) + ')'), 2);
+});
+test('each seat takes the strongest answer among the people who fill it, or is a gap', () => {
+  const ladder = '[{ k: "sustain", label: "Sustainability", re: /sustain/i }, { k: "eng", label: "Engineering", re: /engineer/i }, { k: "proc", label: "Procurement", re: /procure/i }]';
+  const log = [{ date: '2026-10-10', channel: 'online-meeting', outcome: 'held', contactIds: ['c1'] }, { date: '2026-10-10', channel: 'email', outcome: 'sent', contactIds: ['c2'] }];
+  const seats = call('seatCoverage(' + J(people) + ', ' + J(log) + ', "2026-10-13", ' + ladder + ', (s, c) => s.re.test(c.title)).map(s => s.k + ":" + s.state)');
+  assert.deepStrictEqual(seats, ['sustain:engaging', 'eng:contacted', 'proc:gap']);
+});
+test('reach counts the people with anything logged, and names the ones engaging', () => {
+  const log = [{ date: '2026-10-10', channel: 'online-meeting', outcome: 'held', contactIds: ['c1'] }];
+  const r = call('reachSummary(' + J(people) + ', ' + J(log) + ', "2026-10-13")');
+  assert.strictEqual(r.total, 2); assert.strictEqual(r.reached, 1); assert.strictEqual(r.engaging[0].first, 'Thandi');
+});
+test('the last touch leaves out the app\'s own stage notes; a forward move this week is found', () => {
+  const log = [
+    { id: 'a', date: '2026-10-08', channel: 'online-meeting', outcome: 'held', createdAt: '1' },
+    { id: 's', date: '2026-10-08', type: 'stage change', summary: 'Sales stage moved from Outreach to Online meeting.', createdAt: '2' },
+    { id: 'old', date: '2026-09-01', type: 'stage change', summary: 'Sales stage moved from Outreach to Online meeting.', createdAt: '0' },
+  ];
+  assert.strictEqual(call('lastTouchEntry(' + J(log) + ').id'), 'a');
+  const dir = 's => /from Outreach to/.test(s) ? 1 : 0';
+  assert.strictEqual(call('(recentForwardMove(' + J(log) + ', "2026-10-13", 7, ' + dir + ') || {}).id'), 's');
+  assert.strictEqual(call('recentForwardMove(' + J(log) + ', "2026-10-20", 7, ' + dir + ')'), null, 'not when it is over a week old');
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
 if (fail) process.exit(1);

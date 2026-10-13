@@ -78,11 +78,13 @@ function touchesTo(contactId, interactions) {
 
 /* The number the next reaching-out touch to these people would carry: one
    more than the most anyone among them has had. A meeting or a note is not
-   a touch in the round, so it does not count. */
+   a touch in the round, so it does not count, and neither is their reply
+   logged as an email: that is them reaching us. */
+function isRoundTouch(i) { return isOutreachTouch(i) && i.outcome !== 'replied'; }
 function nextTouchNumber(contactIds, interactions) {
   const ids = (contactIds || []).filter(Boolean);
   if (!ids.length) return 1;
-  const most = Math.max(0, ...ids.map(id => touchesTo(id, interactions).filter(isOutreachTouch).length));
+  const most = Math.max(0, ...ids.map(id => touchesTo(id, interactions).filter(isRoundTouch).length));
   return most + 1;
 }
 
@@ -159,9 +161,9 @@ function outreachFollowUps(interactions, offtakers, contacts) {
     const c = outreachChannel(channelOfEntry(t));
     const who = open.map(id => people[id]).filter(Boolean).map(p => (p.first + ' ' + p.last).trim());
     out.push({
-      kind: 'outreach', id: t.id, key: 'touch-' + t.id, accountId: o.id, account: nameOf(o), date: t.followUpOn,
+      kind: 'outreach', id: t.id, key: 'touch-' + t.id, accountId: o.id, account: nameOf(o), date: t.followUpOn, people: open.slice(),
       title: 'Follow up' + (who.length ? ' with ' + who.join(', ') : ''),
-      detail: (c ? c.label : 'Touch') + (t.touchNo ? ' · touch ' + t.touchNo : '') + ' on ' + t.date + ', no reply logged',
+      detail: (c ? c.label : 'Touch') + (t.touchNo ? ' · touch ' + t.touchNo : '') + ' on ' + (fuDate(t.date) || t.date) + ', no reply logged',
     });
   });
   return out;
@@ -194,4 +196,56 @@ function autoSummary(entry, contacts) {
     .map(p => (p.first + ' ' + p.last).trim() + (p.title ? ' (' + p.title + ')' : ''));
   if (!who.length) return '';
   return c.label + (entry.touchNo ? ', touch ' + entry.touchNo : '') + ' to ' + who.join(', ') + '.';
+}
+
+/* ─── ON THE PIPELINE ─────────────────────────────────────────────
+   What a pipeline card and the account panel read about an account's
+   people and outreach. All pure: the ladder and the rule that says whether
+   a person fills a seat are passed in (AE_LADDER and aeSeatMatch in
+   js/views-orgmap.js), so the board and the org map can never disagree
+   about who sits where. */
+
+/* Strongest first, for picking the best answer when two people fill one
+   seat. A gap, nobody on file, is weakest of all. */
+const ENGAGEMENT_RANK = { gap: 0, 'not-contacted': 1, cold: 2, declined: 2, contacted: 3, replied: 4, engaging: 5 };
+
+/* Each seat on the ladder with the strongest engagement among the people
+   who fill it, or 'gap' when nobody does. */
+function seatCoverage(contacts, interactions, today, ladder, fills) {
+  return (ladder || []).map(seat => {
+    let best = 'gap';
+    const who = [];
+    (contacts || []).forEach(c => {
+      if (!fills(seat, c)) return;
+      who.push(c);
+      const e = contactEngagement(c.id, interactions, today);
+      if (ENGAGEMENT_RANK[e] > ENGAGEMENT_RANK[best]) best = e;
+    });
+    return { k: seat.k, label: seat.label, state: best, people: who };
+  });
+}
+
+/* People reached (anything logged against them) and people engaging. */
+function reachSummary(contacts, interactions, today) {
+  const states = (contacts || []).map(c => ({ c, e: contactEngagement(c.id, interactions, today) }));
+  return {
+    total: states.length,
+    reached: states.filter(s => s.e !== 'not-contacted').length,
+    engaging: states.filter(s => s.e === 'engaging').map(s => s.c),
+  };
+}
+
+/* The latest thing anybody did, leaving out the app's own stage notes. */
+function lastTouchEntry(interactions) {
+  return (interactions || []).filter(i => i.type !== 'stage change').slice().sort(byWhen).pop() || null;
+}
+
+/* The forward stage move in the last `days` days, if there was one: the
+   newest stage-change entry whose sentence reads forward. `direction` is
+   the pipeline's own reader of those sentences (stageMoveDirection). */
+function recentForwardMove(interactions, today, days, direction) {
+  const since = addDays(today, -days);
+  const moves = (interactions || []).filter(i => i.type === 'stage change' && String(i.date || '') >= since && direction(i.summary) > 0)
+    .slice().sort(byWhen);
+  return moves.pop() || null;
 }

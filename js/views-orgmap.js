@@ -35,8 +35,8 @@
    Energy & Utilities" reads as an energy lead on a naive match, but
    they run the RFP — a different conversation, at a different time. */
 const AE_PROC_RE    = /\bprocure\w*\b|\bsupply\s+chain\b|\bcategory\s+manager\b|\bsourcing\b|\bcontracts?\s+manager\b|\bbuyer\b|\btender\w*\b/i;
-const AE_ENERGY_RE  = /\b(?:energy|utilit\w*|electricity|power)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|executive)\b|\b(?:director|head|chief|manager|lead|executive)\b[^,;|]{0,32}\b(?:energy|utilit\w*|electricity|power)\b/i;
-const AE_SUSTAIN_RE = /\bchief\s+sustainability\s+officer\b|\b(?:sustainab\w*|esg|carbon|decarbonis\w*|decarboniz\w*|climate|environment\w*|net[-\s]?zero|energy\s+transition)\b[^,;|]{0,32}\b(?:director|head|chief|manager|lead|officer|executive|president)\b|\b(?:director|head|chief|manager|lead|officer|executive|president)\b[^,;|]{0,32}\b(?:sustainab\w*|esg|carbon|decarbonis\w*|climate|environment\w*|energy\s+transition)\b/i;
+const AE_ENERGY_RE  = /\b(?:energy|utilit\w*|electricity|power)\b[^,;|]{0,32}\b(?:vp|evp|svp|vice[-\s]president|director|head|chief|manager|lead|executive)\b|\b(?:vp|evp|svp|vice[-\s]president|director|head|chief|manager|lead|executive)\b[^,;|]{0,32}\b(?:energy|utilit\w*|electricity|power)\b/i;
+const AE_SUSTAIN_RE = /\bchief\s+sustainability\s+officer\b|\b(?:sustainab\w*|esg|carbon|decarbonis\w*|decarboniz\w*|climate|environment\w*|net[-\s]?zero|energy\s+transition)\b[^,;|]{0,32}\b(?:vp|evp|svp|vice[-\s]president|director|head|chief|manager|lead|officer|executive|president)\b|\b(?:vp|evp|svp|vice[-\s]president|director|head|chief|manager|lead|officer|executive|president)\b[^,;|]{0,32}\b(?:sustainab\w*|esg|carbon|decarbonis\w*|climate|environment\w*|energy\s+transition)\b/i;
 const AE_FINANCE_RE = /\bchief\s+financ(?:e|ial)\s+officer\b|\bcfo\b|\bfinanc\w*\s+director\b|\bhead\s+of\s+financ\w*\b|\bfinancial\s+manager\b|\bgroup\s+financ\w*\b|\btreasur\w*\b/i;
 /* The municipal alternatives are not decoration. A municipality's
    accounting officer is its Municipal Manager — the CEO seat in all but
@@ -46,7 +46,7 @@ const AE_FINANCE_RE = /\bchief\s+financ(?:e|ial)\s+officer\b|\bcfo\b|\bfinanc\w*
    for Technical or Infrastructure Services, which is where a
    municipality keeps the distribution network. */
 const AE_EXEC_RE    = /\bchief\s+executive(?:\s+officer)?\b|\bceo\b|\bmanaging\s+director\b|\bexecutive\s+chairman\b|\bchairman\b|\bchairperson\b|\bstrategy\s+director\b|\bdirector\s+of\s+strategy\b|\b(?:municipal|city)\s+manager\b|\bexecutive\s+mayor\b|\baccounting\s+officer\b/i;
-const AE_OPS_RE     = /\bchief\s+operat(?:ing|ions?)\s+officer\b|\bcoo\b|\boperations?\b[^,;|]{0,28}\b(?:director|head|manager|executive)\b|\b(?:director|head|manager|executive)\b[^,;|]{0,28}\boperations?\b|\bgeneral\s+manager\b|\b(?:plant|mine|mill|works|site|production)\s+manager\b|\b(?:technical|infrastructure)\s+services\b/i;
+const AE_OPS_RE     = /\bchief\s+operat(?:ing|ions?)\s+officer\b|\bcoo\b|\boperations?\b[^,;|]{0,28}\b(?:vp|evp|svp|vice[-\s]president|director|head|manager|executive)\b|\b(?:vp|evp|svp|vice[-\s]president|director|head|manager|executive)\b[^,;|]{0,28}\boperations?\b|\bgeneral\s+manager\b|\b(?:plant|mine|mill|works|site|production)\s+manager\b|\b(?:technical|infrastructure)\s+services\b/i;
 const AE_ENG_RE     = /\bengineer\w*\b|\bchief\s+technical\s+officer\b|\bhead\s+of\s+(?:technical|projects?)\b|\bexecutive\s+head\s+(?:of\s+)?technical\b|\btechnical\b[^,;|]{0,28}\b(?:director|head|manager|lead)\b|\bmaintenance\b|\bprojects?\s+manager\b|\basset\s+manager\b|\breticulation\b/i;
 
 /* The bands the seniority bar is drawn from. Colours are the app's own
@@ -110,7 +110,7 @@ const AE_LADDER = [
 
 /* A senior role, whatever the area: the department then says which. A junior
    title (analyst, accountant, clerk) in a seat's department does not fill it. */
-const AE_SENIOR_RE = /\b(?:director|head|chief|manager|executive|lead|officer|president|superintendent|hod)\b/i;
+const AE_SENIOR_RE = /\b(?:vp|evp|svp|vice[-\s]president|director|head|chief|manager|executive|lead|officer|president|superintendent|hod)\b/i;
 
 /* A seat is filled by the title (read as before) or, for a senior role, by the
    department. The org map lists everyone by department, so a person it shows
