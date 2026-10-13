@@ -16,6 +16,18 @@ const NEWS_AUTO = [
     "auto": true
   },
   {
+    "id": "auto-269bjh",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-12",
+    "title": "Yellow Door Energy begins construction of 49 MWp Lion Thorn Solar Park in South Africa",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Green Building Africa",
+    "url": "https://www.greenbuildingafrica.co.za/yellow-door-energy-begins-construction-of-49-mwp-lion-thorn-solar-park-in-south-africa/",
+    "auto": true
+  },
+  {
     "id": "auto-fp8c2s",
     "topic": "renewable_energy",
     "province": "Multiple",
@@ -25,6 +37,18 @@ const NEWS_AUTO = [
     "whyItMatters": "",
     "source": "Infrastructure News",
     "url": "https://infrastructurenews.co.za/2026/10/12/yellow-door-energy-breaks-ground-on-49-mwp-lion-thorn-solar-park-advancing-south-africas-just-energy-transition/",
+    "auto": true
+  },
+  {
+    "id": "auto-ii6in",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-12",
+    "title": "Lion Thorn Solar Park breaks ground with 49MW contracted to PPC and POWERX",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Energy News Network",
+    "url": "https://energy-news-network.com/industry-news/lion-thorn-solar-park-construction-powerchina/",
     "auto": true
   },
   {
