@@ -62,7 +62,9 @@ let state = {
      is invisible there and the move reads as having done nothing. The
      account board answers the question the nav item asks: who are we
      working. Deals stays one click away. */
-  pipeView: storedView('pipeView', 'accounts'),
+  /* The Pipeline always opens on its list of opportunities; Board and Flow
+     are a tab away. */
+  pipeView: 'list',
   /* Set by "Stalled only" on the Flow page and read by the accounts board.
      It narrows the pipeline, so it lives here rather than with the
      Prospects filters — a lead has no stage and so cannot stall. */
@@ -759,7 +761,7 @@ function dealAccount(d) {
 }
 
 /* ─── ROUTING ─────────────────────────────────────────────────── */
-const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map', 'project']);
+const ID_SCOPED_VIEWS = new Set(['detail', 'sector', 'org-map', 'project', 'opportunity']);
 
 function navUrlFor(view, id) {
   const p = new URLSearchParams(location.search);
@@ -776,7 +778,7 @@ function nav(view, extra, fromHistory) {
   if (typeof selectionReset === 'function') selectionReset();   // a ticked row belongs to the page it was ticked on
   if (extra.id) { if (view === 'sector') state.sectorId = extra.id; else if (view === 'project') state.projectId = extra.id; else state.detailId = extra.id; }
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const target = document.querySelector('[data-view="' + (view === 'project' ? 'projects' : view) + '"]');
+  const target = document.querySelector('[data-view="' + (view === 'project' ? 'projects' : view === 'opportunity' ? 'pipeline' : view) + '"]');
   if (target) target.classList.add('active');
   toggleSidebar(false);
   closeMenus();
@@ -804,6 +806,7 @@ addEventListener('popstate', e => {
     id = p.get('id');
   }
   if ((view === 'detail' || view === 'org-map') && !(id && getOfftaker(id).id)) { view = 'offtakers'; id = null; }
+  if (view === 'opportunity' && !(id && getOfftaker(id).id)) { view = 'pipeline'; id = null; }
   if (view === 'sector' && !(id && sectorOf(id))) { view = 'sectors'; id = null; }
   if (view === 'project' && !(id && state.projects.some(p => p.id === id))) { view = 'projects'; id = null; }
   if (id) { if (view === 'sector') state.sectorId = id; else if (view === 'project') state.projectId = id; else state.detailId = id; }
@@ -825,6 +828,11 @@ function crumbsFor(view) {
         ? [parent, { label: name }]
         : [parent, { label: name, on: 'nav(\'detail\',{id:' + jsStr(o.id) + '})' }, { label: 'Org map' }];
     }
+  }
+  /* An opportunity is a row of the Pipeline, so that is its parent. */
+  if (view === 'opportunity') {
+    const o = getOfftaker(state.detailId);
+    if (o.id) return [{ label: 'Pipeline', on: "nav('pipeline')" }, { label: o.short || o.name }];
   }
   if (view === 'project') {
     const site = state.projects.find(p => p.id === state.projectId);
@@ -866,6 +874,7 @@ function render() {
     pipeline: renderPipeline,
     offtakers: renderOfftakers,
     detail: renderDetail,
+    opportunity: renderOpportunity,
     municipalities: renderMunicipalities,
     municipality: renderMunicipality,
     'org-map': renderOrgMap,
@@ -989,6 +998,7 @@ function toggleSidebar(force) {
    everything that has no tab of its own lives under More. */
 function bottomTabFor(view) {
   if (['dashboard', 'offtakers', 'pipeline', 'contacts'].includes(view)) return view;
+  if (view === 'opportunity') return 'pipeline';
   if (['detail', 'org-map', 'sector', 'municipality'].includes(view)) return null;
   return 'more';
 }
@@ -1479,6 +1489,7 @@ async function onSignedIn(session) {
   let view = p.get('view') || 'dashboard';
   const id = p.get('id');
   if ((view === 'detail' || view === 'org-map') && !getOfftaker(id).id) view = 'offtakers';
+  if (view === 'opportunity' && !getOfftaker(id).id) view = 'pipeline';
   if (view === 'sector' && !sectorOf(id)) view = 'sectors';
   if (view === 'project' && !state.projects.some(p => p.id === id)) view = 'projects';
   nav(view, id ? { id } : {}, true);

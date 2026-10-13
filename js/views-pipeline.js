@@ -26,10 +26,13 @@
 'use strict';
 
 function renderPipeline() {
-  /* 'board' was the deal board's key; a browser that stored it, or a
-     link that still sends it, lands on the one board there is. */
-  if (state.pipeView === 'board' || !['accounts', 'flow', 'table'].includes(state.pipeView)) {
-    state.pipeView = 'accounts';
+  /* List is the pipeline's front page: one row per opportunity, the stage as
+     a label, and a click opens the full opportunity (js/views-opportunity.js).
+     The Board, with a column per stage, is the second reading. 'table' was
+     the list's old key, and 'board' the old deal board's; both land on the
+     reading that replaced them. */
+  if (state.pipeView === 'table' || !['list', 'accounts', 'flow'].includes(state.pipeView)) {
+    state.pipeView = 'list';
   }
   /* The pipeline follows the province scope: its accounts, and the opportunities open on them. */
   const open = liveDeals(scopedDeals());
@@ -47,7 +50,7 @@ function renderPipeline() {
   /* The three readings of the one pipeline are tabs, the way Priority list and
      Archive are on Off-taker Prospects. */
   const readingTab = (key, label) => ({ label, active: state.pipeView === key, on: "setViewMode('pipeView','" + key + "')" });
-  const tabs = viewTabsHtml([readingTab('accounts', 'Board'), readingTab('flow', 'Flow'), readingTab('table', 'Table')]);
+  const tabs = viewTabsHtml([readingTab('list', 'List'), readingTab('accounts', 'Board'), readingTab('flow', 'Flow')]);
 
   if (state.pipeView === 'flow') {
     setContent(tabs + pipelineStats() + flowHtml());
@@ -55,12 +58,12 @@ function renderPipeline() {
     return;
   }
 
-  if (state.pipeView === 'table') {
-    setContent(tabs + pipelineStats() + pipeFilterBarHtml() + selectionSlotHtml('pipeline') + accountTableHtml() +
-      '<div class="fg-hint" style="margin-top:12px">One row per company, like Salesforce\'s pipeline inspection. ' +
-      'Click Stage, In stage or Open MW to sort; This week flags a stage moved forward, a stall and anybody to chase. ' +
-      'Click a name to open the account beside the list. Export selected downloads the opportunities open on the ' +
-      'accounts you tick.</div>' + pipePanelHtml());
+  if (state.pipeView === 'list') {
+    setContent(tabs + stageDriftCardHtml() + pipelineStats() + pipeFilterBarHtml() + selectionSlotHtml('pipeline') + accountTableHtml() +
+      '<div class="fg-hint" style="margin-top:12px">One row per opportunity, like Salesforce\'s opportunity list. ' +
+      'The small bar under each stage is the seven steps of the sales path. Click Opportunity, Stage, In stage or ' +
+      'Open MW to sort, and click a name to open the full opportunity. Export selected downloads the opportunities ' +
+      'open on the accounts you tick.</div>');
     selectionRefresh();
     return;
   }
@@ -73,7 +76,7 @@ function renderPipeline() {
     'A company appears here only once somebody has pressed <b>Work it</b> on it in Off-taker Prospects, ' +
     'and it leaves that list the moment it does — a record is a lead or an opportunity, never both. ' +
     'The bar on each card is the seven ladder seats: green engaging, gold replied, blue contacted, red gone ' +
-    'cold or declined, dashed nobody on file. Click a card to open the account beside the board.</div>' + pipePanelHtml());
+    'cold or declined, dashed nobody on file. Click a card to open the full opportunity.</div>');
 }
 
 /* ═══ OUTREACH ON THE PIPELINE ═══════════════════════════════════
@@ -111,6 +114,7 @@ const PIPE_FILTERS = [
   { id: 'nomeet', label: 'No meeting yet', test: o => sfStageFor(o) === 'outreach' },
   { id: 'stalled', label: 'Stalled', test: o => isStalled(o) },
   { id: 'moved', label: 'Moved this week', test: o => !!pipeInfo(o).moved },
+  { id: 'late', label: 'Late stage', test: o => sfStageIndex(sfStageFor(o)) >= sfStageIndex('proposal') && sfStageFor(o) !== 'closed' },
 ];
 function pipeFilterId() {
   if (state.pipeStalled === 'stalled') return 'stalled';
@@ -188,85 +192,8 @@ function movedPillHtml(info) {
   return '<span class="pc-moved">↑ ' + esc(m ? 'from ' + m[1] : 'moved') + '</span>';
 }
 
-/* ─── THE ACCOUNT PANEL ───────────────────────────────────────────
-   Clicking a card or a table row opens the account beside the pipeline
-   rather than leaving it, the way Salesforce opens a record from a list:
-   the sales path to move it, the figures, who to chase, who is there and
-   where each stands, and everything logged. The full record page is one
-   button away. */
-function openPipePanel(id) { state.pipePanel = id; renderPipeline(); }
-function closePipePanel() { state.pipePanel = ''; renderPipeline(); }
-function pipePanelOpenRecord(id) { state.pipePanel = ''; nav(accountView(id), { id }); }
-
-function pipePanelHtml() {
-  const rec = state.pipePanel ? state.offtakers.find(o => o.id === state.pipePanel) : null;
-  if (!rec || !inPipeline(rec)) return '';
-  const info = pipeInfo(rec);
-  const today = todayISO();
-  const st = sfStageOf(sfStageFor(rec)) || {};
-  const open = dealsFor(rec.id).filter(isLiveDeal);
-  const mw = open.reduce((a, d) => a + num(d.mw), 0);
-  const weighted = open.reduce((a, d) => a + weightedValue(d), 0);
-  const close = open.map(d => d.closeDate).filter(Boolean).sort()[0] || '';
-  const fact = (label, value) => '<div class="pp-fact"><div class="pp-fl">' + esc(label) + '</div><div class="pp-fv">' + value + '</div></div>';
-  const seatOf = c => (AE_LADDER.find(s => aeSeatMatch(s, c)) || {}).label || 'Other';
-  const people = info.people.map(c => ({ c, e: contactEngagement(c.id, info.logs, today) }))
-    .sort((a, b) => ENGAGEMENT_RANK[b.e] - ENGAGEMENT_RANK[a.e] || (a.c.last || '').localeCompare(b.c.last || ''));
-  const gaps = info.seats.filter(s => s.state === 'gap');
-  const nameOf = id => { const p = info.people.find(x => x.id === id); return p ? (p.first + ' ' + p.last).trim() : ''; };
-
-  const chaseHtml = info.chases.length
-    ? '<div class="pp-sec"><h3>Chase</h3>' + info.chases.map(c =>
-        '<div class="pp-chase"><div><div class="pp-name">' + esc((c.people || []).map(nameOf).filter(Boolean).join(', ') || c.title) + '</div>' +
-        '<div class="pp-sub">' + esc(c.detail) + '</div></div>' +
-        '<span class="pc-chase' + (c.date <= today ? ' due' : '') + '">' +
-          esc(c.date < today ? 'Overdue · ' + fuDate(c.date) : c.date === today ? 'Due today' : 'Due ' + fuDate(c.date)) + '</span></div>').join('') +
-      '</div>'
-    : '';
-  const peopleHtml = '<div class="pp-sec"><h3>Stakeholders <span class="pp-sub">' + esc(reachText(info)) + '</span></h3>' +
-    (people.length ? people.map(({ c, e }) => {
-      const n = info.logs.filter(i => (i.contactIds || []).includes(c.id)).length;
-      return '<div class="pp-person"><div class="pp-seat">' + esc(seatOf(c)) + '</div>' +
-        '<div style="min-width:0"><div class="pp-name">' + esc((c.first + ' ' + c.last).trim() || 'Unnamed') + '</div>' +
-        '<div class="pp-sub">' + esc(c.title || '—') + ' · ' + n + ' touch' + (n === 1 ? '' : 'es') + '</div></div>' +
-        '<span class="ow-eng ow-' + e + '">' + esc(ENGAGEMENT_LABEL[e]) + '</span></div>';
-    }).join('') : '<div class="pp-sub">Nobody on file yet. Add someone from Log touch, or from the record.</div>') +
-    (gaps.length ? '<div class="pp-gaps"><span class="pp-sub">Nobody on file:</span>' +
-      gaps.map(s => '<span class="pp-gap">' + esc(s.label) + '</span>').join('') + '</div>' : '') +
-    '</div>';
-  const logs = logsForAccount(rec);
-  const timelineHtml = '<div class="pp-sec"><h3>Touches and moves</h3>' +
-    (logs.length ? logs.slice(0, 25).map(i =>
-      '<div class="pp-ti"><span class="pp-dot' + (i.type === 'stage change' ? ' stage' : '') + '"></span><div style="min-width:0">' +
-        '<div class="pp-th">' + esc(entryMetaText(i)) + ' · ' + esc(fuDate(i.date) || i.date) + '</div>' +
-        '<div>' + esc(i.summary) + '</div></div></div>').join('')
-      : '<div class="pp-sub">Nothing logged yet.</div>') + '</div>';
-
-  return '<div class="pp-scrim" onclick="closePipePanel()"></div>' +
-    '<aside class="pp-panel" aria-label="' + esc(rec.short || rec.name) + '">' +
-      '<div class="pp-head">' +
-        '<div class="pp-top"><div style="min-width:0"><h2>' + esc(rec.short || rec.name) + '</h2>' +
-          '<div class="pp-sub">' + esc(sectorName(rec.sector)) + (rec.city ? ' · ' + esc(rec.city) : '') + (rec.province ? ', ' + esc(rec.province) : '') + '</div></div>' +
-          '<div class="pp-acts">' +
-            '<button class="btn btn-primary btn-sm" data-admin-only onclick="openLogInteraction(' + jsStr(rec.id) + ')">' + icon('plus', 13) + ' Log touch</button>' +
-            '<button class="btn btn-outline btn-sm" onclick="pipePanelOpenRecord(' + jsStr(rec.id) + ')">Open record</button>' +
-            '<button class="pp-x" aria-label="Close" onclick="closePipePanel()">&times;</button>' +
-          '</div></div>' +
-        sfPathHtml(rec) +
-        '<div class="pp-sub" style="margin-top:6px">' + esc(st.hint || '') + ' ' + dwellSentenceHtml(rec) + '</div>' +
-      '</div>' +
-      '<div class="pp-body">' +
-        '<div class="pp-facts">' +
-          fact('Load', isUnworked(rec) ? 'not established' : fmtNum(rec.annualGwh) + ' GWh/yr') +
-          fact('Open MW', open.length ? fmtNum(mw) + ' MW' : '—') +
-          fact('Weighted', open.length ? fmtR(weighted) : '—') +
-          fact('Close date', close ? esc(fuDate(close)) : '—') +
-          fact('Probability', (stageProbability(sfStageFor(rec)) ?? '—') + '%') +
-        '</div>' +
-        chaseHtml + peopleHtml + timelineHtml +
-      '</div>' +
-    '</aside>';
-}
+/* Clicking an opportunity, on the list or the board, opens its full page. */
+function openOpportunity(id) { nav('opportunity', { id }); }
 
 /* One stat row for the one board: the companies and the money, side by
    side, rather than a row for each on separate tabs. */
@@ -503,17 +430,26 @@ function setPipeSort(key) {
   renderPipeline();
 }
 function pipeSorted(list) {
-  const key = ['stage', 'days', 'mw'].includes(state.pipeSort) ? state.pipeSort : 'stage';
+  const key = ['name', 'stage', 'days', 'mw'].includes(state.pipeSort) ? state.pipeSort : 'stage';
   const dir = state.pipeSortDir === -1 ? -1 : 1;
   const days = o => { const d = stageDwell(o); return d ? d.days : -1; };
   const mw = o => dealsFor(o.id).filter(isLiveDeal).reduce((a, d) => a + num(d.mw), 0);
   return list.slice().sort((a, b) => dir * (
-    key === 'days' ? days(a) - days(b)
+    key === 'name' ? String(a.short || a.name).localeCompare(String(b.short || b.name))
+    : key === 'days' ? days(a) - days(b)
     : key === 'mw' ? mw(a) - mw(b)
     : sfStageIndex(sfStageFor(a)) - sfStageIndex(sfStageFor(b)) || num(b.annualGwh) - num(a.annualGwh)));
 }
+/* The sales path as seven small bars: green for the stages behind it, the
+   accent for where it is, so a row shows its position without columns. */
+function stageStepsHtml(o) {
+  const at = sfStageIndex(sfStageFor(o));
+  return '<span class="ol-steps" title="' + esc('Step ' + (at + 1) + ' of ' + SF_STAGES.length) + '">' +
+    SF_STAGES.map((st, i) => '<span class="ol-step' + (i < at ? ' done' : i === at ? ' now' : '') + '"></span>').join('') + '</span>';
+}
+
 function sortHeadHtml(key, label, cls) {
-  const on = (['stage', 'days', 'mw'].includes(state.pipeSort) ? state.pipeSort : 'stage') === key;
+  const on = (['name', 'stage', 'days', 'mw'].includes(state.pipeSort) ? state.pipeSort : 'stage') === key;
   const arrow = on ? (state.pipeSortDir === -1 ? ' ↓' : ' ↑') : '';
   return '<th' + (cls ? ' class="' + cls + '"' : '') + (on ? ' aria-sort="' + (state.pipeSortDir === -1 ? 'descending' : 'ascending') + '"' : '') + '>' +
     '<button type="button" class="th-sort" onclick="setPipeSort(' + jsStr(key) + ')">' + esc(label) + arrow + '</button></th>';
@@ -531,9 +467,9 @@ function accountTableHtml() {
   });
   return tableCardHtml('<div class="table-wrap"><table><thead><tr>' +
     selectionHeadCellHtml('pipeline', list.map(o => o.id)) +
-    '<th>Account</th>' + sortHeadHtml('stage', 'Stage') + sortHeadHtml('days', 'In stage') +
-    '<th>Stakeholders</th><th>Last touch</th><th>Next step</th>' +
-    sortHeadHtml('mw', 'Open MW', 'num') + '<th class="num">Weighted</th><th>Close date</th><th>This week</th><th>Actions</th>' +
+    sortHeadHtml('name', 'Opportunity') + sortHeadHtml('stage', 'Stage') + sortHeadHtml('days', 'In stage') +
+    sortHeadHtml('mw', 'Open MW', 'num') + '<th class="num">Weighted</th><th>Close date</th>' +
+    '<th>Stakeholders</th><th>Last touch</th><th>Next step</th><th>This week</th><th>Actions</th>' +
     '</tr></thead><tbody>' +
     list.map(o => {
       const deals = dealsFor(o.id);
@@ -546,19 +482,18 @@ function accountTableHtml() {
       return '<tr>' +
         selectionCellHtml('pipeline', o.id, o.short || o.name) +
         '<td style="min-width:200px"><div class="name-cell">' + avatarTileHtml(o.name) + '<div style="min-width:0">' +
-          '<button type="button" class="link-btn" onclick="openPipePanel(' + jsStr(o.id) + ')">' + esc(o.short || o.name) + '</button>' +
+          '<button type="button" class="link-btn" onclick="openOpportunity(' + jsStr(o.id) + ')">' + esc(o.short || o.name) + '</button>' +
           '<div class="pp-sub">' + esc(sectorName(o.sector)) + (o.city ? ' · ' + esc(o.city) : '') + '</div></div></div></td>' +
-        '<td>' + sfStageBadge(o) + '</td>' +
+        '<td><div class="ol-stage">' + sfStageBadge(o) + stageStepsHtml(o) + '</div></td>' +
         '<td>' + (sfStageFor(o) === 'closed'
           ? '<span style="font-size:11px">' + esc(STATUS_LABEL[o.status] || o.status) + '</span>'
           : dwellChipHtml(o)) + '</td>' +
-        '<td style="min-width:170px">' + esc(reachText(info)) + (info.reach.engaging.length
-          ? '<div class="pp-sub">' + esc(info.reach.engaging.slice(0, 2).map(c => c.first + (c.title ? ' (' + c.title + ')' : '')).join(', ')) + '</div>' : '') + '</td>' +
-        '<td style="min-width:150px">' + esc(lastTouchText(info)) + '</td>' +
-        '<td>' + (info.chases.length ? chasePillHtml(info) : muted('—')) + '</td>' +
         '<td class="num">' + (open.length ? fmtNum(mw) : muted('—')) + '</td>' +
         '<td class="num" style="font-weight:800">' + (open.length ? fmtR(weighted) : muted('—')) + '</td>' +
         '<td style="white-space:nowrap">' + (close ? esc(fuDate(close)) : muted('—')) + '</td>' +
+        '<td style="min-width:170px">' + seatBarHtml(info) + '<div class="pp-sub" style="margin-top:4px">' + esc(reachText(info)) + '</div></td>' +
+        '<td style="min-width:150px">' + esc(lastTouchText(info)) + '</td>' +
+        '<td style="min-width:160px">' + (info.chases.length ? chasePillHtml(info) : muted('—')) + '</td>' +
         '<td>' + (flags || muted('—')) + '</td>' +
         '<td style="white-space:nowrap">' + opportunityButtonsHtml(o, deals, true) + '</td>' +
       '</tr>';
@@ -666,9 +601,7 @@ function opportunityButtonsHtml(o, deals, inTable) {
       'onclick="event.stopPropagation();removeFromPipeline(' + jsStr(o.id) + ')">' + icon('logout', 11) + '</button>';
 }
 
-/* Clicking a card opens the account in the panel beside the board (see
-   pipePanelHtml), so the board stays where it is while you read or log;
-   "Open record" there goes to the full company page. The card carries what
+/* Clicking a card opens the full opportunity page (js/views-opportunity.js). The card carries what
    a rep scans the board for: the money, how long it has sat here, how far
    into the company the outreach has reached (the seat bar), the last
    touch, anybody to chase and whether it moved this week. */
@@ -686,11 +619,11 @@ function accountCardHtml(o) {
       ? fmtNum(signed.reduce((a, d) => a + num(d.mw), 0)) + ' MW signed'
       : 'no opportunity';
   return '<div class="pipeline-card" draggable="true" data-id="' + esc(o.id) + '"' +
-    (state.pipePanel === o.id ? ' data-open="1"' : '') + ' tabindex="0" role="button" ' +
+    ' tabindex="0" role="button" ' +
     'aria-label="Open ' + esc(o.short || o.name) + '" ' +
     'ondragstart="sfDragStart(event)" ondragend="pipeDragEnd(event)" ' +
-    'onclick="openPipePanel(' + jsStr(o.id) + ')" ' +
-    'onkeydown="if(event.key===&#39;Enter&#39;){openPipePanel(' + jsStr(o.id) + ')}">' +
+    'onclick="openOpportunity(' + jsStr(o.id) + ')" ' +
+    'onkeydown="if(event.key===&#39;Enter&#39;){openOpportunity(' + jsStr(o.id) + ')}">' +
     '<div class="pc-name">' + avatarTileHtml(o.name || o.short) + esc(o.short || o.name) + opportunityButtonsHtml(o, deals) + '</div>' +
     '<div class="pc-sub">' + esc(sectorName(o.sector)) + (o.city ? ' · ' + esc(o.city) : '') + '</div>' +
     /* An account can be worked before anybody has established its load, so

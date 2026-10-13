@@ -14,7 +14,7 @@ Company site: <https://www.aeeg.co.za/en>
 | Screen | What it is for |
 | --- | --- |
 | **Dashboard** | The morning view — today's call list, what needs attention (a close date passed, a parked account due back, a strong lead nobody has a contact at), funnel by stage, the next follow-ups, sector mix, capacity allocation, recent activity |
-| **Pipeline** | The companies somebody is working, one board on the seven-stage sales path. Each card carries the MW and value of its open opportunities, a bar for the seven ladder seats (who is engaging, replied, contacted, gone cold, or missing), the last touch, anybody to chase and whether it moved this week. Quick filters (Chase due, No meeting yet, Stalled, Moved this week) and a search for accounts or people sit above it. Clicking a card opens the account beside the board: the sales path, the figures, who to chase, every stakeholder and where they stand, and the log, with Log touch and Open record. **Flow** reads where they stop, **Table** lists the lot with sortable stage, days-in-stage and MW columns plus stakeholders, last touch, next step and this week's changes. Drag to move a card, and its opportunities move with it |
+| **Pipeline** | The companies somebody is working. It opens on **List**: one row per opportunity with its stage as a label and a small seven-step bar under it, days in stage, open MW, weighted value, close date, a bar for the seven ladder seats, the last touch and the next step or anybody to chase; sort by name, stage, days or MW. Quick filters (Chase due, No meeting yet, Stalled, Moved this week, Late stage) and a search for accounts or people sit above it. Clicking an opportunity opens its **opportunity page**: the key figures, the sales path with the stage's exit checklist and guidance, then details and the MW opportunities, the activity (who to chase and every touch), and the stakeholders seat by seat. **Board** shows the same companies in a column per stage (drag to move one), **Flow** reads where they stop |
 | **Off-taker Prospects** | The leads: researched companies nobody has picked up. No sales stage, no board position. Grid or table, filterable by sector, status and province, sortable by fit score |
 | **Offtaker detail** | Three cards for a lead — who they are, what the desk researched, who works there — plus the sales path once it is in the pipeline |
 | **Contacts** | People at each offtaker, with role in the decision. CSV import and export |
@@ -333,12 +333,12 @@ ls tests/*.test.js | xargs node --test    # all of them
 node tests/finder-agent.test.js           # or one: the finder's validator, loader, sign-in and CLI
 ```
 
-There are 40 files. They cover the contact finder (agent, Apollo helper, gap finder,
+There are 41 files. They cover the contact finder (agent, Apollo helper, gap finder,
 targets, ladder seats, email inference, the Agent HQ activity card, the OpenClaw runner), the Projects area
 (analytics maths and page, site profile, plan editing), the page layouts (shell, lists, record
 pages, dashboard, settings, activity, map, news), the province scope, row selection, the
 + New drawer, the Import wizard and its rules, follow-ups, the outreach rules (touch numbers,
-engagement, stage moves, chasing), the Analytics export and the search
+engagement, stage moves, chasing), the opportunity page, the Analytics export and the search
 shortcut, form validation, shared helpers, the news merge and scan, and the docs themselves
 (`tests/docs.test.js` checks the test count, that every script is in the file map and every
 mapped path exists, and that the glossary and ADR-0001 carry the terms and the decision the
@@ -502,7 +502,8 @@ js/quickcreate.js           the + New drawer: type pills, duplicate warning, Cre
 js/followups.js             follow-ups, what needs attention, and the calendar's month grid; no DOM
 js/outreach.js              outreach touches: engagement, touch numbers, follow-ups, stage moves; no DOM
 js/views-dashboard.js       dashboard
-js/views-pipeline.js        the pipeline board, flow and table
+js/views-pipeline.js        the pipeline list, board and flow
+js/views-opportunity.js     one opportunity: key figures, path with exit checklist, details, activity, stakeholders
 js/views-offtakers.js       the lead list, the record detail, contacts
 js/views-orgmap.js          who is at an account, and where they sit
 js/views-contactfinder.js   people at the offtakers, found by an agent

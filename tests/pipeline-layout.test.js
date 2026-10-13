@@ -65,16 +65,18 @@ function run(over) {
 }
 
 console.log('\nTabs');
-test('Board, Flow and Table are tabs above the KPI row, the active one marked', () => {
+test('List, Board and Flow are tabs above the KPI row, the active one marked', () => {
   const o = run({});
   const tabs = [...o.content.matchAll(/class="view-tab( active)?"[^>]*onclick="([^"]*)">([^<]*)/g)].map(m => (m[1] ? '*' : '') + m[3].trim());
-  assert.deepStrictEqual(tabs, ['*Board', 'Flow', 'Table']);
+  assert.deepStrictEqual(tabs, ['List', '*Board', 'Flow']);
+  assert.deepStrictEqual([...run({ pipeView: 'list' }).content.matchAll(/class="view-tab( active)?"[^>]*>([^<]*)/g)].map(m => (m[1] ? '*' : '') + m[2].trim()), ['*List', 'Board', 'Flow']);
   assert.ok(o.content.includes("setViewMode(&quot;pipeView&quot;,&quot;flow&quot;)") || o.content.includes("setViewMode('pipeView','flow')"), 'Flow tab switches the reading');
   assert.ok(o.content.indexOf('view-tabs') < o.content.indexOf('stats-grid'), 'tabs come before the KPI row');
 });
 test('the tab follows the chosen reading', () => {
   assert.ok(/view-tab active"[^>]*>Flow/.test(run({ pipeView: 'flow' }).content));
-  assert.ok(/view-tab active"[^>]*>Table/.test(run({ pipeView: 'table' }).content));
+  assert.ok(/view-tab active"[^>]*>List/.test(run({ pipeView: 'table' }).content), 'the old Table key lands on the List');
+  assert.ok(/view-tab active"[^>]*>List/.test(run({ pipeView: 'nonsense' }).content), 'and so does anything unknown');
 });
 test('the page header keeps Export and New opportunity, and the old switch is gone', () => {
   const o = run({});
@@ -113,7 +115,7 @@ const outreachBook = {
 test('quick filters sit above the board, each with its count, All chosen', () => {
   const o = run(outreachBook);
   const chips = [...o.content.matchAll(/class="pf-chip( on)?"[^>]*>([^<]*)<span class="pf-n">(\d+)/g)].map(m => (m[1] ? '*' : '') + m[2].trim() + ' ' + m[3]);
-  assert.deepStrictEqual(chips, ['*All 3', 'Chase due 1', 'No meeting yet 0', 'Stalled 0', 'Moved this week 0']);
+  assert.deepStrictEqual(chips, ['*All 3', 'Chase due 1', 'No meeting yet 0', 'Stalled 0', 'Moved this week 0', 'Late stage 2']);
   assert.ok(o.content.indexOf('pf-bar') < o.content.indexOf('class="kanban"'));
 });
 test('Chase due narrows the board to the accounts owed a follow-up', () => {
@@ -134,20 +136,26 @@ test('the KPI row adds touches this week, results this month and chase due', () 
   ['Touches this week', 'Results this month', 'Chase due'].forEach(t => assert.ok(o.content.includes(t), t));
   assert.ok(/Results this month<\/div><div class="stat-value">1</.test(o.content), 'one reply');
 });
-test('clicking a card opens the account panel beside the board', () => {
-  const o = run(outreachBook);
-  assert.ok(o.content.includes('onclick="openPipePanel(&quot;a&quot;)"') || o.content.includes("openPipePanel("), 'cards open the panel');
-  assert.ok(!o.content.includes('pp-panel'), 'closed until one is clicked');
-  const p = run(Object.assign({ pipePanel: 'a' }, outreachBook)).content;
-  assert.ok(p.includes('class="pp-panel"') && p.includes('PATH a'), 'the panel with the sales path');
-  ['Chase', 'Stakeholders', 'Touches and moves', 'Open record', 'Log touch'].forEach(t => assert.ok(p.includes(t), t));
-  assert.ok(p.includes('Jan Doe') && p.includes('Contacted') && p.includes('Pat Roe') && p.includes('Replied'));
+test('clicking a card or a list row opens the opportunity page', () => {
+  const board = run(outreachBook).content;
+  assert.ok(/class="pipeline-card"[^>]*onclick="openOpportunity\(/.test(board), 'cards open the opportunity');
+  const list = run(Object.assign({ pipeView: 'list' }, outreachBook)).content;
+  assert.ok(/class="link-btn" onclick="openOpportunity\(/.test(list), 'list names open the opportunity');
+  assert.ok(!board.includes('pp-panel') && !list.includes('pp-panel'), 'no side panel any more');
+});
+test('the list shows each stage as a label with the seven steps under it', () => {
+  const list = run(Object.assign({ pipeView: 'list' }, outreachBook)).content;
+  const row = list.slice(list.indexOf('Acct b'));
+  assert.ok(/class="ol-steps"/.test(row));
+  const steps = row.slice(row.indexOf('ol-steps')).match(/class="ol-step( done| now)?"/g).slice(0, 5).map(s => s.replace(/class="ol-step ?|"/g, '') || '-');
+  assert.deepStrictEqual(steps, ['done', 'done', 'now', '-', '-'], 'Acct b sits at the third of five stub stages');
 });
 
 console.log('\nTable');
 test('the table carries the outreach columns and sorts by its headers', () => {
   const o = run(Object.assign({ pipeView: 'table' }, outreachBook));
   ['Stakeholders', 'Last touch', 'Next step', 'This week'].forEach(t => assert.ok(o.content.includes('<th>' + t + '</th>'), t));
+  assert.ok(o.content.includes('setPipeSort(&quot;name&quot;)') || /setPipeSort\([^)]*name/.test(o.content), 'sortable by name');
   assert.ok(o.content.includes('setPipeSort(&quot;days&quot;)') || o.content.includes('setPipeSort('), 'sortable headers');
   const order = s => [...s.matchAll(/class="link-btn"[^>]*>([^<]*)/g)].map(m => m[1]);
   assert.deepStrictEqual(order(o.content), ['Acct a', 'Acct b', 'Acct c'], 'stage order by default');

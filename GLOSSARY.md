@@ -18,6 +18,10 @@ _Avoid_: Prospect (the page is called Off-taker Prospects, but the record is a l
 An off-taker that somebody is actively working. It has a sales stage and sits on the Pipeline.
 _Avoid_: Deal (in user-facing text)
 
+**Opportunity page**:
+What clicking an opportunity on the Pipeline opens: the key figures, the sales path with what it takes to leave the current stage (ticked where the CRM can tell) and guidance for it, then details and the MW opportunities, the activity, and the stakeholders seat by seat. A lead has none; its page is the company record.
+_Avoid_: Deal page, panel
+
 **Work it**:
 The act of moving a lead into the Pipeline at its first sales stage, Outreach. Done with the Work it button, or by logging a first touch to someone there. Never happens by merely opening a record.
 

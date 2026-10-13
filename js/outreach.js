@@ -240,12 +240,15 @@ function lastTouchEntry(interactions) {
   return (interactions || []).filter(i => i.type !== 'stage change').slice().sort(byWhen).pop() || null;
 }
 
-/* The forward stage move in the last `days` days, if there was one: the
-   newest stage-change entry whose sentence reads forward. `direction` is
-   the pipeline's own reader of those sentences (stageMoveDirection). */
+/* The stage move in the last `days` days, if the latest one went forward:
+   the newest stage-change entry in the window, and only when its sentence
+   reads forward. An account moved forward and then back again this week
+   has not moved forward, so it gets nothing. `direction` is the pipeline's
+   own reader of those sentences (stageMoveDirection). */
 function recentForwardMove(interactions, today, days, direction) {
   const since = addDays(today, -days);
-  const moves = (interactions || []).filter(i => i.type === 'stage change' && String(i.date || '') >= since && direction(i.summary) > 0)
+  const moves = (interactions || []).filter(i => i.type === 'stage change' && String(i.date || '') >= since && direction(i.summary) !== 0)
     .slice().sort(byWhen);
-  return moves.pop() || null;
+  const last = moves.pop();
+  return last && direction(last.summary) > 0 ? last : null;
 }
