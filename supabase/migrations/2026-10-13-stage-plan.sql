@@ -1,11 +1,12 @@
--- Stage plan: next steps (with a due date) and account notes on each stage
--- of an opportunity. Safe to re-run. Everything here is also in schema.sql.
+-- Opportunity page: next steps (with a due date), account notes, stage notes
+-- and hand-ticked checklist items. Safe to re-run. Also in schema.sql.
+-- kind: step | note (one stage) | account-note | check (stage + item position).
 
 create table if not exists public.aee_stage_items (
   id          text primary key,
   offtaker_id text not null,
   stage       text not null,
-  kind        text not null check (kind in ('step','note')),
+  kind        text not null check (kind in ('step','note','account-note','check')),
   body        text not null,
   due_date    date,
   done_at     timestamptz,

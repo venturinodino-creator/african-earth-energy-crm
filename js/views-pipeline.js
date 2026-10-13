@@ -440,6 +440,21 @@ function pipeSorted(list) {
     : key === 'mw' ? mw(a) - mw(b)
     : sfStageIndex(sfStageFor(a)) - sfStageIndex(sfStageFor(b)) || num(b.annualGwh) - num(a.annualGwh)));
 }
+/* The list's Next step: the opportunity's soonest open next step (set on
+   its page) with when it is due, then anybody to chase. */
+function nextStepCellHtml(o, info) {
+  const step = nextStepOf(state.stageItems, o.id);
+  const today = todayISO();
+  const due = step && step.dueDate
+    ? '<span class="op-due' + (step.dueDate < today ? ' late' : daysBetween(today, step.dueDate) <= 3 ? ' soon' : '') + '">' +
+      esc(step.dueDate < today ? 'Overdue · ' + fuDate(step.dueDate) : step.dueDate === today ? 'Due today' : 'Due ' + fuDate(step.dueDate)) + '</span>'
+    : '';
+  const stepHtml = step ? '<div class="ol-next">' + esc(step.body.length > 48 ? step.body.slice(0, 47) + '…' : step.body) + '</div>' + due : '';
+  const chase = info.chases.length ? chasePillHtml(info) : '';
+  return (stepHtml + (chase ? '<div style="margin-top:' + (stepHtml ? '4px' : '0') + '">' + chase + '</div>' : '')) ||
+    '<span style="color:var(--muted)">None set</span>';
+}
+
 /* The sales path as seven small bars: green for the stages behind it, the
    accent for where it is, so a row shows its position without columns. */
 function stageStepsHtml(o) {
@@ -495,7 +510,7 @@ function accountTableHtml() {
         '<td style="white-space:nowrap">' + (close ? esc(fuDate(close)) : muted('—')) + '</td>' +
         '<td style="min-width:170px">' + seatBarHtml(info) + '<div class="pp-sub" style="margin-top:4px">' + esc(reachText(info)) + '</div></td>' +
         '<td style="min-width:150px">' + esc(lastTouchText(info)) + '</td>' +
-        '<td style="min-width:160px">' + (info.chases.length ? chasePillHtml(info) : muted('—')) + '</td>' +
+        '<td style="min-width:180px">' + nextStepCellHtml(o, info) + '</td>' +
         '<td>' + (flags || muted('—')) + '</td>' +
         '<td style="white-space:nowrap">' + opportunityButtonsHtml(o, deals, true) + '</td>' +
       '</tr>';

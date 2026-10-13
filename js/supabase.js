@@ -207,11 +207,13 @@ function interactionToRow(i) {
   return row;
 }
 
-/* A next step or an account note on one stage of an opportunity. A step
-   has a due date and is ticked done; a note is just text. */
+/* One working item on an opportunity page: a next step (due date, ticked
+   done), a note on a stage, a note on the account, or a checklist item
+   ticked by hand (kind 'check': stage + body = the item's position, doneAt
+   set = ticked). See js/views-opportunity.js. */
 function rowToStageItem(r) {
   return {
-    id: r.id, offtakerId: r.offtaker_id || '', stage: r.stage || '', kind: r.kind === 'note' ? 'note' : 'step',
+    id: r.id, offtakerId: r.offtaker_id || '', stage: r.stage || '', kind: ['note', 'account-note', 'check'].includes(r.kind) ? r.kind : 'step',
     body: r.body || '', dueDate: r.due_date || '', doneAt: r.done_at || '', author: r.author || '',
     createdAt: r.created_at || '',
   };

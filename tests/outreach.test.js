@@ -192,5 +192,37 @@ test('the last touch leaves out the app\'s own stage notes; a forward move this 
   assert.strictEqual(call('recentForwardMove(' + J(back) + ', "2026-10-13", 7, ' + dir2 + ')'), null, 'moved forward then back this week: no tag');
 });
 
+console.log('\nWhich stage an entry belongs to');
+test('each entry belongs to the stage the account was at; a move belongs to where it went', () => {
+  const log = [
+    { id: 'a', date: '2026-09-20', type: 'email', summary: 'x', createdAt: '1' },
+    { id: 'm1', date: '2026-10-01', type: 'stage change', summary: 'Sales stage moved from Outreach to Online meeting. Online meeting held.', createdAt: '2' },
+    { id: 'b', date: '2026-10-02', type: 'call', summary: 'y', createdAt: '3' },
+    { id: 'm2', date: '2026-10-05', type: 'stage change', summary: 'Sales stage moved from Online meeting to Outreach.', createdAt: '4' },
+    { id: 'c', date: '2026-10-06', type: 'email', summary: 'z', createdAt: '5' },
+  ];
+  assert.deepStrictEqual(call('entryStages(' + J(log) + ', "outreach")'), { a: 'outreach', m1: 'online-meeting', b: 'online-meeting', m2: 'outreach', c: 'outreach' });
+});
+test('old stage names and "into the pipeline" read too; with no move, everything is at the current stage', () => {
+  const log = [
+    { id: 'p', date: '2026-09-01', type: 'stage change', summary: 'Moved into the pipeline at Prospecting.', createdAt: '1' },
+    { id: 'q', date: '2026-09-02', type: 'email', summary: 'x', createdAt: '2' },
+    { id: 'r', date: '2026-09-10', type: 'stage change', summary: 'Sales stage moved from Prospecting to Proposal.', createdAt: '3' },
+  ];
+  assert.deepStrictEqual(call('entryStages(' + J(log) + ', "proposal")'), { p: 'outreach', q: 'outreach', r: 'proposal' });
+  assert.deepStrictEqual(call('entryStages(' + J([{ id: 'z', date: '2026-10-01', type: 'note', summary: 'n' }]) + ', "needs-analysis")'), { z: 'needs-analysis' });
+});
+test('the next open step is the soonest due; done steps are not next', () => {
+  const items = [
+    { id: '1', offtakerId: 'o1', kind: 'step', body: 'later', dueDate: '2026-10-20', doneAt: '' },
+    { id: '2', offtakerId: 'o1', kind: 'step', body: 'sooner', dueDate: '2026-10-15', doneAt: '' },
+    { id: '3', offtakerId: 'o1', kind: 'step', body: 'done', dueDate: '2026-10-01', doneAt: '2026-10-01' },
+    { id: '4', offtakerId: 'o1', kind: 'note', body: 'a note', dueDate: '2026-10-02' },
+  ];
+  assert.strictEqual(call('nextStepOf(' + J(items) + ', "o1").body'), 'sooner');
+  const fu = call('stepFollowUps(' + J(items) + ', ' + J(offtakers) + ', s => s)');
+  assert.deepStrictEqual(fu.map(f => f.title + '@' + f.date + ':' + f.kind), ['sooner@2026-10-15:step', 'later@2026-10-20:step']);
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
 if (fail) process.exit(1);

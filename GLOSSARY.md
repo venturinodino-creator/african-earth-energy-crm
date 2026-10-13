@@ -19,8 +19,18 @@ An off-taker that somebody is actively working. It has a sales stage and sits on
 _Avoid_: Deal (in user-facing text)
 
 **Opportunity page**:
-What clicking an opportunity on the Pipeline opens: the key figures, the sales path with what it takes to leave the current stage (ticked where the CRM can tell) and guidance for it, then details and the MW opportunities, the activity, and the stakeholders seat by seat. A lead has none; its page is the company record.
+What clicking an opportunity on the Pipeline opens: the header, the Next step and Account notes, the key figures, the Sales stages, then details, MW opportunities, stage history and the stakeholders seat by seat. A lead has none; its page is the company record.
 _Avoid_: Deal page, panel
+
+**Next step**:
+What has to happen next on an opportunity and the date it is due by, set on its page and ticked done there. The soonest open one is the opportunity's next step on the page and the Pipeline list, and every open one is a follow-up.
+_Avoid_: Task, action item
+
+**Account note**:
+A note about the account as a whole, whatever its stage. A **stage note** is a note filed on one stage and shown only on that stage's tab.
+
+**Stage tab**:
+One of the seven stages on an opportunity page. Clicking a tab opens that stage (its checklist, guidance, stage notes and the activity logged while the account sat there) and never moves the account; moving is the button under the tabs. **All activity**, under every tab, folds away.
 
 **Work it**:
 The act of moving a lead into the Pipeline at its first sales stage, Outreach. Done with the Work it button, or by logging a first touch to someone there. Never happens by merely opening a record.

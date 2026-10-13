@@ -1,7 +1,10 @@
 /* The opportunity page (js/views-opportunity.js): what a row on the Pipeline opens.
  *
  * Runs the real page against a small stub book with the real stage list, playbook and
- * outreach rules, no browser, and checks what a person would read on it.
+ * outreach rules, no browser, and checks what a person would read and do on it: the next
+ * step and account notes, the key figures, the stage tabs (which open a stage and never
+ * move the account), the checklist ticked from the record or by hand, stage notes, the
+ * activity of each stage, All activity folded away, and the columns underneath.
  *
  *   node tests/opportunity-page.test.js
  *
@@ -29,37 +32,42 @@ const ferro = {
   annualGwh: 900, peakMw: 120, nmd: 0, tariff: 1.3, supply: 'eskom', wheeling: 'likely', status: 'engaged', sfStage: 'online-meeting', estimated: false,
 };
 const lead = { id: 'l', name: 'Lead Co', short: 'Lead', sector: 'mining', status: 'prospect', sfStage: '' };
+const LOG = [
+  { id: 'i1', offtakerId: 'f', date: '2026-10-01', type: 'email', channel: 'email', contactIds: ['c1'], touchNo: 1, outcome: 'sent', summary: 'First email to Thandi.', createdAt: '1' },
+  { id: 'i2', offtakerId: 'f', date: '2026-10-06', type: 'email', channel: 'email', contactIds: ['c2'], touchNo: 1, outcome: 'sent', followUpOn: '2026-10-13', summary: 'Email to Jan.', createdAt: '2' },
+  { id: 'i3', offtakerId: 'f', date: '2026-10-08', type: 'stage change', summary: 'Sales stage moved from Outreach to Online meeting. Online meeting held on 2026-10-08.', createdAt: '3' },
+  { id: 'i4', offtakerId: 'f', date: '2026-10-08', type: 'meeting', channel: 'online-meeting', contactIds: ['c1'], outcome: 'held', summary: 'Intro call with Thandi.', createdAt: '4' },
+];
 
-function run(over) {
-  const out = { page: null, content: '', navs: [] };
+function run(over, after) {
+  const out = { page: null, content: '', navs: [], pushed: [], moved: [], toasts: [] };
   const state = Object.assign({
-    view: 'opportunity', detailId: 'f', role: 'admin', province: '',
-    offtakers: [ferro, lead],
+    view: 'opportunity', detailId: 'f', role: 'admin', province: '', email: 'dino@aeeg.co.za',
+    offtakers: [Object.assign({}, ferro), lead],
     deals: [{ id: 'd1', offtakerId: 'f', name: 'Ferro 40 MW', mw: 40, tariff: 1.1, tenor: 20, stage: 'online-meeting', probability: 10, closeDate: '2027-06-30' }],
     contacts: [
       { id: 'c1', offtakerId: 'f', first: 'Thandi', last: 'M', title: 'VP Sustainability', role: 'decision' },
       { id: 'c2', offtakerId: 'f', first: 'Jan', last: 'W', title: 'Head of Engineering', role: 'technical' },
     ],
-    interactions: [
-      { id: 'i1', offtakerId: 'f', date: '2026-10-06', type: 'email', channel: 'email', contactIds: ['c2'], touchNo: 1, outcome: 'sent', followUpOn: '2026-10-13', summary: 'Email to Jan.', createdAt: '1' },
-      { id: 'i2', offtakerId: 'f', date: '2026-10-08', type: 'meeting', channel: 'online-meeting', contactIds: ['c1'], outcome: 'held', summary: 'Intro call with Thandi.', createdAt: '2' },
-      { id: 'i3', offtakerId: 'f', date: '2026-10-08', type: 'stage change', summary: 'Sales stage moved from Outreach to Online meeting. Online meeting held on 2026-10-08.', createdAt: '3' },
-    ],
-    projects: [],
+    interactions: LOG.slice(), stageItems: [], projects: [],
   }, over);
+  const inputs = {};
   const ctx = vm.createContext({
     ...scopeStubs(state), console, state, esc, num, icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))),
     fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v) / 1e6) + 'm', relTime: () => 'recently', sectorName: s => s,
     todayISO: () => '2026-10-13', getOfftaker: id => state.offtakers.find(o => o.id === id) || {},
     contactsFor: id => state.contacts.filter(c => c.offtakerId === id), dealsFor: id => state.deals.filter(d => d.offtakerId === id),
-    logsForAccount: o => state.interactions.filter(i => i.offtakerId === o.id).sort((a, b) => b.date.localeCompare(a.date)),
+    logsForAccount: o => state.interactions.filter(i => i.offtakerId === o.id).sort((a, b) => b.date.localeCompare(a.date) || String(b.createdAt).localeCompare(String(a.createdAt))),
     inPipeline: o => !!o.sfStage, isUnworked: () => false, isStalled: () => false, stageDwell: () => ({ days: 5 }),
-    dwellChipHtml: () => '<span class="chip">5d</span>', dwellSentenceHtml: () => '', sfStageBadge: o => '<span class="badge">' + o.sfStage + '</span>',
-    sfPathHtml: o => '<div class="sfpath">PATH ' + o.sfStage + '</div>', weightedValue: d => num(d.mw) * 1e6, dealLifetimeValue: d => num(d.mw) * 1e7,
+    dwellChipHtml: () => '<span class="chip">5d</span>', sfStageBadge: o => '<span class="badge">' + o.sfStage + '</span>',
+    weightedValue: d => num(d.mw) * 1e6, dealLifetimeValue: d => num(d.mw) * 1e7,
     nearestProject: () => null, distanceLabel: () => '—', sectorIcon: () => '', WHEELING_LABEL: { likely: 'Likely' },
     recordCardHtml: (ic, name, chips, desc, acts) => '<div class="record-head"><h3>' + esc(name) + '</h3><div class="rh-chips">' + chips + '</div><div class="rh-actions">' + acts + '</div></div>',
     entryMetaText: i => i.type, AE_LADDER: [{ k: 'sustain', label: 'Sustainability / ESG', re: /sustain/i }, { k: 'eng', label: 'Engineering', re: /engineer/i }, { k: 'finance', label: 'CFO / finance', re: /cfo|financ/i }],
     aeSeatMatch: (s, c) => s.re.test((c && c.title) || ''),
+    toDisplayName: e => String(e).split('@')[0], uid: p => p + '_' + (out.pushed.length + 1), val: id => inputs[id] || '',
+    toast: m => out.toasts.push(m), save() {}, pushStageItem: i => out.pushed.push(i), removeRow() {}, confirm: () => true,
+    setSfStage: (id, stage) => { out.moved.push([id, stage]); state.offtakers.find(o => o.id === id).sfStage = stage; },
     setPage: (t, s, a, opts) => { out.page = { t, s, a, opts }; }, setContent: h => { out.content = h; }, nav: (v, x) => out.navs.push([v, x && x.id]),
   });
   vm.runInContext(read('data/seed.js') + '\n' + read('js/followups.js') + '\n' + read('js/outreach.js') + '\n' +
@@ -70,78 +78,142 @@ function run(over) {
     'function sfStageIndex(id) { return SF_STAGES.findIndex(s => s.id === id); }\n' +
     'function stageProbability(id) { return (sfStageOf(id) || {}).prob; }\n' +
     read('js/views-pipeline.js') + '\n' + read('js/views-opportunity.js') + '\nrenderOpportunity();', ctx);
+  if (after) after(ctx, inputs);
   return out;
 }
 
 console.log('\nThe page');
-test('it is a record page named for the opportunity, with its place in the header', () => {
+test('a record page named for the opportunity, header with stage, chase and actions', () => {
   const o = run({});
   assert.strictEqual(o.page.t, 'Ferro');
-  assert.ok(o.page.s.includes('eMalahleni') && o.page.opts.record);
+  assert.ok(o.page.opts.record);
+  assert.ok(o.content.includes('class="badge">online-meeting') && o.content.includes('Chase Jan · today'));
+  ['Log touch', 'Edit opportunity', 'Org map', 'Company record'].forEach(t => assert.ok(o.content.includes(t), t));
 });
-test('the header carries the stage, who to chase, and the actions', () => {
+test('Next step and Account notes sit right under the header, before the key figures', () => {
   const h = run({}).content;
-  assert.ok(h.includes('class="badge">online-meeting'));
-  assert.ok(h.includes('Chase Jan · today'), 'Jan is owed a follow-up today');
-  ['Log touch', 'Edit opportunity', 'Org map', 'Company record'].forEach(t => assert.ok(h.includes(t), t));
-});
-test('the key figures: stage, MW, weighted value, probability, close date, load, next step', () => {
-  const h = run({}).content;
-  ['Stage', 'Open MW', 'Weighted value', 'Probability', 'Close date', 'Annual load', 'Next step'].forEach(t => assert.ok(h.includes('<div class="op-kl">' + t + '</div>'), t));
-  assert.ok(h.includes('Online meeting · 5d') && h.includes('40 MW') && h.includes('10%') && h.includes('30 Jun 2027') && h.includes('900 GWh'));
+  const a = h.indexOf('record-head'), b = h.indexOf('>Next step</div>'), c = h.indexOf('>Account notes</div>'), d = h.indexOf('op-keys');
+  assert.ok(a < b && b < c && c < d, [a, b, c, d].join(','));
+  assert.ok(h.includes('No next step set') && h.includes('No account notes yet'));
 });
 
-console.log('\nThe path and what it takes to move on');
-test('the sales path, the stage\'s exit checklist and its guidance', () => {
-  const h = run({}).content;
-  assert.ok(h.includes('PATH online-meeting'));
-  assert.ok(h.includes('To move on from Online meeting'));
-  assert.ok(h.includes('Guidance for this stage') && h.includes('Agree the next meeting before you hang up.'));
+console.log('\nNext step');
+const steps = [
+  { id: 's1', offtakerId: 'f', stage: 'outreach', kind: 'step', body: 'Find the CFO', dueDate: '2026-10-09', doneAt: '', author: 'dino', createdAt: '2026-10-02T00:00:00Z' },
+  { id: 's2', offtakerId: 'f', stage: 'online-meeting', kind: 'step', body: 'Send the indicative tariff', dueDate: '2026-10-15', doneAt: '', author: 'dino', createdAt: '2026-10-08T00:00:00Z' },
+  { id: 's3', offtakerId: 'f', stage: 'outreach', kind: 'step', body: 'Send the one-pager', dueDate: '2026-10-01', doneAt: '2026-10-01T10:00:00Z', author: 'dino', createdAt: '2026-09-30T00:00:00Z' },
+];
+test('open steps soonest first, the first highlighted, each with its due date; done ones struck through', () => {
+  const h = run({ stageItems: steps }).content;
+  const order = [...h.matchAll(/class="op-ns( lead| done)?"[\s\S]*?class="op-ns-t">([^<]*)/g)].map(m => (m[1] || '').trim() + ':' + m[2]);
+  assert.deepStrictEqual(order, ['lead:Find the CFO', ':Send the indicative tariff', 'done:Send the one-pager']);
+  assert.ok(h.includes('Overdue · 9 Oct 2026') && h.includes('Due 15 Oct 2026') && h.includes('>Done<'));
 });
-test('only what the record shows is ticked', () => {
-  const h = run({}).content;
-  const ticks = [...h.matchAll(/class="op-check( on)?"[^>]*>[\s\S]*?<span>([^<]*)/g)].map(m => (m[1] ? '✓ ' : '  ') + m[2]);
-  assert.deepStrictEqual(ticks, ['✓ An online meeting held', '✓ A decision maker on file', '  An in-person meeting or site visit held']);
+test('the key figures show the next step and when it is due', () => {
+  const h = run({ stageItems: steps }).content;
+  const k = h.slice(h.indexOf('op-keys'), h.indexOf('op-keys') + 3000);
+  assert.ok(/Next step<\/div><div class="op-kv">Find the CFO <span class="op-due late">Overdue · 9 Oct 2026/.test(k));
 });
-test('at Outreach, three people reached and a reply tick their items', () => {
-  const extra = [{ id: 'c3', offtakerId: 'f', first: 'Pat', last: 'R', title: 'CFO', role: 'decision' }];
-  const logs = [
-    { id: 'a', offtakerId: 'f', date: '2026-10-01', type: 'email', channel: 'email', contactIds: ['c1', 'c2', 'c3'], outcome: 'sent', summary: 'x', createdAt: '1' },
-    { id: 'b', offtakerId: 'f', date: '2026-10-02', type: 'email', channel: 'email', contactIds: ['c3'], outcome: 'replied', summary: 'y', createdAt: '2' },
-  ];
-  const h = run({ offtakers: [Object.assign({}, ferro, { sfStage: 'outreach' })], interactions: logs,
-    contacts: [{ id: 'c1', offtakerId: 'f', first: 'T', last: 'M', title: 'VP Sustainability' }, { id: 'c2', offtakerId: 'f', first: 'J', last: 'W', title: 'Head of Engineering' }].concat(extra) }).content;
-  const ticks = [...h.matchAll(/class="op-check( on)?"/g)].map(m => !!m[1]);
-  assert.deepStrictEqual(ticks, [true, true, false]);
+test('adding a step needs words and a date, and files it on the current stage', () => {
+  const o = run({}, (ctx, inputs) => {
+    inputs['op-ns-text'] = 'Book the site visit';
+    vm.runInContext('addNextStep("f")', ctx);
+    assert.strictEqual(vm.runInContext('state.stageItems.length', ctx), 0, 'no date, nothing saved');
+    inputs['op-ns-due'] = '2026-10-20';
+    vm.runInContext('addNextStep("f")', ctx);
+  });
+  assert.strictEqual(o.pushed.length, 1);
+  assert.deepStrictEqual([o.pushed[0].kind, o.pushed[0].stage, o.pushed[0].body, o.pushed[0].dueDate], ['step', 'online-meeting', 'Book the site visit', '2026-10-20']);
+  assert.ok(o.toasts[0].includes('due by'));
+});
+test('ticking a step done saves it; a viewer cannot', () => {
+  const o = run({ stageItems: steps.slice() }, ctx => vm.runInContext('toggleStepDone("s1")', ctx));
+  assert.ok(o.pushed[0].doneAt, 'done');
+  const v = run({ role: 'viewer', stageItems: steps.slice() }, ctx => vm.runInContext('toggleStepDone("s1")', ctx));
+  assert.strictEqual(v.pushed.length, 0);
 });
 
-console.log('\nThe three columns');
-test('details, the MW opportunities and the stage history', () => {
-  const h = run({}).content;
-  const about = h.slice(h.indexOf('rg-about'), h.indexOf('rg-main'));
-  ['Annual load', 'Peak demand', 'Supply', 'Wheeling', 'Current tariff', 'Nearest site'].forEach(t => assert.ok(about.includes('<dt>' + t + '</dt>'), t));
-  assert.ok(about.includes('Ferro 40 MW') && about.includes('40 MW · R1.10/kWh · 20 yrs'));
-  assert.ok(about.includes('Stage history') && about.includes('from Outreach to Online meeting'));
+console.log('\nAccount notes and stage notes');
+const notes = [
+  { id: 'n1', offtakerId: 'f', stage: 'account', kind: 'account-note', body: 'Net zero by 2050.', author: 'dino', createdAt: '2026-10-02T00:00:00Z' },
+  { id: 'n2', offtakerId: 'f', stage: 'outreach', kind: 'note', body: 'Engineering never answers.', author: 'dino', createdAt: '2026-10-03T00:00:00Z' },
+  { id: 'n3', offtakerId: 'f', stage: 'online-meeting', kind: 'note', body: 'They care about price certainty.', author: 'dino', createdAt: '2026-10-08T00:00:00Z' },
+];
+test('account notes show whatever the stage; stage notes only on their own stage', () => {
+  const h = run({ stageItems: notes }).content;
+  assert.ok(h.includes('Net zero by 2050.'));
+  assert.ok(h.includes('They care about price certainty.') && !h.includes('Engineering never answers.'), 'the current stage\'s notes');
+  const out = run({ stageItems: notes, oppStage: 'outreach', oppStageFor: 'f' }).content;
+  assert.ok(out.includes('Engineering never answers.') && !out.includes('They care about price certainty.'), 'the Outreach tab\'s notes');
 });
-test('activity: who to chase, then every touch and stage move, newest first', () => {
-  const h = run({}).content;
-  const main = h.slice(h.indexOf('rg-main'), h.indexOf('rg-side'));
-  assert.ok(main.includes('Chase') && main.includes('Jan W') && main.includes('Due today'));
-  assert.ok(main.indexOf('Intro call with Thandi.') < main.indexOf('Email to Jan.'), 'newest first');
+test('a stage note is filed on the stage that is open', () => {
+  const o = run({ oppStage: 'outreach', oppStageFor: 'f' }, (ctx, inputs) => { inputs['op-sn-text'] = 'Try the COO.'; vm.runInContext('addOppNote("f","note","outreach","op-sn-text")', ctx); });
+  assert.deepStrictEqual([o.pushed[0].kind, o.pushed[0].stage, o.pushed[0].body], ['note', 'outreach', 'Try the COO.']);
 });
-test('stakeholders seat by seat, with where each stands and the seats nobody fills', () => {
+
+console.log('\nSales stages');
+test('seven tabs; the current one marked and open by default', () => {
   const h = run({}).content;
-  const side = h.slice(h.indexOf('rg-side'));
-  assert.ok(side.includes('2 of 2 reached · 1 engaging'));
-  assert.ok(/Sustainability \/ ESG[\s\S]*?Thandi M[\s\S]*?Engaging/.test(side));
-  assert.ok(/Engineering[\s\S]*?Jan W[\s\S]*?Contacted/.test(side));
-  assert.ok(side.includes('Nobody on file:') && side.includes('CFO / finance'));
+  const tabs = [...h.matchAll(/class="op-tab( done)?( now)?( view)?"[^>]*>([^<]*)<span>([^<]*)/g)].map(m => (m[2] ? '*' : '') + (m[3] ? '>' : '') + m[4] + ' (' + m[5] + ')');
+  assert.strictEqual(tabs.length, 7);
+  assert.strictEqual(tabs[1], '*>Online meeting (current)');
+  assert.ok(tabs[0].startsWith('Outreach ('), tabs[0]);
+});
+test('clicking a tab opens that stage and does not move the account', () => {
+  const o = run({}, ctx => { vm.runInContext('viewOppStage("outreach")', ctx); });
+  assert.deepStrictEqual(o.moved, []);
+  assert.ok(o.content.includes('To move on from Outreach') && o.content.includes('a stage already passed'));
+  assert.ok(o.content.includes('Move the account to Outreach'), 'moving is a separate button');
+});
+test('on the current stage the button completes it and moves to the next', () => {
+  assert.ok(run({}).content.includes('Mark stage complete, move to In-person meeting'));
+  const o = run({}, ctx => vm.runInContext('moveOppStage("f","in-person")', ctx));
+  assert.deepStrictEqual(o.moved, [['f', 'in-person']]);
+  assert.ok(o.content.includes('To move on from In-person meeting'), 'the page opens the stage it moved to');
+});
+test('the checklist ticks from the record, says so, and can be ticked by hand either way', () => {
+  const h = run({}).content;
+  const ticks = [...h.matchAll(/class="op-ck"><button type="button" class="op-tick( on)?"[\s\S]*?<span>([^<]*)(?:<span class="op-why">([^<]*))?/g)].map(m => (m[1] ? '✓ ' : '  ') + m[2].trim() + (m[3] ? ' [' + m[3] + ']' : ''));
+  assert.deepStrictEqual(ticks, ['✓ An online meeting held [from activity]', '✓ A decision maker on file [from activity]', '  An in-person meeting or site visit held']);
+  const o = run({}, ctx => vm.runInContext('toggleOppCheck("f","online-meeting",2,false)', ctx));
+  assert.deepStrictEqual([o.pushed[0].id, o.pushed[0].kind, !!o.pushed[0].doneAt], ['chk_f_online-meeting_2', 'check', true]);
+  const handed = run({ stageItems: [Object.assign({}, o.pushed[0]), { id: 'chk_f_online-meeting_0', offtakerId: 'f', stage: 'online-meeting', kind: 'check', body: '0', doneAt: '' }] }).content;
+  assert.ok(/aria-label="Untick: An in-person meeting or site visit held"[\s\S]*?ticked by hand/.test(handed), 'ticked by hand');
+  assert.ok(/aria-label="Tick: An online meeting held"[\s\S]*?ticked by hand/.test(handed), 'and unticked by hand, over the record');
+});
+test('activity in this stage: only what was logged while the account sat there', () => {
+  const box = s => s.slice(s.indexOf('Activity in this stage'), s.indexOf('op-box op-all'));
+  const cur = run({}).content;
+  assert.ok(box(cur).includes('Intro call with Thandi.') && box(cur).includes('from Outreach to Online meeting'));
+  assert.ok(!box(cur).includes('Email to Jan.'));
+  const past = run({ oppStage: 'outreach', oppStageFor: 'f' }).content;
+  assert.ok(box(past).includes('Email to Jan.') && box(past).includes('First email to Thandi.') && !box(past).includes('Intro call'));
+  const future = run({ oppStage: 'proposal', oppStageFor: 'f' }).content;
+  assert.ok(box(future).includes('Not reached yet'));
+});
+test('All activity is under every stage, folded away until opened', () => {
+  const shut = run({}).content;
+  assert.ok(shut.includes('aria-expanded="false"') && shut.includes('All activity <span class="pf-n">4</span>'));
+  assert.ok(!shut.slice(shut.indexOf('op-box op-all')).includes('Email to Jan.'), 'folded');
+  const opened = run({}, ctx => vm.runInContext('toggleOppAll()', ctx)).content;
+  const all = opened.slice(opened.indexOf('op-box op-all'));
+  ['First email to Thandi.', 'Email to Jan.', 'Intro call with Thandi.'].forEach(t => assert.ok(all.includes(t), t));
+  assert.ok(all.includes('Chase') && all.includes('Due today'));
+  assert.ok(run({ oppStage: 'proposal', oppStageFor: 'f' }).content.includes('op-box op-all'), 'there on a stage not reached too');
+});
+
+console.log('\nUnderneath');
+test('details, MW opportunities and stage history on the left, stakeholders on the right', () => {
+  const h = run({}).content;
+  const bottom = h.slice(h.indexOf('op-bottom'));
+  ['Annual load', 'Peak demand', 'Wheeling', 'Current tariff'].forEach(t => assert.ok(bottom.includes('<dt>' + t + '</dt>'), t));
+  assert.ok(bottom.includes('Ferro 40 MW') && bottom.includes('Stage history'));
+  assert.ok(/Sustainability \/ ESG[\s\S]*?Thandi M[\s\S]*?Engaging/.test(bottom) && bottom.includes('CFO / finance'));
 });
 
 console.log('\nWhere it does not apply');
 test('a lead has no sales process, so its page is the company record', () => {
-  const o = run({ detailId: 'l' });
-  assert.deepStrictEqual(o.navs, [['detail', 'l']]);
+  assert.deepStrictEqual(run({ detailId: 'l' }).navs, [['detail', 'l']]);
 });
 test('an unknown id goes back to the Pipeline', () => {
   assert.deepStrictEqual(run({ detailId: 'nope' }).navs, [['pipeline', undefined]]);

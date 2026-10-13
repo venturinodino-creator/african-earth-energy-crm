@@ -229,14 +229,17 @@ alter table public.aee_interactions add column if not exists outcome      text;
 alter table public.aee_interactions add column if not exists follow_up_on date;
 create index if not exists aee_interactions_follow_up_idx on public.aee_interactions(follow_up_on) where follow_up_on is not null;
 
--- Next steps and account notes on each stage of an opportunity (the
--- opportunity page's Stage plan). A step carries the date it is due by and
--- is ticked done; a note is free text about the account at that stage.
+-- The opportunity page's working items. kind:
+--   step          a next step: body + due_date, done_at once ticked done
+--   note          a note on one stage (stage = the stage's id)
+--   account-note  a note on the account as a whole (stage = 'account')
+--   check         a checklist item ticked or unticked by hand: stage + body =
+--                 the item's position; done_at set = ticked, null = unticked
 create table if not exists public.aee_stage_items (
   id          text primary key,
   offtaker_id text not null,
   stage       text not null,
-  kind        text not null check (kind in ('step','note')),
+  kind        text not null check (kind in ('step','note','account-note','check')),
   body        text not null,
   due_date    date,
   done_at     timestamptz,
