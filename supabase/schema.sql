@@ -229,6 +229,23 @@ alter table public.aee_interactions add column if not exists outcome      text;
 alter table public.aee_interactions add column if not exists follow_up_on date;
 create index if not exists aee_interactions_follow_up_idx on public.aee_interactions(follow_up_on) where follow_up_on is not null;
 
+-- Next steps and account notes on each stage of an opportunity (the
+-- opportunity page's Stage plan). A step carries the date it is due by and
+-- is ticked done; a note is free text about the account at that stage.
+create table if not exists public.aee_stage_items (
+  id          text primary key,
+  offtaker_id text not null,
+  stage       text not null,
+  kind        text not null check (kind in ('step','note')),
+  body        text not null,
+  due_date    date,
+  done_at     timestamptz,
+  author      text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists aee_stage_items_offtaker_idx on public.aee_stage_items(offtaker_id);
+
 -- ─── ROLE HELPERS ──────────────────────────────────────────────────
 -- security definer so the policies can read profiles without the
 -- profiles policies recursing into themselves.
@@ -276,7 +293,7 @@ do $$
 declare t text;
 begin
   foreach t in array array['aee_offtakers','aee_contacts','aee_deals',
-                           'aee_contact_runs','aee_found_contacts']
+                           'aee_contact_runs','aee_found_contacts','aee_stage_items']
   loop
     execute format('drop trigger if exists %I on public.%I', t || '_touch', t);
     execute format(
@@ -308,6 +325,7 @@ alter table public.aee_interactions enable row level security;
 alter table public.mining_leads     enable row level security;
 alter table public.aee_contact_runs   enable row level security;
 alter table public.aee_found_contacts enable row level security;
+alter table public.aee_stage_items  enable row level security;
 
 drop policy if exists profiles_read_own on public.profiles;
 create policy profiles_read_own on public.profiles
@@ -325,7 +343,7 @@ declare t text;
 begin
   foreach t in array array['aee_offtakers','aee_contacts','aee_deals',
                            'aee_interactions','mining_leads',
-                           'aee_contact_runs','aee_found_contacts']
+                           'aee_contact_runs','aee_found_contacts','aee_stage_items']
   loop
     execute format('drop policy if exists %I on public.%I', t || '_read',   t);
     execute format('drop policy if exists %I on public.%I', t || '_insert', t);

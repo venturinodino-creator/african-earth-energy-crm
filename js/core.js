@@ -25,6 +25,9 @@ let state = {
   contacts: [],
   deals: [],
   interactions: [],
+  /* Next steps and account notes, each filed against one stage of one
+     opportunity (the opportunity page's Stage plan). */
+  stageItems: [],
   projects: [],
 
   role: null,   // 'admin' | 'viewer' | 'pending' | null (signed out)
@@ -411,6 +414,11 @@ async function load() {
     state.archivedContacts = allContacts.filter(c => shelved.has(c.offtakerId));
     state.deals = (deals || []).map(rowToDeal).filter(d => !shelved.has(d.offtakerId));
     state.interactions = (interactions || []).map(rowToInteraction).filter(i => !shelved.has(i.offtakerId));
+    /* Fetched on its own and allowed to fail: a database the stage-plan
+       migration has not reached yet must not take the whole CRM down. */
+    state.stageItems = await supaFetchAll('aee_stage_items?select=*&order=created_at,id')
+      .then(rows => (rows || []).map(rowToStageItem).filter(i => !shelved.has(i.offtakerId)))
+      .catch(e => { console.warn('Stage plan not loaded:', e); return []; });
     /* The project plans are read under the same sign-in; a failure there must not
        take the CRM down, so the loader catches its own errors. */
     await loadProjectPlans();
@@ -427,6 +435,7 @@ async function load() {
       state.contacts = cache.contacts || [];
       state.deals = (cache.deals || []).map(d => ({ ...d, stage: normalizeDealStage(d.stage) }));
       state.interactions = cache.interactions || [];
+      state.stageItems = cache.stageItems || [];
       toast('Working from a cached copy — changes will not be saved', 'warn');
     } else {
       state.offtakers = []; state.contacts = []; state.deals = []; state.interactions = [];
@@ -441,7 +450,7 @@ function cacheLocally() {
   lsSet('cache', {
     offtakers: state.offtakers, archived: state.archived,
     contacts: state.contacts, archivedContacts: state.archivedContacts,
-    deals: state.deals, interactions: state.interactions,
+    deals: state.deals, interactions: state.interactions, stageItems: state.stageItems,
     at: new Date().toISOString(),
   });
 }

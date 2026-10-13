@@ -51,6 +51,30 @@ function followUps(deals, offtakers, stageLabel) {
   return out;
 }
 
+/* ─── NEXT STEPS ──────────────────────────────────────────────── */
+/* The open next steps an opportunity's Stage plan holds (state.stageItems,
+   kind 'step', not done). The first by due date is the opportunity's next
+   step; all of them are follow-ups, completed by ticking them done. */
+function openSteps(items, offtakerId) {
+  return (items || []).filter(i => i.kind === 'step' && !i.doneAt && (!offtakerId || i.offtakerId === offtakerId))
+    .slice().sort((a, b) => String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')) ||
+      String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+}
+function nextStepOf(items, offtakerId) { return openSteps(items, offtakerId)[0] || null; }
+
+/* The same steps as follow-ups, in followUps()' shape. `stageLabel` names
+   the stage each was filed on. A step on an account not in the list (out of
+   the province scope, archived) is left out. */
+function stepFollowUps(items, offtakers, stageLabel) {
+  const byId = {};
+  offtakers.forEach(o => { byId[o.id] = o; });
+  return openSteps(items).filter(i => i.dueDate && byId[i.offtakerId]).map(i => {
+    const o = byId[i.offtakerId];
+    return { kind: 'step', id: i.id, key: 'step-' + i.id, accountId: o.id, account: o.short || o.name, date: i.dueDate,
+      title: i.body, detail: 'Next step · ' + stageLabel(i.stage) };
+  });
+}
+
 /* Overdue, today, the next seven days, later: always all four, in that order, soonest first
    inside each. The page draws the ones that are not empty. */
 function groupFollowUps(items, today) {

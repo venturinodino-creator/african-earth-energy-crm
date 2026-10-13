@@ -232,13 +232,14 @@ function renderDashboard() {
     '</div>';
 
   const items = followUps(deals, offtakers, actStageLabel)
-    .concat(outreachFollowUps(scopedInteractions(), offtakers, scopedContacts()));
+    .concat(outreachFollowUps(scopedInteractions(), offtakers, scopedContacts()))
+    .concat(stepFollowUps(state.stageItems, offtakers, actStageLabel));
   const COMING_SHOWN = 5;
   const next = comingUp(items, today, COMING_SHOWN);
   const comingHtml =
     '<div class="card">' +
       '<div class="card-header"><div><div class="card-title">Coming up</div>' +
-      '<div class="card-sub">The next close dates, revisit dates and outreach to chase</div></div>' +
+      '<div class="card-sub">The next steps, close dates, revisit dates and outreach to chase</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="nav(\'activity\')">All follow-ups</button></div>' +
       (next.length ? next.map(followUpRowHtml).join('') +
         (comingUpMore(items, today, COMING_SHOWN) ? '<div class="fg-hint" style="padding:8px 2px 0">And ' + comingUpMore(items, today, COMING_SHOWN) + ' more on the Activity page.</div>' : '')
