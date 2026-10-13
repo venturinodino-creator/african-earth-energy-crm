@@ -1380,3 +1380,5 @@ button.wiz-btn:hover .wiz-l{color:var(--text2)}
 /* In the narrow side column of the opportunity page the seat sits above the name. */
 .rg-side .pp-person{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}
 .rg-side .pp-seat{grid-column:1/-1}
+.ol-row{cursor:pointer}
+.ol-row:hover td{background:color-mix(in srgb,var(--accent) 5%,var(--card))}

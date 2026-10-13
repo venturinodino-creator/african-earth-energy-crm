@@ -479,10 +479,12 @@ function accountTableHtml() {
       const close = open.map(d => d.closeDate).filter(Boolean).sort()[0] || '';
       const info = pipeInfo(o);
       const flags = [movedPillHtml(info), isStalled(o) ? '<span class="chip chip-stalled">Stalled</span>' : ''].filter(Boolean).join(' ');
-      return '<tr>' +
+      /* The whole row opens the opportunity, the way a Salesforce list row
+         does. The tick box and the action buttons stop their own clicks. */
+      return '<tr class="ol-row" onclick="openOpportunity(' + jsStr(o.id) + ')">' +
         selectionCellHtml('pipeline', o.id, o.short || o.name) +
         '<td style="min-width:200px"><div class="name-cell">' + avatarTileHtml(o.name) + '<div style="min-width:0">' +
-          '<button type="button" class="link-btn" onclick="openOpportunity(' + jsStr(o.id) + ')">' + esc(o.short || o.name) + '</button>' +
+          '<button type="button" class="link-btn" onclick="event.stopPropagation();openOpportunity(' + jsStr(o.id) + ')">' + esc(o.short || o.name) + '</button>' +
           '<div class="pp-sub">' + esc(sectorName(o.sector)) + (o.city ? ' · ' + esc(o.city) : '') + '</div></div></div></td>' +
         '<td><div class="ol-stage">' + sfStageBadge(o) + stageStepsHtml(o) + '</div></td>' +
         '<td>' + (sfStageFor(o) === 'closed'

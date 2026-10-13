@@ -140,7 +140,8 @@ test('clicking a card or a list row opens the opportunity page', () => {
   const board = run(outreachBook).content;
   assert.ok(/class="pipeline-card"[^>]*onclick="openOpportunity\(/.test(board), 'cards open the opportunity');
   const list = run(Object.assign({ pipeView: 'list' }, outreachBook)).content;
-  assert.ok(/class="link-btn" onclick="openOpportunity\(/.test(list), 'list names open the opportunity');
+  assert.ok(/class="link-btn" onclick="event.stopPropagation\(\);openOpportunity\(/.test(list), 'list names open the opportunity');
+  assert.strictEqual((list.match(/<tr class="ol-row" onclick="openOpportunity\(/g) || []).length, 3, 'and so does the whole row');
   assert.ok(!board.includes('pp-panel') && !list.includes('pp-panel'), 'no side panel any more');
 });
 test('the list shows each stage as a label with the seven steps under it', () => {
@@ -164,7 +165,7 @@ test('the table carries the outreach columns and sorts by its headers', () => {
 test('the table is one card with a footer counting the accounts', () => {
   const o = run({ pipeView: 'table' });
   assert.ok(o.content.includes('<div class="table-card">') && o.content.includes('Showing 1–3 of 3 accounts'), o.content.match(/Showing[^<]*/));
-  assert.strictEqual((o.content.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g) || []).length, 3);
+  assert.strictEqual((o.content.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr[ >]/g) || []).length, 3);
 });
 
 test('the table has an avatar tile and a box on every account, a header box, and the bar slot above the card', () => {
