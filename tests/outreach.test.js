@@ -187,6 +187,9 @@ test('the last touch leaves out the app\'s own stage notes; a forward move this 
   const dir = 's => /from Outreach to/.test(s) ? 1 : 0';
   assert.strictEqual(call('(recentForwardMove(' + J(log) + ', "2026-10-13", 7, ' + dir + ') || {}).id'), 's');
   assert.strictEqual(call('recentForwardMove(' + J(log) + ', "2026-10-20", 7, ' + dir + ')'), null, 'not when it is over a week old');
+  const back = log.concat([{ id: 'b', date: '2026-10-13', type: 'stage change', summary: 'Sales stage moved from Online meeting to Outreach.', createdAt: '3' }]);
+  const dir2 = 's => /from Outreach to/.test(s) ? 1 : /to Outreach/.test(s) ? -1 : 0';
+  assert.strictEqual(call('recentForwardMove(' + J(back) + ', "2026-10-13", 7, ' + dir2 + ')'), null, 'moved forward then back this week: no tag');
 });
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');

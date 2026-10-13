@@ -1349,3 +1349,34 @@ button.wiz-btn:hover .wiz-l{color:var(--text2)}
 .pa-g-fill{display:block;height:100%;background:var(--c-green);opacity:.85}
 .pa-g-today{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--danger);opacity:.7;z-index:1}
 .pp-person .ow-eng,.pp-chase .ow-eng{grid-area:auto}
+
+/* ─── The opportunity page ──────────────────────────────────────
+   Key figures in a row, the path with its exit checklist and guidance,
+   and the details / activity / stakeholders columns (rec-grid). */
+.op-keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.op-kl{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.op-kv{font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;margin-top:2px}
+.op-play{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:14px;padding:14px;
+  background:var(--bg);border:1px solid var(--border);border-radius:10px}
+.op-h{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.op-check{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:3px 0}
+.op-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);display:grid;place-items:center;flex:none;margin-top:1px;
+  font-size:11px;font-weight:800;color:var(--on-accent)}
+.op-check.on .op-box{background:var(--c-green);border-color:var(--c-green)}
+.op-guide{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px}
+.op-dl{display:grid;grid-template-columns:minmax(0,130px) minmax(0,1fr);gap:7px 10px;margin:0;font-size:12.5px}
+.op-dl dt{color:var(--muted)}
+.op-dl dd{margin:0;font-weight:600;color:var(--text2);overflow-wrap:anywhere}
+.op-deal{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)}
+.op-deal:last-child{border-bottom:0}
+.op-hist{font-size:12.5px;padding:4px 0;color:var(--text)}
+.ol-stage{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.ol-steps{display:grid;grid-template-columns:repeat(7,9px);gap:3px}
+.ol-step{height:5px;border-radius:3px;background:var(--border2)}
+.ol-step.done{background:var(--c-green)}
+.ol-step.now{background:var(--accent)}
+.pp-sec+.pp-sec{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* In the narrow side column of the opportunity page the seat sits above the name. */
+.rg-side .pp-person{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}
+.rg-side .pp-seat{grid-column:1/-1}

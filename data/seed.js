@@ -143,6 +143,46 @@ const SF_STAGES = [
     hint:'Signed, or closed lost. Either way it is off the working board.' },
 ];
 
+/* What it takes to leave each stage, and how to get there: the checklist and
+   the guidance on an opportunity's page (js/views-opportunity.js), the way
+   Salesforce shows "key fields" and "guidance for success" under its path.
+   `exit` items are ticked from what the CRM already holds where it can tell
+   (see opportunityChecks); the rest stay for a rep to judge. */
+const STAGE_PLAYBOOK = {
+  'outreach': {
+    exit: ['At least three people reached', 'A reply from someone at the company', 'A first meeting held'],
+    guidance: ['Email the energy, sustainability and engineering leads one by one, not as one group mail.',
+      'Send each of them a LinkedIn connection request the same week.',
+      'Three touches per person, five working days apart. After that, try somebody else.'],
+  },
+  'online-meeting': {
+    exit: ['An online meeting held', 'A decision maker on file', 'An in-person meeting or site visit held'],
+    guidance: ['Lead with their tariff exposure and Scope 2 target, not with our project.',
+      'Ask who else has to be in the room for a PPA.', 'Agree the next meeting before you hang up.'],
+  },
+  'in-person': {
+    exit: ['Met in person: office, site or conference', 'Their load established (not a desk estimate)', 'Somebody in finance on file'],
+    guidance: ['Walk the site if you can: connection point, substation, load.',
+      'Ask for twelve months of half-hourly data.', 'Find out how the board signs off a 15 to 20 year contract.'],
+  },
+  'needs-analysis': {
+    exit: ['Annual load and peak confirmed', 'Wheeling route likely or confirmed', 'A target close date on the opportunity'],
+    guidance: ['Model the saving against their Eskom or municipal tariff.',
+      'Check grid capacity on the wheeling path.', 'Map the approval chain: energy, finance, board.'],
+  },
+  'proposal': {
+    exit: ['Proposal sent', 'Feedback logged since the proposal', 'Tariff and tenor set on the opportunity'],
+    guidance: ['Put tariff, escalation, tenor and volume on one page.',
+      'Name the site the power comes from.', 'Book the feedback meeting when you send it.'],
+  },
+  'negotiation': {
+    exit: ['Term sheet signed', 'Diligence complete', 'PPA signed'],
+    guidance: ['Keep a list of open legal points and who owns each.',
+      'Line up credit approval early.', 'Agree the signing date with both boards.'],
+  },
+  'closed': { exit: [], guidance: ['Hand over to delivery, and log the signed MW against the site.'] },
+};
+
 /* Records created before the path existed carry no stage, so read it back
    out of the status they already have. That means the board is populated
    on the first load rather than every account sitting in Outreach. Engaged
