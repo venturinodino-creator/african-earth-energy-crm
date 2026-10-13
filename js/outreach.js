@@ -252,3 +252,42 @@ function recentForwardMove(interactions, today, days, direction) {
   const last = moves.pop();
   return last && direction(last.summary) > 0 ? last : null;
 }
+
+/* ─── WHICH STAGE AN ENTRY BELONGS TO ─────────────────────────────
+   The opportunity page shows, for each stage, what was logged while the
+   account sat there. Nothing records that on an entry, so it is read back
+   out of the stage-change sentences the app writes ("Sales stage moved from
+   Outreach to Online meeting.", "Moved into the pipeline at Outreach."):
+   walking the log oldest first, every entry belongs to the stage the
+   account was at when it was made, and a stage change belongs to the stage
+   it moved into. Before the first move, the account was at that move's
+   "from" stage; with no move at all, at `currentStage`. Old stage names are
+   read through LEGACY_STAGE_LABELS, like the pipeline's Flow page does. */
+function stageIdFromLabel(label) {
+  const t = String(label || '').trim().replace(/\s+(won|lost)$/i, '').toLowerCase();
+  const hit = SF_STAGES.find(s => s.label.toLowerCase() === t);
+  if (hit) return hit.id;
+  return LEGACY_STAGE_LABELS[t] || '';
+}
+function readStageMove(summary) {
+  const s = String(summary || '');
+  const m = /from (.+?) to ([^.]+?)\s*(?:\.|$)/.exec(s);
+  if (m) return { from: stageIdFromLabel(m[1]), to: stageIdFromLabel(m[2]) };
+  const p = /pipeline at ([^.]+?)\s*(?:\.|$)/i.exec(s);
+  if (p) return { from: '', to: stageIdFromLabel(p[1]) };
+  return null;
+}
+function entryStages(interactions, currentStage) {
+  const list = (interactions || []).slice().sort(byWhen);
+  const firstMove = list.map(i => i.type === 'stage change' ? readStageMove(i.summary) : null).find(Boolean);
+  let at = firstMove ? (firstMove.from || firstMove.to) : (currentStage || '');
+  const out = {};
+  list.forEach(i => {
+    if (i.type === 'stage change') {
+      const mv = readStageMove(i.summary);
+      if (mv && mv.to) at = mv.to;
+    }
+    out[i.id] = at || currentStage || '';
+  });
+  return out;
+}

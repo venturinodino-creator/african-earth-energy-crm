@@ -207,6 +207,25 @@ function interactionToRow(i) {
   return row;
 }
 
+/* One working item on an opportunity page: a next step (due date, ticked
+   done), a note on a stage, a note on the account, or a checklist item
+   ticked by hand (kind 'check': stage + body = the item's position, doneAt
+   set = ticked). See js/views-opportunity.js. */
+function rowToStageItem(r) {
+  return {
+    id: r.id, offtakerId: r.offtaker_id || '', stage: r.stage || '', kind: ['note', 'account-note', 'check'].includes(r.kind) ? r.kind : 'step',
+    body: r.body || '', dueDate: r.due_date || '', doneAt: r.done_at || '', author: r.author || '',
+    createdAt: r.created_at || '',
+  };
+}
+function stageItemToRow(i) {
+  return {
+    id: i.id, offtaker_id: i.offtakerId, stage: i.stage, kind: i.kind, body: i.body,
+    due_date: i.dueDate || null, done_at: i.doneAt || null, author: i.author || null,
+    created_at: i.createdAt || null, updated_at: new Date().toISOString(),
+  };
+}
+
 /* ─── CONTACT FINDER ──────────────────────────────────────────────
    A run is the request the desk queued; a find is a person the agent
    believes it turned up. Postgres text[] arrives as a JS array, so
@@ -269,6 +288,7 @@ function upsert(table, row) {
 async function pushOfftaker(o) { await guardWrite(() => upsert('aee_offtakers', offtakerToRow(o))); }
 async function pushContact(c) { await guardWrite(() => upsert('aee_contacts', contactToRow(c))); }
 async function pushDeal(d) { await guardWrite(() => upsert('aee_deals', dealToRow(d))); }
+async function pushStageItem(i) { await guardWrite(() => upsert('aee_stage_items', stageItemToRow(i))); }
 async function pushInteraction(i) { await guardWrite(() => upsert('aee_interactions', interactionToRow(i))); }
 async function pushContactRun(r) { await guardWrite(() => upsert('aee_contact_runs', runToRow(r))); }
 async function pushFoundContact(f) { await guardWrite(() => upsert('aee_found_contacts', findToRow(f))); }

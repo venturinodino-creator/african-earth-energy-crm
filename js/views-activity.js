@@ -38,7 +38,8 @@ function renderActivity() {
   /* The log and the follow-ups are those of the accounts in the province scope. */
   const everything = scopedInteractions().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const items = followUps(scopedDeals(), scopedOfftakers(), actStageLabel)
-    .concat(outreachFollowUps(scopedInteractions(), scopedOfftakers(), scopedContacts()));
+    .concat(outreachFollowUps(scopedInteractions(), scopedOfftakers(), scopedContacts()))
+    .concat(stepFollowUps(state.stageItems, scopedOfftakers(), actStageLabel));
   const marks = calendarMarks(everything, items);
   const logs = day ? everything.filter(i => i.date === day) : everything;
   const due = day ? items.filter(i => i.date === day) : items;
@@ -70,8 +71,10 @@ function renderActivity() {
 
 /* ─── FOLLOW-UPS ──────────────────────────────────────────────── */
 function followUpRowHtml(i) {
-  return '<div class="fu-row" onclick="nav(\'' + accountView(i.accountId) + '\',{id:' + jsStr(i.accountId) + '})">' +
-    '<span class="fu-kind">' + (i.kind === 'deal' ? 'Close' : i.kind === 'outreach' ? 'Chase' : 'Parked') + '</span>' +
+  /* A next step lives on the opportunity page, so that is where it opens. */
+  const view = i.kind === 'step' ? 'opportunity' : accountView(i.accountId);
+  return '<div class="fu-row" onclick="nav(\'' + view + '\',{id:' + jsStr(i.accountId) + '})">' +
+    '<span class="fu-kind">' + (i.kind === 'deal' ? 'Close' : i.kind === 'outreach' ? 'Chase' : i.kind === 'step' ? 'Step' : 'Parked') + '</span>' +
     '<div class="fu-text"><div class="fu-title">' + esc(i.title) + '</div>' +
       '<div class="fu-sub"><span class="ext-link">' + esc(i.account) + '</span> · ' + esc(i.detail) + '</div></div>' +
     '<span class="fu-date">' + esc(fuDate(i.date)) + '</span></div>';
