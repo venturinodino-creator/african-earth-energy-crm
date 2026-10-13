@@ -23,7 +23,7 @@ function addToPipeline(id) {
   if (!rec) return;
   if (inPipeline(rec)) { toast('Already in the pipeline'); return; }
 
-  rec.sfStage = 'prospecting';
+  rec.sfStage = 'outreach';
   /* A parked account coming back onto the board is live again. */
   if (rec.status === 'parked' || !rec.status) rec.status = 'prospect';
   pushOfftaker(rec);
@@ -32,17 +32,17 @@ function addToPipeline(id) {
     id: uid('int'),
     offtakerId: rec.id,
     date: todayISO(), type: 'stage change',
-    summary: 'Moved into the pipeline at Prospecting.',
+    summary: 'Moved into the pipeline at Outreach.',
   };
   state.interactions.push(entry);
   pushInteraction(entry);
   save();
-  toast((rec.short || rec.name) + ' moved into the pipeline at Prospecting');
+  toast((rec.short || rec.name) + ' moved into the pipeline at Outreach');
   /* Land on the board it has just joined. The record has left Prospects,
      so staying put would leave a rep looking at a list its row vanished
      from, which reads as a delete rather than a move. The accounts board
      is where it now has a position, so that is where it opens — first
-     card of the Prospecting column. */
+     card of the Outreach column. */
   state.pipeView = 'accounts';
   nav('pipeline');
 }
@@ -141,6 +141,39 @@ function reconcileAccountStage(id) {
   save();
   toast((rec.short || rec.name) + ' moved to ' + to);
   render();
+}
+
+/* Move an account forward because of something just logged: a held
+   meeting moves it to that meeting's stage, and a first touch on a lead
+   starts it at Outreach (see stageFromEntry in js/outreach.js). Decision
+   D1: automatic, but forward only. An account already at or past the
+   target, or closed, is left where it is, and the path can always be set
+   by hand. Opportunities on the account move with it, as they do when the
+   path is clicked. Logged as a stage change dated with the entry that
+   caused it, so days-in-stage counts from the meeting, not from when it
+   was typed in. Returns the new stage's label, or null if nothing moved. */
+function advanceStageFromActivity(rec, target, entry) {
+  const st = sfStageOf(target);
+  if (!rec || !st) return null;
+  const was = inPipeline(rec);
+  if (was && (sfStageFor(rec) === 'closed' || sfStageIndex(target) <= sfStageIndex(sfStageFor(rec)))) return null;
+  const from = sfStageLabel(rec);
+  rec.sfStage = target;
+  if (rec.status !== 'lost' && rec.status !== 'contracted') rec.status = st.status;
+  pushOfftaker(rec);
+  const deals = moveDealsWithAccount(rec.id, target, true);
+  const channel = outreachChannel(entry.channel);
+  const why = channel ? channel.label + (channel.meeting ? ' held' : ' logged') : 'Activity logged';
+  const note = {
+    id: uid('int'), offtakerId: rec.id, date: entry.date || todayISO(), type: 'stage change',
+    summary: (was ? 'Sales stage moved from ' + from + ' to ' + st.label + '.' : 'Moved into the pipeline at ' + st.label + '.') +
+      ' ' + why + ' on ' + (entry.date || todayISO()) + '.' +
+      (deals ? ' ' + deals + ' opportunit' + (deals === 1 ? 'y' : 'ies') + ' moved with it.' : ''),
+    createdAt: new Date().toISOString(),
+  };
+  state.interactions.push(note);
+  pushInteraction(note);
+  return st.label;
 }
 
 function setSfStage(id, stage) {

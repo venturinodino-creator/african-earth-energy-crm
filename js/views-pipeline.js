@@ -2,7 +2,7 @@
    Pipeline
    One board, three readings of it. The page used to carry a second
    board of PPA opportunities beside the board of companies, on the
-   same five stages, each with its own stat row — two pipelines on one
+   same seven stages, each with its own stat row — two pipelines on one
    tab, and the deal board showed three cards where the account board
    showed nineteen. The company is the unit of the sales process, so it
    is the card; its opportunities are numbers ON the card, and editing

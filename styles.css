@@ -657,6 +657,33 @@ button.wiz-btn:hover .wiz-l{color:var(--text2)}
 .fg select option{background:var(--card)}
 .fg-hint{font-size:10px;color:var(--muted);line-height:1.4}
 
+/* ─── Outreach fields in the log form ────────────────────────────
+   The channel, outcome, people and follow-up fields sit in the form's own
+   two-column grid, so their wrapper takes no box of its own. */
+.ow-wrap{display:contents}
+.ow-touch{text-transform:none;letter-spacing:0;font-weight:600;color:var(--accent)}
+.ow-people{display:flex;flex-direction:column;gap:2px;max-height:196px;overflow-y:auto;
+  border:1px solid var(--border);border-radius:8px;padding:4px;background:var(--bg2)}
+.fg label.ow-person{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"box name eng" "box title eng";
+  align-items:center;column-gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12.5px;line-height:1.3;
+  /* It is a <label> so the whole row ticks the box; it is not a field label. */
+  text-transform:none;letter-spacing:0;font-weight:400;color:var(--text)}
+.ow-person:hover{background:var(--card)}
+.ow-person input[type=checkbox]{grid-area:box;margin:0;width:15px;height:15px;padding:0;box-shadow:none;accent-color:var(--accent)}
+.ow-person:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+.ow-name{grid-area:name;font-weight:600;color:var(--text2);min-width:0;overflow-wrap:anywhere}
+.ow-title{grid-area:title;color:var(--muted);font-size:11.5px;min-width:0;overflow-wrap:anywhere}
+.ow-eng{grid-area:eng;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px;white-space:nowrap;
+  background:color-mix(in srgb,var(--fg) 6%,transparent);color:var(--muted2)}
+.ow-eng.ow-contacted{background:color-mix(in srgb,var(--c-blue) 14%,transparent);color:var(--c-blue)}
+.ow-eng.ow-replied{background:color-mix(in srgb,var(--c-amber) 16%,transparent);color:var(--c-amber)}
+.ow-eng.ow-engaging{background:color-mix(in srgb,var(--c-green) 16%,transparent);color:var(--c-green)}
+.ow-eng.ow-declined,.ow-eng.ow-cold{background:color-mix(in srgb,var(--c-red) 12%,transparent);color:var(--c-red)}
+.ow-new{margin-top:6px;font-size:12px}
+.ow-new summary{cursor:pointer;color:var(--accent);font-weight:600;padding:2px 0}
+.ow-new[open] summary{margin-bottom:8px}
+.ow-new-grid{margin-bottom:6px}
+
 /* The researched overview runs to several paragraphs, and used to sit in
    one 80ch column that left most of a wide card empty.
 

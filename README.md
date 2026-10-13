@@ -14,7 +14,7 @@ Company site: <https://www.aeeg.co.za/en>
 | Screen | What it is for |
 | --- | --- |
 | **Dashboard** | The morning view — today's call list, what needs attention (a close date passed, a parked account due back, a strong lead nobody has a contact at), funnel by stage, the next follow-ups, sector mix, capacity allocation, recent activity |
-| **Pipeline** | The companies somebody is working, one board on the five-stage sales path. Each card carries the MW, value and likelihood of the PPA opportunities open on it. **Flow** reads where they stop, **Table** lists the lot in stage order. Drag to move a card, and its opportunities move with it |
+| **Pipeline** | The companies somebody is working, one board on the seven-stage sales path. Each card carries the MW, value and likelihood of the PPA opportunities open on it. **Flow** reads where they stop, **Table** lists the lot in stage order. Drag to move a card, and its opportunities move with it |
 | **Off-taker Prospects** | The leads: researched companies nobody has picked up. No sales stage, no board position. Grid or table, filterable by sector, status and province, sortable by fit score |
 | **Offtaker detail** | Three cards for a lead — who they are, what the desk researched, who works there — plus the sales path once it is in the pipeline |
 | **Contacts** | People at each offtaker, with role in the decision. CSV import and export |
@@ -53,16 +53,29 @@ if the team's experience says something different.
 
 Only an account **in the pipeline** has one. A lead has no stage at all — see
 [Leads vs opportunities](#leads-vs-opportunities) below. An account in the
-pipeline sits at one of five stages, the standard sales process rather than
-anything PPA-specific:
+pipeline sits at one of seven stages. They follow how AEEG actually sells power:
+reach several people at the company, meet them online and in person, then work
+out the need, make a commercial proposition and finalise the PPA.
 
-| Stage | What it means here |
-| --- | --- |
-| **Prospecting** | Identified and being researched. No conversation yet |
-| **Needs Analysis** | Talking to them. Establishing load, tariff, supply route and who decides |
-| **Proposal** | Indicative tariff and volume with the customer |
-| **Negotiation** | Terms on the table and the PPA being drafted |
-| **Closed** | Signed, or closed lost. Either way it is off the working board |
+| Stage | What it means here | Moves on when |
+| --- | --- | --- |
+| **Outreach** | Reaching several people at the company by email, LinkedIn and phone | A first meeting is held |
+| **Online meeting** | First call or video meeting, one-to-one or as a group | You meet in person, or go straight to needs analysis |
+| **In-person meeting** | Met face to face: their office, on site, or at a conference | They agree to share consumption data |
+| **Needs analysis** | Load, tariff, supply route, when they need power and who decides | All of that is known |
+| **Commercial proposition** | Indicative tariff, volume and tenor with the customer | They accept terms in principle |
+| **PPA finalisation** | Term sheet, diligence, the PPA drafted and signed | The PPA is signed |
+| **Closed** | Signed, or closed lost. Either way it is off the working board | |
+
+The meeting stages can be skipped: meeting someone first at a conference is
+normal, so nothing forces an account through every column. Logging a meeting
+as held moves the account forward to that meeting's stage on its own (an online
+meeting to Online meeting; an in-person meeting, a conference meeting or a
+site visit to In-person meeting). It never moves an account backwards, and the
+path can always be set by hand. The ids of the last four stages are the ones
+the earlier five-stage path used, so nothing at those stages had to be
+rewritten; Prospecting became Outreach and is read as Outreach wherever it is
+still stored.
 
 The path sits on the record itself: one click moves the account, which writes
 the matching `status`, so every badge, filter and dashboard that already reads
@@ -72,7 +85,7 @@ because a stage change with no trace of why is how a pipeline stops being
 believed. Records created before the path existed read their stage back out of
 the status they already carry, so nothing had to be back-filled.
 
-An individual opportunity carries the same five stages, and the two are held
+An individual opportunity carries the same seven stages, and the two are held
 together: an account sits where its furthest-along opportunity sits, dragging
 the account on the board brings its opportunities with it, and saving an
 opportunity at a later stage moves its account the same way. The board shows
@@ -320,11 +333,12 @@ ls tests/*.test.js | xargs node --test    # all of them
 node tests/finder-agent.test.js           # or one: the finder's validator, loader, sign-in and CLI
 ```
 
-There are 39 files. They cover the contact finder (agent, Apollo helper, gap finder,
+There are 40 files. They cover the contact finder (agent, Apollo helper, gap finder,
 targets, ladder seats, email inference, the Agent HQ activity card, the OpenClaw runner), the Projects area
 (analytics maths and page, site profile, plan editing), the page layouts (shell, lists, record
 pages, dashboard, settings, activity, map, news), the province scope, row selection, the
-+ New drawer, the Import wizard and its rules, follow-ups, the Analytics export and the search
++ New drawer, the Import wizard and its rules, follow-ups, the outreach rules (touch numbers,
+engagement, stage moves, chasing), the Analytics export and the search
 shortcut, form validation, shared helpers, the news merge and scan, and the docs themselves
 (`tests/docs.test.js` checks the test count, that every script is in the file map and every
 mapped path exists, and that the glossary and ADR-0001 carry the terms and the decision the
@@ -486,6 +500,7 @@ js/core.js                  state, routing, province scope, helpers, fit score, 
 js/selection.js             row selection on the list tables, and Export selected
 js/quickcreate.js           the + New drawer: type pills, duplicate warning, Create & open
 js/followups.js             follow-ups, what needs attention, and the calendar's month grid; no DOM
+js/outreach.js              outreach touches: engagement, touch numbers, follow-ups, stage moves; no DOM
 js/views-dashboard.js       dashboard
 js/views-pipeline.js        the pipeline board, flow and table
 js/views-offtakers.js       the lead list, the record detail, contacts

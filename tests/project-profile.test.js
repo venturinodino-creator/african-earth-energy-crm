@@ -78,7 +78,7 @@ test('a site with a linked plan shows its sale, its delivery and its buyers', ()
   const e = env(); const h = render(e, 'middelburg');
   assert.strictEqual(e.page.t, 'Middelburg Solar Farm + BESS');
   assert.ok(/Capacity: 49 MW/.test(h) && /Still to sell: 29 MW/.test(h), 'capacity and unsold');
-  assert.ok(h.includes('Sibanye-Stillwater') && h.includes('Proposal') && h.includes('20 MW'), 'the buyer');
+  assert.ok(h.includes('Sibanye-Stillwater') && h.includes('Commercial proposition') && h.includes('20 MW'), 'the buyer');
   assert.ok(h.includes('31%') && h.includes('Karen Metcalf'), 'delivery progress and manager');
   assert.ok(h.includes('1 / 3'), 'one of three leaf tasks done (the phase row does not count)');
   assert.ok(/Rezoning/.test(h) && /Grid study/.test(h), 'due next lists the open tasks');

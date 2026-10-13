@@ -102,7 +102,7 @@ function rowToOfftaker(r) {
     tariff: Number(r.tariff) || 0, nmd: Number(r.nmd) || 0,
     supply: r.supply || 'eskom', wheeling: r.wheeling || 'unknown',
     status: r.status || 'prospect', priority: r.priority || 'medium',
-    sfStage: r.sf_stage || '',
+    sfStage: normalizeSfStage(r.sf_stage),
     /* Shelved, not deleted. Archived companies are split off at load time
        into state.archived and shown only on the Archive tab of Off-taker
        Prospects, so the rest of the app only ever sees the working book.
@@ -176,17 +176,35 @@ function dealToRow(d) {
     close_date: d.closeDate || null, notes: d.notes, created_at: d.createdAt || null,
   };
 }
+/* The outreach fields (who, channel, touch number, outcome, follow-up date)
+   are all optional: an entry logged before they existed, or a stage-change
+   entry the app writes itself, simply has none. See js/outreach.js. */
 function rowToInteraction(r) {
   return {
     id: r.id, offtakerId: r.offtaker_id || '',
     date: r.date || '', type: r.type || 'note', summary: r.summary || '',
+    contactIds: Array.isArray(r.contact_ids) ? r.contact_ids : [],
+    channel: r.channel || '', touchNo: Number(r.touch_no) || 0,
+    outcome: r.outcome || '', followUpOn: r.follow_up_on || '',
+    createdAt: r.created_at || '',
   };
 }
 function interactionToRow(i) {
-  return {
+  const row = {
     id: i.id, offtaker_id: i.offtakerId || null,
     date: i.date, type: i.type, summary: i.summary,
   };
+  /* Only sent when there is something to send, so a plain stage-change
+     entry still saves against a database the outreach migration has not
+     reached yet. */
+  if (i.channel) {
+    row.contact_ids = (i.contactIds || []).length ? i.contactIds : null;
+    row.channel = i.channel;
+    row.touch_no = i.touchNo || null;
+    row.outcome = i.outcome || null;
+    row.follow_up_on = i.followUpOn || null;
+  }
+  return row;
 }
 
 /* ─── CONTACT FINDER ──────────────────────────────────────────────

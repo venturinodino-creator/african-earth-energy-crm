@@ -58,7 +58,7 @@ create table if not exists public.aee_offtakers (
   -- Where the account sits in the Salesforce sales process. Coarser than
   -- status and kept in step with it; see SF_STAGES in data/seed.js.
   sf_stage    text check (sf_stage in
-                ('prospecting','needs-analysis','proposal','negotiation','closed')),
+                ('outreach','online-meeting','in-person','needs-analysis','proposal','negotiation','closed','prospecting')),
   priority    text,
   description text,
   -- When to look at this account again. Set it when an account is parked
@@ -209,12 +209,25 @@ create index if not exists aee_offtakers_archived_idx on public.aee_offtakers(ar
 alter table public.aee_deals     add column if not exists prospect_id text;
 alter table public.aee_interactions add column if not exists prospect_id text;
 
-do $$
-begin
-  alter table public.aee_offtakers add constraint aee_offtakers_sf_stage_check
-    check (sf_stage in ('prospecting','needs-analysis','proposal','negotiation','closed'));
-exception when duplicate_object then null;
-end $$;
+-- The seven-stage sales path (Outreach → Online meeting → In-person meeting →
+-- Needs analysis → Commercial proposition → PPA finalisation → Closed).
+-- Dropped and re-added rather than added once, so a project provisioned on
+-- the older five-stage list picks up the new ids. 'prospecting' stays
+-- allowed so a browser still running the old page cannot fail a save; the
+-- app reads it as Outreach.
+alter table public.aee_offtakers drop constraint if exists aee_offtakers_sf_stage_check;
+alter table public.aee_offtakers add constraint aee_offtakers_sf_stage_check
+  check (sf_stage in ('outreach','online-meeting','in-person','needs-analysis','proposal','negotiation','closed','prospecting'));
+
+-- Outreach detail on each logged activity: who it went to, how, which touch
+-- it was in the round, what came of it, and when to follow up if nothing
+-- does. All optional, so entries logged before these existed stay valid.
+alter table public.aee_interactions add column if not exists contact_ids  text[];
+alter table public.aee_interactions add column if not exists channel      text;
+alter table public.aee_interactions add column if not exists touch_no     integer;
+alter table public.aee_interactions add column if not exists outcome      text;
+alter table public.aee_interactions add column if not exists follow_up_on date;
+create index if not exists aee_interactions_follow_up_idx on public.aee_interactions(follow_up_on) where follow_up_on is not null;
 
 -- ─── ROLE HELPERS ──────────────────────────────────────────────────
 -- security definer so the policies can read profiles without the

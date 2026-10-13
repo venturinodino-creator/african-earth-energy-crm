@@ -46,7 +46,7 @@ function settingsAccountHtml() {
 
 /* ─── PIPELINE STAGES ─────────────────────────────────────────── */
 function settingsStagesHtml() {
-  return settingsHeadHtml('Pipeline stages', 'The five stages every account and opportunity moves through') +
+  return settingsHeadHtml('Pipeline stages', 'The seven stages every account and opportunity moves through') +
     '<div class="table-wrap"><table><thead><tr><th>Stage</th><th>What it means</th><th class="num">Default probability</th>' +
     '<th>Counts as stalled after</th></tr></thead><tbody>' +
     SF_STAGES.map(s =>

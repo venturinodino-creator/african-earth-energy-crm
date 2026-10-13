@@ -340,7 +340,7 @@ function offtakerCardHtml(o) {
 function workItButtonHtml(o, stopProp) {
   if (inPipeline(o)) return '';
   return '<button class="btn btn-xs btn-primary" data-admin-only ' +
-    'title="Move out of Prospects and into the Pipeline at Prospecting - this is where it becomes an opportunity" ' +
+    'title="Move out of Prospects and into the Pipeline at Outreach - this is where it becomes an opportunity" ' +
     'onclick="' + (stopProp ? 'event.stopPropagation();' : '') + 'addToPipeline(' + jsStr(o.id) + ')">' +
     icon('target', 12) + ' Work it</button> ';
 }
@@ -427,7 +427,7 @@ function renderDetail() {
       ? '<button class="btn btn-primary btn-sm" onclick="openAddDeal(' + jsStr(o.id) + ')">' +
         icon('bolt', 14) + ' New opportunity</button>'
       : '<button class="btn btn-primary btn-sm" data-admin-only ' +
-        'title="Move this lead out of Prospects and into the Pipeline at Prospecting" ' +
+        'title="Move this lead out of Prospects and into the Pipeline at Outreach" ' +
         'onclick="addToPipeline(' + jsStr(o.id) + ')">' +
         icon('target', 14) + ' Work it</button>'),
     o.description);
