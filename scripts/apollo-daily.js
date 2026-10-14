@@ -99,6 +99,50 @@ async function recentlyWorked(days) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const uid = p => p + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
 
+/* The spending loop. Plan first (free), spend second, and stop spending the
+   moment either the run's budget or Apollo's credits run out, keeping every
+   email already paid for.
+
+   `worked` is what goes on the cooldown: only companies whose candidates
+   were all tried (none, for a company Apollo has nobody for). A company cut
+   off by the budget or by the credits, or never reached, is left off it, so
+   the next run with credits picks it up instead of waiting out the cooldown.
+
+   `calls` is { budget, search(row, domain), enrich(person, row, domain),
+   pause(ms) }, so the loop runs against fakes in the tests. */
+async function harvest(queue, calls) {
+  let left = calls.budget, spent = 0, exhausted = false;
+  const finds = [], report = [], worked = [];
+  for (const row of queue) {
+    if (exhausted) break;   // a spent budget still searches (free), so a dry run still plans
+    const domain = domainOf(row.website);
+    let people = [];
+    try { people = await calls.search(row, domain); } catch (e) {
+      if (e instanceof apollo.Bail) throw e;   // key or plan problem: stop, do not repeat it for every company
+      report.push({ company: row.name, error: String(e.message || e).slice(0, 100) }); continue;
+    }
+    const picks = chooseCandidates(row, people);
+    const entry = { company: row.name, gap: row.gap, candidates: picks.map(p => ({ seat: p.seat, title: p.person.title })), filed: 0 };
+    let tried = 0;
+    for (const { person, seat } of picks) {
+      if (left <= 0) break;
+      let full;
+      try { full = await calls.enrich(person, row, domain); } catch (e) {
+        if (e instanceof apollo.OutOfCredits) { exhausted = true; break; }
+        throw e;
+      }
+      left--; spent++; tried++;
+      await calls.pause(600);
+      const f = toFind(row, { ...person, ...full }, seat);
+      if (f && !(row._contacts || []).some(c => String(c.email || '').trim().toLowerCase() === f.email.toLowerCase())) { finds.push(f); entry.filed++; }
+    }
+    if (tried === picks.length) worked.push(row.id);
+    report.push(entry);
+    await calls.pause(800);
+  }
+  return { finds, report, spent, worked, exhausted };
+}
+
 async function main() {
   const o = parseFlags(process.argv.slice(2));
   gaps.loadEnv(require('path').join(__dirname, '..', '.env'));
@@ -109,29 +153,12 @@ async function main() {
   const queue = gaps.rankGaps(rows).filter(r => r.gap > 0 && !worked.has(r.id)).slice(0, o.companies);
   if (!queue.length) return console.log(JSON.stringify({ ok: true, note: 'No listed company has a gap that was not worked in the last ' + o.cooldown + ' days.' }));
 
-  /* Plan first (free), spend second. */
-  let left = o.dry ? 0 : o.budget, spent = 0;
-  const finds = [], report = [];
-  for (const row of queue) {
-    const domain = domainOf(row.website);
-    let people = [];
-    try { people = await apollo.searchCompany(row.name, domain); } catch (e) {
-      if (e instanceof apollo.Bail) throw e;   // key or plan problem: stop, do not repeat it for every company
-      report.push({ company: row.name, error: String(e.message || e).slice(0, 100) }); continue;
-    }
-    const picks = chooseCandidates(row, people);
-    const entry = { company: row.name, gap: row.gap, candidates: picks.map(p => ({ seat: p.seat, title: p.person.title })), filed: 0 };
-    for (const { person, seat } of picks) {
-      if (left <= 0) break;
-      const full = await apollo.enrich(person, row.name, domain);
-      left--; spent++;
-      await sleep(600);
-      const f = toFind(row, { ...person, ...full }, seat);
-      if (f && !(row._contacts || []).some(c => String(c.email || '').trim().toLowerCase() === f.email.toLowerCase())) { finds.push(f); entry.filed++; }
-    }
-    report.push(entry);
-    await sleep(800);
-  }
+  const { finds, report, spent, worked: done, exhausted } = await harvest(queue, {
+    budget: o.dry ? 0 : o.budget,
+    search: (row, domain) => apollo.searchCompany(row.name, domain),
+    enrich: (person, row, domain) => apollo.enrich(person, row.name, domain),
+    pause: sleep,
+  });
 
   let runId = null;
   if (!o.dry) {
@@ -139,8 +166,9 @@ async function main() {
     const now = new Date().toISOString();
     await gaps.rest('aee_contact_runs', { method: 'POST', body: JSON.stringify({
       id: runId, created: now.slice(0, 10), status: 'running', industry: 'all', roles: ['decision', 'influencer', 'technical', 'gatekeeper'],
-      offtaker_ids: queue.map(r => r.id), found: 0, claimed_at: now, updated_at: now,
-      note: NOTE + ': ' + queue.length + ' listed companies, ' + spent + ' emails revealed. Review on the Contact finder page.',
+      offtaker_ids: done, found: 0, claimed_at: now, updated_at: now,
+      note: NOTE + ': ' + done.length + ' listed companies, ' + spent + ' emails revealed' +
+        (exhausted ? '; Apollo credits ran out, the rest wait for the next run with credits' : '') + '. Review on the Contact finder page.',
     }) });
     for (const f of finds) {
       await gaps.rest('aee_found_contacts', { method: 'POST', body: JSON.stringify({
@@ -152,8 +180,8 @@ async function main() {
       status: 'done', found: finds.length, finished_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }) });
   }
-  console.log(JSON.stringify({ ok: true, dry: o.dry, runId, companies: queue.length, creditsSpent: spent, filed: finds.length, report }, null, 2));
+  console.log(JSON.stringify({ ok: true, dry: o.dry, runId, companies: queue.length, worked: done.length, creditsSpent: spent, creditsExhausted: exhausted, filed: finds.length, report }, null, 2));
 }
 
 if (require.main === module) main().catch(e => { if (e.message !== 'bail' && !(e instanceof apollo.Bail)) { console.log(JSON.stringify({ ok: false, error: String(e.message || e) })); process.exitCode = 1; } });
-module.exports = { chooseCandidates, toFind, sameName, domainOf, parseFlags };
+module.exports = { chooseCandidates, toFind, sameName, domainOf, parseFlags, harvest };

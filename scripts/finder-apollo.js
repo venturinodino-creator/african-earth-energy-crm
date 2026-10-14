@@ -72,6 +72,16 @@ function die(msg, extra) {
   process.exitCode = 1;
   throw new Bail(msg);
 }
+
+/* The credits for the period are spent. Not a failure of the key or the
+   plan, so it is not a Bail: the daily run stops revealing, files what it
+   already paid for, and tries again tomorrow. Apollo does not document a
+   status for it; users report a 422 reading "You are out of credits!", so
+   the body is what decides, and 402 is taken at its word. */
+class OutOfCredits extends Error {}
+function isOutOfCredits(status, text) {
+  return status === 402 || /out of credits|insufficient credits|not enough credits|credit limit/i.test(String(text || ''));
+}
 function out(obj) { console.log(JSON.stringify(obj, null, 2)); }
 
 /* ─── THE SEVEN SEATS ─────────────────────────────────────────────
@@ -128,6 +138,7 @@ async function apollo(pathname, body, method) {
   }
   const text = await res.text();
   if (!res.ok) {
+    if (isOutOfCredits(res.status, text)) throw new OutOfCredits('Apollo credits ran out (' + res.status + ').');
     const why = res.status === 401 ? 'The key was rejected — check AEE_APOLLO_KEY.'
       : res.status === 403 ? 'Apollo refused this endpoint — usually the plan does not include API search, or the key is not a master key.'
       : 'Apollo returned ' + res.status + '.';
@@ -325,4 +336,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, searchCompany, enrich, Bail, SEATS, SEAT_ROLE };
+module.exports = { titleToSeat, personToFind, findsToCsv, csvCell, parseArgs, searchCompany, enrich, Bail, OutOfCredits, isOutOfCredits, SEATS, SEAT_ROLE };
