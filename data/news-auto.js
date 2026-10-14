@@ -4,6 +4,18 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-tofy51",
+    "topic": "strategy",
+    "province": "Multiple",
+    "date": "2026-10-14",
+    "title": "Energy security and sustainability: A shared opportunity for South Africa’s mining sector",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Mining Weekly",
+    "url": "https://www.miningweekly.com/article/energy-security-and-sustainability-a-shared-opportunity-for-south-africas-mining-sector-2026-10-14",
+    "auto": true
+  },
+  {
     "id": "auto-1wjnxz",
     "topic": "ppa_contracts",
     "province": "Multiple",
@@ -97,6 +109,18 @@ const NEWS_AUTO = [
     "whyItMatters": "",
     "source": "pv magazine Global",
     "url": "https://www.pv-magazine.com/2026/10/08/south-africa-to-procure-4-6-gw-of-battery-storage/",
+    "auto": true
+  },
+  {
+    "id": "auto-6rvi4l",
+    "topic": "consortia",
+    "province": "Multiple",
+    "date": "2026-10-08",
+    "title": "Renewable energy partnership to help decarbonise Kruger National Park in its centenary year.",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Sasol",
+    "url": "https://www.sasol.com/media-centre/media-releases/renewable-energy-partnership-to-help-decarbonise-kruger-national-park-in-its-centenary-year",
     "auto": true
   },
   {
