@@ -263,6 +263,48 @@ test('added companies, contacts and opportunities are named', () => {
   assert.ok(/added an opportunity “ZZ 10 MW”/.test(one(ch({ table_name: 'aee_deals', fields: { name: { old: null, new: 'ZZ 10 MW' }, mw: { old: null, new: 10 } } }))));
 });
 
+console.log('\nThe review queue, finder runs, project plans and roles');
+const inState = (c, over) => whatOf(run(Object.assign({ changeLog: loaded([Object.assign({ at: at('2026-10-15', 12) }, c)], '2026-10-09', '2026-10-15') }, over)).content);
+test('accepting or discarding a find reads as such, with the person found and the company', () => {
+  const finds = { foundContacts: [{ id: 'fd1', first: 'Jan', last: 'W', offtakerId: 'f' }] };
+  const acc = inState(ch({ table_name: 'aee_found_contacts', record_id: 'fd1', kind: 'edited', fields: { status: { old: 'pending', new: 'approved' } } }), finds);
+  assert.ok(/accepted find “Jan W” at Ferro/.test(acc), acc);
+  const dis = inState(ch({ table_name: 'aee_found_contacts', record_id: 'fd1', kind: 'edited', fields: { status: { old: 'pending', new: 'discarded' } } }), finds);
+  assert.ok(/discarded find “Jan W” at Ferro/.test(dis), dis);
+  const gone = inState(ch({ table_name: 'aee_found_contacts', record_id: 'fd9', offtaker_id: null, kind: 'edited', fields: { status: { old: 'pending', new: 'approved' } } }));
+  assert.ok(/^accepted a find$/.test(gone), 'a find no longer loaded still reads: ' + gone);
+});
+test('queueing a finder run says how many companies; its progress reads as words', () => {
+  const q = inState(ch({ table_name: 'aee_contact_runs', offtaker_id: null, fields: { status: { old: null, new: 'queued' }, offtaker_ids: { old: null, new: ['f', 'g'] } } }));
+  assert.ok(/^queued a finder run for 2 companies$/.test(q), q);
+  const one1 = inState(ch({ table_name: 'aee_contact_runs', offtaker_id: null, fields: { status: { old: null, new: 'queued' }, offtaker_ids: { old: null, new: ['f'] } } }));
+  assert.ok(/^queued a finder run for 1 company$/.test(one1), one1);
+  const done = inState(ch({ table_name: 'aee_contact_runs', offtaker_id: null, kind: 'edited', fields: { status: { old: 'running', new: 'done' }, found: { old: 0, new: 4 } } }));
+  assert.ok(/^finished a finder run; Found 0 → 4$/.test(done), done);
+});
+test('project-plan changes read from their history: added, changed, deleted, reverted', () => {
+  const h = (field, o, n) => inState(ch({ table_name: 'aee_pm_history', offtaker_id: null, fields: { field: { old: null, new: field }, old_value: { old: null, new: o }, new_value: { old: null, new: n } } }));
+  assert.ok(/^changed Status of a project-plan task from To Do to Done$/.test(h('status', 'To Do', 'Done')), h('status', 'To Do', 'Done'));
+  assert.ok(/^added a project-plan task “Pour slab”$/.test(h('_created', null, 'created: Pour slab')));
+  assert.ok(/^deleted a project-plan task “Pour slab”$/.test(h('_deleted', null, 'deleted: Pour slab')));
+  assert.ok(/^reverted a project-plan task to ProjectManager\.com$/.test(h('_reverted', null, 'reverted to ProjectManager.com')));
+  const start = whatOf(run({ changeLog: loaded([ch({ at: at('2026-10-15', 12), table_name: 'aee_pm_history', offtaker_id: null,
+    fields: { field: { old: null, new: 'plannedStart' }, old_value: { old: null, new: '1 Nov' }, new_value: { old: null, new: '8 Nov' } } })], '2026-10-09', '2026-10-15') },
+    ctx => { vm.runInContext('PM_FIELD_LABEL = { plannedStart: "Start" }; renderChangeLog();', ctx); }).content);
+  assert.ok(/^changed Start of a project-plan task from 1 Nov to 8 Nov$/.test(start), 'the plans\' own field names: ' + start);
+});
+test('a project-plan note is quoted; the saved task beside a history line reads as a save', () => {
+  assert.ok(/added a project-plan note “Crane booked”/.test(inState(ch({ table_name: 'aee_pm_notes', offtaker_id: null, fields: { body: { old: null, new: 'Crane booked' } } }))));
+  assert.ok(/^saved a project-plan task$/.test(inState(ch({ table_name: 'aee_pm_task_edits', offtaker_id: null, kind: 'edited', fields: { patch: { old: {}, new: { status: 'Done' } } } }))));
+  assert.ok(/^saved a project-plan task$/.test(inState(ch({ table_name: 'aee_pm_task_edits', offtaker_id: null, fields: { patch: { old: null, new: { name: 'x' } } } }))));
+  assert.ok(/^cleared a project-plan task's edits(<details|$)/.test(inState(ch({ table_name: 'aee_pm_task_edits', offtaker_id: null, kind: 'deleted', deleted_row: { task_id: 't1', patch: {} } }))));
+});
+test('a role change names whose role and both roles', () => {
+  const r = inState(ch({ table_name: 'profiles', record_id: 'u-lebo', offtaker_id: null, kind: 'role-changed',
+    fields: { role: { old: 'admin', new: 'viewer' }, email: { old: 'lebo@aeeg.co.za', new: 'lebo@aeeg.co.za' } } }));
+  assert.ok(/^changed the role of lebo from admin to viewer$/.test(r), r);
+});
+
 console.log('\nThe header after a save (js/supabase.js, the real file)');
 (async () => {
   /* The app's own supabase.js and core.js, with the network and the page stood in for. */

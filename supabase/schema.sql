@@ -560,7 +560,8 @@ begin
      where e.key not in ('updated_at','synced_at','last_changed_by','last_changed_at') and e.value <> 'null'::jsonb;
   end if;
   insert into public.aee_changes (author_id, author_email, agent, table_name, record_id, offtaker_id, kind, fields, deleted_row)
-  values (auth.uid(), (select email from auth.users where id = auth.uid()), public.request_agent(), tg_table_name, r ->> 'id',
+  values (auth.uid(), (select email from auth.users where id = auth.uid()), public.request_agent(), tg_table_name,
+          coalesce(r ->> 'id', r ->> 'task_id'),   -- a project-plan task edit is keyed by its task
           coalesce(r ->> 'offtaker_id', case when tg_table_name = 'aee_offtakers' then r ->> 'id' end),
           case tg_op when 'INSERT' then 'created' when 'UPDATE' then 'edited' else 'deleted' end,
           diff, case when tg_op = 'DELETE' then o end);
@@ -703,5 +704,49 @@ drop trigger if exists aee_deals_record_change on public.aee_deals;
 create trigger aee_deals_record_change
   after insert or update or delete on public.aee_deals
   for each row execute function public.record_change();
+
+-- The review queue, finder runs and project plans, so someone who works only there is
+-- credited. The legacy mining_leads table stays untracked.
+drop trigger if exists aee_found_contacts_record_change on public.aee_found_contacts;
+create trigger aee_found_contacts_record_change
+  after insert or update or delete on public.aee_found_contacts
+  for each row execute function public.record_change();
+drop trigger if exists aee_contact_runs_record_change on public.aee_contact_runs;
+create trigger aee_contact_runs_record_change
+  after insert or update or delete on public.aee_contact_runs
+  for each row execute function public.record_change();
+drop trigger if exists aee_pm_task_edits_record_change on public.aee_pm_task_edits;
+create trigger aee_pm_task_edits_record_change
+  after insert or update or delete on public.aee_pm_task_edits
+  for each row execute function public.record_change();
+drop trigger if exists aee_pm_notes_record_change on public.aee_pm_notes;
+create trigger aee_pm_notes_record_change
+  after insert or update or delete on public.aee_pm_notes
+  for each row execute function public.record_change();
+drop trigger if exists aee_pm_history_record_change on public.aee_pm_history;
+create trigger aee_pm_history_record_change
+  after insert or update or delete on public.aee_pm_history
+  for each row execute function public.record_change();
+
+-- A profile records role changes only (admin to viewer, say), by the sign-in that made
+-- them, with whose role it was; a new account or anything else on the row is not recorded.
+create or replace function public.record_role_change() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.aee_changes (author_id, author_email, agent, table_name, record_id, kind, fields)
+  values (auth.uid(), (select email from auth.users where id = auth.uid()), public.request_agent(),
+          'profiles', new.id::text, 'role-changed',
+          jsonb_build_object('role', jsonb_build_object('old', old.role, 'new', new.role),
+                             'email', jsonb_build_object('old', new.email, 'new', new.email)));
+  return null;
+end;
+$$;
+revoke all on function public.record_role_change() from public, anon, authenticated;
+drop trigger if exists profiles_record_role_change on public.profiles;
+create trigger profiles_record_role_change
+  after update of role on public.profiles
+  for each row
+  when (old.role is distinct from new.role)
+  execute function public.record_role_change();
 
 notify pgrst, 'reload schema';
