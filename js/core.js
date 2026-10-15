@@ -1462,7 +1462,10 @@ async function doSignIn() {
     msg.textContent = /invalid/i.test(res.error.message)
       ? 'That username and password combination was not recognised.'
       : res.error.message;
+    return;
   }
+  /* A new session from the form, so a sign-in for the Change log (a reload's session is not one). */
+  recordSignIn();
   /* A success fires onAuthStateChange, which takes it from here. */
 }
 

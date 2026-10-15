@@ -642,6 +642,26 @@ revoke all on function public.stamp_author()        from public, anon, authentic
 revoke all on function public.stamp_last_changed()  from public, anon, authenticated;
 revoke all on function public.stamp_created_by()    from public, anon, authenticated;
 
+-- A sign-in for the Change log. The app calls this once when its sign-in form succeeds (a
+-- reload's session is not a sign-in). It takes no arguments: the caller is the one recorded,
+-- so nobody can record a sign-in for someone else. A second call within a minute (a double
+-- submit) counts once. No page or record views are recorded, only that someone signed in.
+create or replace function public.record_sign_in() returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  if exists (select 1 from public.aee_changes
+              where kind = 'signed-in' and author_id = auth.uid() and at > now() - interval '1 minute') then
+    return;
+  end if;
+  insert into public.aee_changes (author_id, author_email, agent, table_name, record_id, kind)
+  values (auth.uid(), (select email from auth.users where id = auth.uid()), public.request_agent(),
+          'profiles', auth.uid()::text, 'signed-in');
+end;
+$$;
+revoke all on function public.record_sign_in() from public, anon;
+grant execute on function public.record_sign_in() to authenticated;
+
 -- Next steps, notes and checklist ticks.
 drop trigger if exists aee_stage_items_stamp_author on public.aee_stage_items;
 create trigger aee_stage_items_stamp_author

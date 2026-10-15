@@ -301,6 +301,31 @@ console.log('\nThe header after a save (js/supabase.js, the real file)');
     pass++; console.log('  ok   a touch you log reads "by you" at once, and the author is left to the database');
   } catch (e) { fail++; console.log('  FAIL a touch you log reads "by you" at once, and the author is left to the database\n       ' + e.message); }
 
+  console.log('\nSign-ins (js/core.js and js/supabase.js, the real files)');
+  const signInCase = async (name, result, expectCalls) => {
+    try {
+      const fields = { 'gate-email': { value: 'thabo' }, 'gate-password': { value: 'pw' }, 'gate-msg': {}, 'gate-btn': {} };
+      ctx.document.getElementById = id => fields[id] || { style: {} };
+      ctx.__calls = [];
+      vm.runInContext('signIn = async () => (' + JSON.stringify(result) + '); recordSignIn = async () => { __calls.push("recorded"); };', ctx);
+      await vm.runInContext('doSignIn()', ctx);
+      assert.strictEqual(ctx.__calls.length, expectCalls);
+      pass++; console.log('  ok   ' + name);
+    } catch (e) { fail++; console.log('  FAIL ' + name + '\n       ' + e.message); }
+  };
+  await signInCase('a sign-in through the form is recorded once', { data: {}, error: null }, 1);
+  await signInCase('a failed sign-in records nothing', { data: {}, error: { message: 'Invalid login credentials' } }, 0);
+  try {
+    const { ctx: c2 } = require('./core-sandbox')();
+    c2.__posts = [];
+    vm.runInContext('supaFetch = async (p, o) => { __posts.push([p, o && o.method]); return null; };', c2);
+    await vm.runInContext('recordSignIn()', c2);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(c2.__posts)), [['rpc/record_sign_in', 'POST']]);
+    vm.runInContext('supaFetch = async () => { throw new Error("offline"); };', c2);
+    await vm.runInContext('recordSignIn()', c2);   // a failure to record never stops the sign-in
+    pass++; console.log('  ok   recording calls the database function, and a failure to record is swallowed');
+  } catch (e) { fail++; console.log('  FAIL recording calls the database function, and a failure to record is swallowed\n       ' + e.message); }
+
   console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();
