@@ -90,11 +90,23 @@ test('a record page named for the opportunity, header with stage, chase and acti
   assert.ok(o.content.includes('class="badge">online-meeting') && o.content.includes('Chase Jan · today'));
   ['Log touch', 'Edit opportunity', 'Org map', 'Company record'].forEach(t => assert.ok(o.content.includes(t), t));
 });
-test('Next step and Account notes sit right under the header, before the key figures', () => {
+test('top to bottom: header, key figures, Sales stages, then Next step beside Account notes, then the rest', () => {
   const h = run({}).content;
-  const a = h.indexOf('record-head'), b = h.indexOf('>Next step</'), c = h.indexOf('>Account notes</'), d = h.indexOf('op-keys');
-  assert.ok(a < b && b < c && c < d, [a, b, c, d].join(','));
+  /* Cards by their fold toggle: "Next step" is also a label in the key figures. */
+  const card = k => 'toggleFold(&quot;' + k + '&quot;)';
+  const order = ['record-head', 'op-keys', card('opp:stages'), card('opp:next'), card('opp:notes'), card('opp:details'), card('opp:people')].map(s => h.indexOf(s));
+  assert.ok(order.every(i => i >= 0), order.join(','));
+  assert.deepStrictEqual(order.slice().sort((x, y) => x - y), order, order.join(','));
   assert.ok(h.includes('No next step set') && h.includes('No account notes yet'));
+});
+test('Next step and Account notes are one equal-height row of their own', () => {
+  const h = run({}).content;
+  const row = h.slice(h.indexOf('op-two op-pair'), h.indexOf('op-bottom'));
+  const card = k => 'toggleFold(&quot;' + k + '&quot;)';
+  assert.ok(row.includes(card('opp:next')) && row.includes(card('opp:notes')), 'both in the pair row');
+  assert.ok(!row.includes(card('opp:stages')) && !row.includes(card('opp:details')) && !row.includes('op-keys'), 'and nothing else');
+  const css = read('styles.css');
+  assert.ok(/\.op-pair\{align-items:stretch\}/.test(css), 'the row stretches both to the taller one');
 });
 
 console.log('\nNext step');

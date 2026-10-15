@@ -339,9 +339,12 @@ function renderOpportunity() {
       gaps.map(s => '<span class="pp-gap">' + esc(s.label) + '</span>').join('') + '</div>' : '')) +
   '</div>';
 
+  /* Top to bottom: who it is, where it stands (key figures, then the stage
+     workspace), what happens next beside what we know (one row, equal height),
+     then the reference cards. */
   setContent('<div class="rec-block">' + head + '</div>' +
-    '<div class="rec-block op-two">' + nextCard + notesCard + '</div>' +
     '<div class="rec-block">' + keys + '</div>' +
     '<div class="rec-block">' + stagesCard + '</div>' +
+    '<div class="rec-block op-two op-pair">' + nextCard + notesCard + '</div>' +
     '<div class="op-two op-bottom"><div class="op-col">' + details + dealsCard + history + '</div><div class="op-col">' + stakeholders + '</div></div>');
 }
