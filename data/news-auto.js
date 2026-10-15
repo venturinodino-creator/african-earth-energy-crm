@@ -4,6 +4,78 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-l9h56c",
+    "topic": "new_ppa",
+    "province": "Multiple",
+    "date": "2026-10-15",
+    "title": "Tharisa inks offtake PGM deal with Valterra Platinum in SA",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "www.marketscreener.com",
+    "url": "https://www.marketscreener.com/news/tharisa-inks-offtake-pgm-deal-with-valterra-platinum-in-sa-ce785dd3d880f424",
+    "auto": true
+  },
+  {
+    "id": "auto-oymgej",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-15",
+    "title": "Explore South Africa’s Wind Energy Industry – Download the SAWEA Wind Industry Directory 2026",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Mining Weekly",
+    "url": "https://www.miningweekly.com/article/explore-south-africas-wind-energy-industry-download-the-sawea-wind-industry-directory-2026-2026-10-15",
+    "auto": true
+  },
+  {
+    "id": "auto-s2kah6",
+    "topic": "ppa_contracts",
+    "province": "Multiple",
+    "date": "2026-10-15",
+    "title": "Tharisa Deepens Valterra Platinum Partnership With New PGM Offtake Deal",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "TipRanks",
+    "url": "https://www.tipranks.com/news/company-announcements/tharisa-deepens-valterra-platinum-partnership-with-new-pgm-offtake-deal",
+    "auto": true
+  },
+  {
+    "id": "auto-xb3lo1",
+    "topic": "ppa_contracts",
+    "province": "Multiple",
+    "date": "2026-10-15",
+    "title": "South Africa’s midday power glut is a hidden risk for wheeling deals",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "TechCentral",
+    "url": "https://techcentral.co.za/midday-power-glut-hidden-risk-wheeling-deals/287319/",
+    "auto": true
+  },
+  {
+    "id": "auto-z75107",
+    "topic": "new_ppa",
+    "province": "Multiple",
+    "date": "2026-10-15",
+    "title": "Tharisa secures new PGM offtake deal with Valterra Platinum By Investing.com",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Investing.com India",
+    "url": "https://in.investing.com/news/stock-market-news/tharisa-secures-new-pgm-offtake-deal-with-valterra-platinum-93CH-5634224",
+    "auto": true
+  },
+  {
+    "id": "auto-sge6j1",
+    "topic": "new_ppa",
+    "province": "Multiple",
+    "date": "2026-10-14",
+    "title": "White Desert Signs Long-Term Offtake Agreement With Sasol For Sustainable Aviation Fuel at AEW 2026",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "African Energy Week",
+    "url": "https://aecweek.com/news/white-desert-signs-long-term-offtake-agreement-sasol-sustainable-aviation-fuel-aew-2026",
+    "auto": true
+  },
+  {
     "id": "auto-tofy51",
     "topic": "strategy",
     "province": "Multiple",
@@ -97,6 +169,18 @@ const NEWS_AUTO = [
     "whyItMatters": "",
     "source": "Africa.com",
     "url": "http://www.africa.com/apo/south-african-energy-storage-association-saesa-welcomes-4600-mw-battery-storage-prioritisation-and-calls-for-integrated-energy-planning",
+    "auto": true
+  },
+  {
+    "id": "auto-721z8f",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-09",
+    "title": "South Africa pursues 4.6GW of battery storage deployments in Integrated Resource Plan",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Energy-Storage.News",
+    "url": "https://www.energy-storage.news/south-africa-pursues-4-6gw-of-battery-storage-deployments-in-integrated-resource-plan/",
     "auto": true
   },
   {
