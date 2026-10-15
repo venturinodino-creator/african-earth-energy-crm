@@ -18,6 +18,7 @@
 
    --dry-run reads the file and prints what would be written; it does not sign in. */
 'use strict';
+const AGENT = require('./agent-name').agentName(__filename);   // named on every request: see scripts/agent-name.js
 
 const fs = require('fs');
 const path = require('path');
@@ -102,7 +103,7 @@ async function upsert(token, table, rows) {
     const res = await fetch(SUPA_URL + '/rest/v1/' + table + '?on_conflict=id', {
       method: 'POST',
       headers: {
-        apikey: SUPA_KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json',
+        apikey: SUPA_KEY, Authorization: 'Bearer ' + token, 'X-Aee-Agent': AGENT, 'Content-Type': 'application/json',
         Prefer: 'resolution=merge-duplicates,return=minimal',
       },
       body: JSON.stringify(chunk),

@@ -27,6 +27,7 @@
    file (--env <path>). Queueing needs an admin login; the reads need only
    CRM access. Every command prints JSON and nothing else. */
 'use strict';
+const AGENT = require('./agent-name').agentName(__filename);   // named on every request: see scripts/agent-name.js
 
 const fs = require('fs');
 const path = require('path');
@@ -98,7 +99,7 @@ async function rest(p, opts = {}) {
   const t = await signIn();
   const res = await fetch(SUPA_URL + '/rest/v1/' + p, {
     ...opts,
-    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(opts.headers || {}) },
+    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + t, 'X-Aee-Agent': AGENT, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(opts.headers || {}) },
   });
   const text = await res.text();
   if (!res.ok) die('Supabase ' + res.status + ' on ' + p.split('?')[0] + ': ' + text.slice(0, 200));

@@ -333,8 +333,9 @@ ls tests/*.test.js | xargs node --test    # all of them
 node tests/finder-agent.test.js           # or one: the finder's validator, loader, sign-in and CLI
 ```
 
-There are 44 files. They cover the contact finder (agent, Apollo helper, gap finder,
-targets, ladder seats, email inference, accepting finds, the Agent HQ activity card, the OpenClaw runner), the Projects area
+There are 45 files. They cover the contact finder (agent, Apollo helper, gap finder,
+targets, ladder seats, email inference, accepting finds, the Agent HQ activity card, the OpenClaw runner, agents naming
+themselves), the Projects area
 (analytics maths and page, site profile, plan editing), the page layouts (shell, lists, record
 pages, dashboard, settings, activity, map, news), the province scope, row selection, the
 + New drawer, the Import wizard and its rules, follow-ups, the outreach rules (touch numbers,
@@ -534,6 +535,7 @@ scripts/check-refs.js       finds identifiers that resolve to nothing
 scripts/finder-agent.js     the contact finder agents' hands: claim a run, add finds, finish
 scripts/finder-apollo.js    Apollo people search and pull, producing a CSV for review
 scripts/accept-finds.js     terminal "Accept all" for the finder queue
+scripts/agent-name.js       the agent name each writing script sends, so the Change log shows its work as the agent
 scripts/enrich-offtakers.js fill blank offtaker fields from a research CSV, optional geocode
 scripts/apollo-enrich-contacts.js   Apollo match for contacts with no email (spends credits)
 scripts/infer-emails.js     infer an address from a domain's known format
