@@ -33,7 +33,7 @@ const NOT_RECORDED = {
   aee_pm_projects: 'read-only copy of ProjectManager.com', aee_pm_tasks: 'read-only copy',
   aee_pm_people: 'read-only copy', aee_pm_tags: 'read-only copy', aee_pm_activity: 'read-only copy', aee_pm_sync: 'read-only copy',
   profiles: 'pending: role changes',
-  aee_interactions: 'pending', aee_contact_runs: 'pending', aee_found_contacts: 'pending',
+  aee_contact_runs: 'pending', aee_found_contacts: 'pending',
   aee_pm_task_edits: 'pending', aee_pm_notes: 'pending', aee_pm_history: 'pending',
 };
 
@@ -71,6 +71,15 @@ test('the change row records the agent beside the sign-in', () => {
 test('a byline stamped during an agent\'s request reads as the agent run as the person', () => {
   const fn = sql.match(/create or replace function public\.author_display_name\(\)[\s\S]*?\$\$;/)[0];
   assert.ok(/public\.request_agent\(\)/.test(fn) && /\(run as /.test(fn), 'agent (run as person)');
+});
+test('touches and other logged activity are recorded', () => assert.ok(recorded('aee_interactions')));
+test('a touch gets its author and created_by from the sign-in on insert, and keeps them after', () => {
+  assert.ok(/alter table public\.aee_interactions add column if not exists author text/.test(sql), 'a name a viewer can read');
+  assert.ok(/create trigger aee_interactions_stamp_author\s+before insert or update on public\.aee_interactions\s+for each row execute function public\.stamp_author\(\)/.test(sql), 'the same stamp as next steps');
+  assert.ok(/create trigger aee_interactions_stamp_created_by\s+before insert or update on public\.aee_interactions/.test(sql), 'and the sign-in id');
+  const fn = sql.match(/create or replace function public\.stamp_created_by\(\)[\s\S]*?\$\$;/)[0];
+  assert.ok(/new\.created_by\s*:=\s*auth\.uid\(\)/.test(fn) && /new\.created_by\s*:=\s*old\.created_by/.test(fn));
+  assert.ok(/revoke all on function public\.stamp_created_by\(\)\s+from public, anon, authenticated/.test(sql));
 });
 test('companies, contacts and opportunities are recorded', () =>
   ['aee_offtakers', 'aee_contacts', 'aee_deals'].forEach(t => assert.ok(recorded(t), t)));

@@ -614,8 +614,27 @@ $$;
 revoke all on function public.record_change()       from public, anon, authenticated;
 revoke all on function public.author_display_name() from public, anon, authenticated;
 revoke all on function public.request_agent()       from public, anon, authenticated;
+-- A touch's author, as its byline shows it to anyone who can read the touch (viewers cannot
+-- read the change table or the sign-ins). Stamped by stamp_author() like a next step's.
+alter table public.aee_interactions add column if not exists author text;
+
+-- created_by, on the activity log since the start but never filled by the page: the sign-in's
+-- id on insert, kept on edit, whatever the page sends.
+create or replace function public.stamp_created_by() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    new.created_by := auth.uid();
+  else
+    new.created_by := old.created_by;
+  end if;
+  return new;
+end;
+$$;
+
 revoke all on function public.stamp_author()        from public, anon, authenticated;
 revoke all on function public.stamp_last_changed()  from public, anon, authenticated;
+revoke all on function public.stamp_created_by()    from public, anon, authenticated;
 
 -- Next steps, notes and checklist ticks.
 drop trigger if exists aee_stage_items_stamp_author on public.aee_stage_items;
@@ -625,6 +644,20 @@ create trigger aee_stage_items_stamp_author
 drop trigger if exists aee_stage_items_record_change on public.aee_stage_items;
 create trigger aee_stage_items_record_change
   after insert or update or delete on public.aee_stage_items
+  for each row execute function public.record_change();
+
+-- Touches and every other logged activity: who logged it, on the touch and in the log.
+drop trigger if exists aee_interactions_stamp_author on public.aee_interactions;
+create trigger aee_interactions_stamp_author
+  before insert or update on public.aee_interactions
+  for each row execute function public.stamp_author();
+drop trigger if exists aee_interactions_stamp_created_by on public.aee_interactions;
+create trigger aee_interactions_stamp_created_by
+  before insert or update on public.aee_interactions
+  for each row execute function public.stamp_created_by();
+drop trigger if exists aee_interactions_record_change on public.aee_interactions;
+create trigger aee_interactions_record_change
+  after insert or update or delete on public.aee_interactions
   for each row execute function public.record_change();
 
 -- Companies, contacts and opportunities: field by field, with a copy of anything deleted.

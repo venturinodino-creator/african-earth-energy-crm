@@ -135,6 +135,15 @@ test('All activity as a table is a table card with a footer, as before', () => {
   const o = act({ activityTab: 'all', activityView: 'table' });
   assert.ok(o.content.includes('<div class="table-card">') && o.content.includes('Showing 1–2 of 2 interactions'), o.content.match(/Showing[^<]*/));
 });
+test('each logged touch says who logged it, and one from before tracking says "not recorded"', () => {
+  const ints = [{ id: 'i1', offtakerId: 'a', type: 'call', date: '2026-10-01', summary: 'Spoke to the CFO', author: 'thabo' },
+    { id: 'i2', offtakerId: 'a', type: 'email', date: '2026-09-20', summary: 'Sent the deck' }];
+  const timeline = act({ activityTab: 'all', interactions: ints }).content;
+  assert.ok(/int-meta">[^<]*by thabo/.test(timeline), 'the timeline names who logged it');
+  assert.ok(/int-meta">[^<]*not recorded/.test(timeline), 'and says so when nobody was recorded');
+  const table = act({ activityTab: 'all', activityView: 'table', interactions: ints }).content;
+  assert.ok(table.includes('by thabo') && table.includes('not recorded'), 'the table too');
+});
 test('the Calendar tab draws the month, the days with something on are marked, and the side has only the form', () => {
   const o = act({ activityTab: 'calendar', actMonth: '2026-10' });
   assert.ok(o.content.includes('October 2026') && o.content.includes('cal-big'));
