@@ -898,6 +898,7 @@ function render() {
     calculator: renderCalculator,
     playbook: renderPlaybook,
     activity: renderActivity,
+    changelog: renderChangeLog,
     news: renderNews,
     project: renderProject,
     agenthq: renderAgentHQ,
@@ -1319,7 +1320,7 @@ function scopedProjects() { return state.province ? state.projects.filter(p => p
 const SCOPED_VIEWS = new Set(['dashboard', 'offtakers', 'contacts', 'municipalities', 'prospects',
   'pipeline', 'activity', 'news', 'map']);
 const UNSCOPED_VIEWS = new Set(['projects', 'regions', 'sectors', 'analytics', 'agenthq',
-  'calculator', 'playbook']);
+  'calculator', 'playbook', 'changelog']);
 function scopeNote(view, province) {
   if (!province) return '';
   if (SCOPED_VIEWS.has(view)) return province;
