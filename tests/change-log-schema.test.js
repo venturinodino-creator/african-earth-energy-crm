@@ -32,7 +32,7 @@ const NOT_RECORDED = {
   mining_leads: 'legacy table, out of scope',
   aee_pm_projects: 'read-only copy of ProjectManager.com', aee_pm_tasks: 'read-only copy',
   aee_pm_people: 'read-only copy', aee_pm_tags: 'read-only copy', aee_pm_activity: 'read-only copy', aee_pm_sync: 'read-only copy',
-  profiles: 'pending: role changes', aee_offtakers: 'pending', aee_contacts: 'pending', aee_deals: 'pending',
+  profiles: 'pending: role changes',
   aee_interactions: 'pending', aee_contact_runs: 'pending', aee_found_contacts: 'pending',
   aee_pm_task_edits: 'pending', aee_pm_notes: 'pending', aee_pm_history: 'pending',
 };
@@ -57,6 +57,22 @@ test('nothing named as not recorded is in fact recorded, so the list stays true'
   assert.deepStrictEqual(stale, [], 'recorded after all: ' + stale.join(', '));
 });
 test('next steps, notes and ticks are recorded', () => assert.ok(recorded('aee_stage_items')));
+test('companies, contacts and opportunities are recorded', () =>
+  ['aee_offtakers', 'aee_contacts', 'aee_deals'].forEach(t => assert.ok(recorded(t), t)));
+test('a company carries who last changed it, stamped from the sign-in', () => {
+  assert.ok(/alter table public\.aee_offtakers add column if not exists last_changed_by text/.test(sql), 'the column');
+  assert.ok(/create trigger aee_offtakers_stamp_last_changed\s+before insert or update on public\.aee_offtakers/.test(sql), 'the trigger');
+  const fn = sql.match(/create or replace function public\.stamp_last_changed\(\)[\s\S]*?\$\$;/)[0];
+  assert.ok(/new\.last_changed_by\s*:=\s*public\.author_display_name\(\)/.test(fn), 'stamped from the sign-in');
+  assert.ok(/new\.last_changed_by\s*:=\s*old\.last_changed_by/.test(fn), 'a save that changes nothing keeps the name it had');
+  assert.ok(/alter table public\.aee_offtakers add column if not exists last_changed_at timestamptz/.test(sql), 'and when');
+  assert.ok(/new\.last_changed_at\s*:=\s*now\(\)/.test(fn) && /new\.last_changed_at\s*:=\s*old\.last_changed_at/.test(fn), 'stamped and kept like the name');
+});
+test('who and when last changed are bookkeeping: they never show up as changed fields', () => {
+  const fn = sql.match(/create or replace function public\.record_change\(\)[\s\S]*?\$\$;/)[0];
+  const lists = [...fn.matchAll(/not in \(([^)]*)\)/g)].map(m => m[1]);
+  assert.ok(lists.length >= 2 && lists.every(l => /'last_changed_by'/.test(l) && /'last_changed_at'/.test(l)), lists.join(' | '));
+});
 test('the trigger takes the author from the sign-in, not from the row', () => {
   const fn = sql.match(/create or replace function public\.record_change\(\)[\s\S]*?\$\$;/)[0];
   assert.ok(/security definer/.test(fn), 'it can write the table clients cannot');

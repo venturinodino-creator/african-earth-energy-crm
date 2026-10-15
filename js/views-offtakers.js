@@ -496,7 +496,8 @@ function recordHeadHtml(o, actionsHtml, desc) {
         (o.revisitDate <= todayISO() ? ' style="color:var(--danger);border-color:var(--danger)"' : '') +
         ' title="Revisit this account">' + icon('clock', 11) + ' revisit ' + esc(o.revisitDate) + '</span>'
       : '') +
-    (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Website</a>' : ''),
+    (safeHref(o.website) ? '<a class="ext-link" href="' + esc(safeHref(o.website)) + '" target="_blank" rel="noopener">Website</a>' : '') +
+    lastChangedHtml(o),
     desc, actionsHtml);
 }
 

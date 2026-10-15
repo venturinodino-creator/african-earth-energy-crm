@@ -69,6 +69,7 @@ function run(over, after) {
     supaFetchAll: async q => { out.fetched.push(q); return []; }, render() {},
     setPage: (t, s, a) => { out.page = { t, s, a }; }, setContent: h => { out.content = h; },
     Date: FixedDate, setTimeout: () => 0,
+    SF_STAGES: [{ id: 'outreach', label: 'Outreach' }, { id: 'online-meeting', label: 'Online meeting' }],
   });
   vm.runInContext(read('js/layout.js') + '\n' + read('js/followups.js') + '\n' + read('js/views-changelog.js') + '\nrenderChangeLog();', ctx);
   if (after) after(ctx);
@@ -124,7 +125,7 @@ test('each change reads as a plain sentence', () => {
   const h = run({}).content;
   ['added a next step', 'added an account note', 'logged a touch', 'edited a next step or note', 'signed in', 'deleted a stage note', 'added a find', 'added a contact']
     .forEach(t => assert.ok(h.includes(t), t));
-  assert.ok(/body/.test(rowsOf(h)[3]), 'an edit names the fields it changed');
+  assert.ok(/Text Send tariff → Send the tariff/.test(rowsOf(h)[3]), 'an edit shows the field it changed, old and new');
   assert.ok(/Old note/.test(h), 'a deletion shows what was deleted');
 });
 test('an edited item still on file is named for what it is', () => {
@@ -205,5 +206,89 @@ test('a ticked checklist item reads without its position number', () => {
   assert.ok(h.includes('ticked a checklist item') && !h.includes('“2”'));
 });
 
-console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
-process.exit(fail ? 1 : 0);
+console.log('\nCompanies, contacts and opportunities');
+const one = c => run({ changeLog: loaded([Object.assign({ at: at('2026-10-15', 12) }, c)], '2026-10-09', '2026-10-15') }).content;
+const whatOf = h => rowsOf(h)[0].match(/<td class="cl-what">([\s\S]*?)<\/td>/)[1];
+test('a sales-stage change reads as a move between stages', () => {
+  const h = one(ch({ table_name: 'aee_offtakers', record_id: 'f', kind: 'edited', fields: { sf_stage: { old: 'outreach', new: 'online-meeting' } } }));
+  assert.ok(/moved the company from Outreach to Online meeting/.test(h), whatOf(h));
+  const d = one(ch({ table_name: 'aee_deals', kind: 'edited', fields: { stage: { old: 'outreach', new: 'online-meeting' } } }));
+  assert.ok(/moved an opportunity from Outreach to Online meeting/.test(d), whatOf(d));
+});
+test('archiving and restoring read as such', () => {
+  assert.ok(/archived the company/.test(one(ch({ table_name: 'aee_offtakers', kind: 'edited', fields: { archived: { old: false, new: true } } }))));
+  assert.ok(/restored the company/.test(one(ch({ table_name: 'aee_offtakers', kind: 'edited', fields: { archived: { old: true, new: false } } }))));
+});
+test('an edit shows each changed field with its old and new value', () => {
+  const h = one(ch({ table_name: 'aee_offtakers', kind: 'edited', fields: { tariff: { old: 1.3, new: 1.1 }, annual_gwh: { old: 600, new: 900 } } }));
+  const w = whatOf(h);
+  assert.ok(/edited the company/.test(w) && /Tariff 1\.3 → 1\.1/.test(w) && /Annual load 600 → 900/.test(w), w);
+  const c = whatOf(one(ch({ table_name: 'aee_contacts', kind: 'edited', fields: { title: { old: 'CFO', new: 'Chief Financial Officer' }, email: { old: null, new: 'a@b.co.za' } } })));
+  assert.ok(/edited a contact/.test(c) && /Title CFO → Chief Financial Officer/.test(c) && /Email — → a@b\.co\.za/.test(c), c);
+});
+test('a long edit lists the first fields and counts the rest', () => {
+  const w = whatOf(one(ch({ table_name: 'aee_contacts', kind: 'edited', fields: {
+    first: { old: 'A', new: 'B' }, last: { old: 'C', new: 'D' }, title: { old: 'E', new: 'F' }, phone: { old: 'G', new: 'H' }, dept: { old: 'I', new: 'J' } } })));
+  assert.ok(/and 2 more/.test(w), w);
+});
+test('a stage move beside other fields mentions both', () => {
+  const w = whatOf(one(ch({ table_name: 'aee_offtakers', kind: 'edited', fields: { sf_stage: { old: 'outreach', new: 'online-meeting' }, status: { old: 'prospect', new: 'engaged' } } })));
+  assert.ok(/moved the company from Outreach to Online meeting/.test(w) && /Status prospect → engaged/.test(w), w);
+});
+test('a deletion keeps what was deleted, to open and read', () => {
+  const h = one(ch({ table_name: 'aee_contacts', kind: 'deleted', offtaker_id: 'g',
+    deleted_row: { id: 'c9', offtaker_id: 'g', first: 'Jan', last: 'W', title: 'CFO', email: 'jan@gold.co.za', phone: '', notes: null } }));
+  const w = whatOf(h);
+  assert.ok(/deleted a contact “Jan W”/.test(w), w);
+  assert.ok(/<details class="cl-copy"><summary>What was deleted<\/summary>/.test(w), 'a disclosure with the copy');
+  assert.ok(/Title<\/dt><dd>CFO/.test(w) && /Email<\/dt><dd>jan@gold\.co\.za/.test(w), 'the copy, labelled');
+  assert.ok(!/Phone<\/dt>/.test(w) && !/Notes<\/dt>/.test(w) && !/>id</.test(w), 'empty fields and ids are left out');
+});
+test('marking a next step done, reopening it and ticking an item read as what happened', () => {
+  const stepDone = ch({ kind: 'edited', record_id: 's1', fields: { done_at: { old: null, new: '2026-10-15T12:03:44.123+00:00' } } });
+  const items = [{ id: 's1', kind: 'step' }, { id: 'k1', kind: 'check' }];
+  const one2 = c => run({ stageItems: items, changeLog: loaded([Object.assign({ at: at('2026-10-15', 12) }, c)], '2026-10-09', '2026-10-15') }).content;
+  assert.ok(/marked a next step done/.test(whatOf(one2(stepDone))), whatOf(one2(stepDone)));
+  assert.ok(!/T12:03/.test(whatOf(one2(stepDone))), 'no raw timestamp');
+  assert.ok(/reopened a next step/.test(whatOf(one2(ch({ kind: 'edited', record_id: 's1', fields: { done_at: { old: '2026-10-15T12:03:44+00:00', new: null } } })))));
+  assert.ok(/ticked a checklist item/.test(whatOf(one2(ch({ kind: 'edited', record_id: 'k1', fields: { done_at: { old: null, new: '2026-10-15T12:03:44+00:00' } } })))));
+  assert.ok(/unticked a checklist item/.test(whatOf(one2(ch({ kind: 'edited', record_id: 'k1', fields: { done_at: { old: '2026-10-15T12:03:44+00:00', new: null } } })))));
+});
+test('a timestamp in a deleted copy reads as a day and time', () => {
+  const h = one(ch({ kind: 'deleted', deleted_row: { kind: 'step', body: 'Done step', done_at: '2026-10-15T12:03:44.123+00:00' } }));
+  assert.ok(/Done<\/dt><dd>15 Oct 2026 \d\d:\d\d/.test(whatOf(h)), whatOf(h));
+});
+test('added companies, contacts and opportunities are named', () => {
+  assert.ok(/added a company “ZZ Mining”/.test(one(ch({ table_name: 'aee_offtakers', fields: { name: { old: null, new: 'ZZ Mining' }, status: { old: null, new: 'prospect' } } }))));
+  assert.ok(/added an opportunity “ZZ 10 MW”/.test(one(ch({ table_name: 'aee_deals', fields: { name: { old: null, new: 'ZZ 10 MW' }, mw: { old: null, new: 10 } } }))));
+});
+
+console.log('\nThe header after a save (js/supabase.js, the real file)');
+(async () => {
+  /* The app's own supabase.js and core.js, with the network and the page stood in for. */
+  const { ctx } = require('./core-sandbox')();
+  const chips = [{ outerHTML: '<span class="chip rh-changed">Last changed by thabo</span>' }];
+  ctx.document.querySelectorAll = sel => (sel === '.rh-changed' ? chips : []);
+  const stampAfter = stamp => vm.runInContext('upsert = async () => null; supaFetch = async () => [' + JSON.stringify(stamp) + '];', ctx);
+  vm.runInContext('state.detailId = "f"; state.offtakers = [{ id: "f", name: "Ferro", lastChangedBy: "thabo", lastChangedAt: "2026-10-10T12:00:00+00:00" }];', ctx);
+  const o = () => vm.runInContext('state.offtakers[0]', ctx);
+
+  try {
+    stampAfter({ last_changed_by: 'lebo', last_changed_at: '2026-10-15T12:00:00+00:00' });
+    await vm.runInContext('pushOfftaker(state.offtakers[0])', ctx);
+    assert.strictEqual(o().lastChangedBy, 'lebo');
+    assert.ok(/Last changed by lebo · 15 Oct 2026/.test(chips[0].outerHTML), chips[0].outerHTML);
+    pass++; console.log('  ok   a save the database stamps updates the header chip at once');
+  } catch (e) { fail++; console.log('  FAIL a save the database stamps updates the header chip at once\n       ' + e.message); }
+
+  try {
+    chips[0].outerHTML = 'UNTOUCHED';
+    stampAfter({ last_changed_by: 'lebo', last_changed_at: '2026-10-15T12:00:00+00:00' });
+    await vm.runInContext('pushOfftaker(state.offtakers[0])', ctx);
+    assert.strictEqual(chips[0].outerHTML, 'UNTOUCHED', 'a save that changed nothing leaves the chip alone');
+    pass++; console.log('  ok   a save that changed nothing leaves the chip alone');
+  } catch (e) { fail++; console.log('  FAIL a save that changed nothing leaves the chip alone\n       ' + e.message); }
+
+  console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
+  process.exit(fail ? 1 : 0);
+})();

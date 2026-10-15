@@ -92,6 +92,17 @@ function recordCardHtml(iconHtml, name, chipsHtml, desc, actionsHtml) {
   '</div>';
 }
 
+/* The chip in a company's header card saying who last changed the company, and when:
+   the name and time the database stamps on the company itself (aee_offtakers.last_changed_by,
+   last_changed_at), so anyone who can read the company can read this. Companies nobody has
+   changed since tracking began say so. */
+function lastChangedHtml(o) {
+  const when = o.lastChangedAt ? new Date(o.lastChangedAt) : null;
+  const date = when && !Number.isNaN(when.getTime()) ? when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  return '<span class="chip rh-changed" title="Who last changed this company">' +
+    (o.lastChangedBy ? 'Last changed by ' + esc(o.lastChangedBy) + (date ? ' · ' + esc(date) : '') : 'Last change not recorded') + '</span>';
+}
+
 /* A fact list for the About card on a record page: [label, value, highlight?]
    rows, values already escaped. */
 function factListHtml(rows) {

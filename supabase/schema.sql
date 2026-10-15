@@ -534,12 +534,12 @@ begin
   if tg_op = 'UPDATE' then
     select jsonb_object_agg(e.key, jsonb_build_object('old', o -> e.key, 'new', e.value)) into diff
       from jsonb_each(n) e
-     where e.key not in ('updated_at','synced_at') and (o -> e.key) is distinct from e.value;
+     where e.key not in ('updated_at','synced_at','last_changed_by','last_changed_at') and (o -> e.key) is distinct from e.value;
     if diff is null then return null; end if;   -- nothing a person changed
   elsif tg_op = 'INSERT' then
     select jsonb_object_agg(e.key, jsonb_build_object('old', null, 'new', e.value)) into diff
       from jsonb_each(n) e
-     where e.key not in ('updated_at','synced_at') and e.value <> 'null'::jsonb;
+     where e.key not in ('updated_at','synced_at','last_changed_by','last_changed_at') and e.value <> 'null'::jsonb;
   end if;
   insert into public.aee_changes (author_id, author_email, table_name, record_id, offtaker_id, kind, fields, deleted_row)
   values (auth.uid(), (select email from auth.users where id = auth.uid()), tg_table_name, r ->> 'id',
@@ -572,9 +572,34 @@ begin
 end;
 $$;
 
+-- Who last changed a company, and when, on the company itself, so its header can say so
+-- to anyone who can read the company (the change table is admins' only). Stamped from the
+-- sign-in whenever something a person changed changed; a save that changes nothing keeps
+-- what it had (updated_at moves on every save, so it cannot answer "when"). A change with
+-- no sign-in behind it leaves the name empty: "not recorded".
+alter table public.aee_offtakers add column if not exists last_changed_by text;
+alter table public.aee_offtakers add column if not exists last_changed_at timestamptz;
+
+create or replace function public.stamp_last_changed() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'UPDATE'
+     and (to_jsonb(new) - 'updated_at' - 'synced_at' - 'last_changed_by' - 'last_changed_at')
+       = (to_jsonb(old) - 'updated_at' - 'synced_at' - 'last_changed_by' - 'last_changed_at') then
+    new.last_changed_by := old.last_changed_by;
+    new.last_changed_at := old.last_changed_at;
+  else
+    new.last_changed_by := public.author_display_name();
+    new.last_changed_at := now();
+  end if;
+  return new;
+end;
+$$;
+
 revoke all on function public.record_change()       from public, anon, authenticated;
 revoke all on function public.author_display_name() from public, anon, authenticated;
 revoke all on function public.stamp_author()        from public, anon, authenticated;
+revoke all on function public.stamp_last_changed()  from public, anon, authenticated;
 
 -- Next steps, notes and checklist ticks.
 drop trigger if exists aee_stage_items_stamp_author on public.aee_stage_items;
@@ -584,6 +609,24 @@ create trigger aee_stage_items_stamp_author
 drop trigger if exists aee_stage_items_record_change on public.aee_stage_items;
 create trigger aee_stage_items_record_change
   after insert or update or delete on public.aee_stage_items
+  for each row execute function public.record_change();
+
+-- Companies, contacts and opportunities: field by field, with a copy of anything deleted.
+drop trigger if exists aee_offtakers_stamp_last_changed on public.aee_offtakers;
+create trigger aee_offtakers_stamp_last_changed
+  before insert or update on public.aee_offtakers
+  for each row execute function public.stamp_last_changed();
+drop trigger if exists aee_offtakers_record_change on public.aee_offtakers;
+create trigger aee_offtakers_record_change
+  after insert or update or delete on public.aee_offtakers
+  for each row execute function public.record_change();
+drop trigger if exists aee_contacts_record_change on public.aee_contacts;
+create trigger aee_contacts_record_change
+  after insert or update or delete on public.aee_contacts
+  for each row execute function public.record_change();
+drop trigger if exists aee_deals_record_change on public.aee_deals;
+create trigger aee_deals_record_change
+  after insert or update or delete on public.aee_deals
   for each row execute function public.record_change();
 
 notify pgrst, 'reload schema';
