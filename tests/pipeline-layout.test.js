@@ -188,6 +188,14 @@ test('the flow cards are one card grid, the stage flow across the full width', (
   ['Stage flow', 'Where it stops', 'Movement, last 90 days'].forEach(t => assert.ok(o.content.includes(t), 'missing ' + t));
   assert.ok(!o.content.includes('grid-2') && !o.content.includes('margin-top:14px'), 'no ad-hoc layout left');
 });
+test('each flow card folds to its header, keeping its button', () => {
+  const open = run({ pipeView: 'flow' }).content;
+  ['pipe:flow', 'pipe:stall', 'pipe:move'].forEach(k => assert.ok(open.includes('aria-expanded="true" onclick="toggleFold(&quot;' + k + '&quot;)"'), k));
+  assert.ok(open.includes('funnel-head') && open.includes('stats-grid'));
+  const shut = run({ pipeView: 'flow', foldedCards: ['pipe:flow', 'pipe:stall', 'pipe:move'] }).content;
+  assert.ok(!shut.includes('funnel-head') && !shut.includes('Moved forward'), 'the bodies are gone');
+  ['Stage flow', 'Where it stops', 'Movement, last 90 days', 'Open board', 'Stalled only', 'Full log'].forEach(t => assert.ok(shut.includes(t), t));
+});
 
 console.log('\nEmpty pipeline');
 test('with nothing being worked the tabs and the empty state still show', () => {

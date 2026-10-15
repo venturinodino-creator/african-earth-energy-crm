@@ -25,6 +25,36 @@
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
+/* ─── Folding cards ─────────────────────────────────────────────────
+   Every card on the Pipeline and opportunity pages folds to its header:
+   the title becomes a toggle, the header's own buttons stay usable, and
+   only the body goes. Which cards are folded is one viewer's convenience,
+   so it lives in this browser (lsGet), never in the database, and holds
+   across opportunities: fold Stage history once and it stays folded on the
+   next account too. Folded keys are 'opp:…' and 'pipe:…'. */
+function foldedCards() {
+  if (!state.foldedCards) {
+    try { state.foldedCards = lsGet('folded_cards', []) || []; } catch (e) { state.foldedCards = []; }
+  }
+  return state.foldedCards;
+}
+function isFolded(key) { return foldedCards().includes(key); }
+function toggleFold(key) {
+  const list = foldedCards();
+  state.foldedCards = list.includes(key) ? list.filter(k => k !== key) : list.concat(key);
+  try { lsSet('folded_cards', state.foldedCards); } catch (e) {}
+  render();
+}
+/* The title as the toggle. `cls` is the class the plain title had, so a card
+   title stays a card title and a box heading stays a box heading. */
+function foldTitle(key, titleHtml, cls) {
+  const open = !isFolded(key);
+  return '<button type="button" class="' + cls + ' fold-btn" aria-expanded="' + open + '" onclick="toggleFold(' + jsStr(key) + ')">' +
+    '<span class="op-chev' + (open ? ' open' : '') + '" aria-hidden="true">▸</span>' + titleHtml + '</button>';
+}
+/* The body, or nothing while folded. */
+function foldBody(key, html) { return isFolded(key) ? '' : html; }
+
 function renderPipeline() {
   /* List is the pipeline's front page: one row per opportunity, the stage as
      a label, and a click opens the full opportunity (js/views-opportunity.js).
@@ -331,9 +361,10 @@ function flowHtml() {
   const lost = closed.length - won;
   const flowCard =
     '<div class="card span-all">' +
-      '<div class="card-header"><div><div class="card-title">Stage flow</div>' +
+      '<div class="card-header"><div>' + foldTitle('pipe:flow', 'Stage flow', 'card-title') +
       '<div class="card-sub">How far accounts have got, and how many carried on to the next stage</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="setViewMode(\'pipeView\',\'accounts\')">Open board</button></div>' +
+      foldBody('pipe:flow',
       '<div class="funnel-head"><span>Accounts</span><span>here</span><span>reached</span></div>' +
       rows +
       '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
@@ -343,7 +374,7 @@ function flowHtml() {
           'died is not recorded, so counting them would overstate every stage they never saw. '
         : '') +
       (closed.length ? won + ' won, ' + lost + ' lost.' : 'Nothing has closed yet.') +
-      '</div>' +
+      '</div>') +
     '</div>';
 
   /* ── Where it stops ───────────────────────────────────────────── */
@@ -365,16 +396,17 @@ function flowHtml() {
 
   const stallCard =
     '<div class="card">' +
-      '<div class="card-header"><div><div class="card-title">Where it stops</div>' +
+      '<div class="card-header"><div>' + foldTitle('pipe:stall', 'Where it stops', 'card-title') +
       '<div class="card-sub">Median days sitting at each stage, against what that stage is given</div></div>' +
       '<button class="btn btn-ghost btn-xs" title="Show only the accounts sitting longer than their stage allows" onclick="state.pipeStalled=&#39;stalled&#39;;setViewMode(&#39;pipeView&#39;,&#39;accounts&#39;)">Stalled only</button></div>' +
+      foldBody('pipe:stall',
       '<div class="funnel-head"><span>Stage</span><span>stalled</span><span>median</span></div>' +
       stallRows +
       '<div class="fg-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
       'Nothing records when an account entered its stage, so the number falls back to the last thing ' +
       'logged against it and then to when the row itself changed. Each account carries which of the ' +
       'three it used — hover the chip on its card. The budgets are not deadlines: a PPA runs a 9 to 18 ' +
-      'month cycle, so they mark where silence starts to mean something.</div>' +
+      'month cycle, so they mark where silence starts to mean something.</div>') +
     '</div>';
 
   /* ── Movement ─────────────────────────────────────────────────── */
@@ -391,9 +423,10 @@ function flowHtml() {
 
   const moveCard =
     '<div class="card">' +
-      '<div class="card-header"><div><div class="card-title">Movement, last 90 days</div>' +
+      '<div class="card-header"><div>' + foldTitle('pipe:move', 'Movement, last 90 days', 'card-title') +
       '<div class="card-sub">Whether the pipeline is moving, or just sitting there looking full</div></div>' +
       '<button class="btn btn-ghost btn-xs" onclick="nav(\'activity\')">Full log</button></div>' +
+      foldBody('pipe:move',
       '<div class="stats-grid" style="margin:0">' +
         statTile('trending', 'green', 'Moved forward', forward, 'stage changes up the path') +
         statTile('alert', 'amber', 'Moved back', back, back ? 'reopened or re-qualified' : 'nothing went backwards') +
@@ -404,7 +437,7 @@ function flowHtml() {
       '<div class="fg-hint" style="margin-top:10px">' +
       (accounts.length - movedIds.size) + ' account' + (accounts.length - movedIds.size === 1 ? ' has' : 's have') +
       ' not changed stage in 90 days. That is normal for a long cycle and worrying for a short one — ' +
-      'read it next to the stage budgets above.</div>' +
+      'read it next to the stage budgets above.</div>') +
     '</div>';
 
   /* One card grid: the stage flow across the full width, the two smaller
@@ -530,14 +563,14 @@ function stageDriftCardHtml() {
 
   return '<div class="card" style="margin-bottom:14px;border-left:3px solid var(--warn)">' +
     '<div class="card-header"><div>' +
-      '<div class="card-title">' + icon('alert', 13) + ' ' +
+      foldTitle('pipe:drift', icon('alert', 13) + ' ' +
         (drift.length === 1 ? 'One account is' : drift.length + ' accounts are') +
-        ' out of step with their opportunities</div>' +
+        ' out of step with their opportunities', 'card-title') +
       '<div class="card-sub">The sales path on the company page says one thing and its opportunities ' +
         'another. Nothing inside the CRM writes them apart, so this came in from an import or a ' +
         'direct edit. Moving an account here sets it to the stage its opportunities are already at.' +
       '</div></div></div>' +
-    drift.map(d =>
+    foldBody('pipe:drift', drift.map(d =>
       '<div class="person-row">' +
         avatarTileHtml(d.rec.name || d.rec.short) +
         '<div style="min-width:0;flex:1;cursor:pointer" onclick="nav(' + jsStr(accountView(d.rec.id)) +
@@ -553,7 +586,7 @@ function stageDriftCardHtml() {
           'title="Set the account to the stage its opportunities are at" ' +
           'onclick="reconcileAccountStage(' + jsStr(d.rec.id) + ')">Move to ' +
           esc((sfStageOf(d.fromDeals) || {}).label || d.fromDeals) + '</button>' +
-      '</div>').join('') +
+      '</div>').join('')) +
   '</div>';
 }
 

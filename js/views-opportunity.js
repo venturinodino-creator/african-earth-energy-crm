@@ -72,7 +72,12 @@ function needAdmin() {
   toast('Read-only access — ask an admin to change this', 'warn');
   return true;
 }
-function toggleOppStepForm() { state.oppStepForm = !state.oppStepForm; renderOpportunity(); }
+function toggleOppStepForm() {
+  state.oppStepForm = !state.oppStepForm;
+  /* The form lives in the card's body: opening it on a folded card unfolds it. */
+  if (state.oppStepForm && isFolded('opp:next')) { toggleFold('opp:next'); return; }
+  renderOpportunity();
+}
 function addNextStep(oid) {
   if (needAdmin()) return;
   const body = val('op-ns-text').trim(), due = val('op-ns-due');
@@ -177,27 +182,27 @@ function renderOpportunity() {
     '<span class="' + dueCls(it.dueDate, !!it.doneAt) + '">' + esc(it.doneAt ? 'Done' : dueLabel(it.dueDate)) + '</span>' +
     '<button type="button" class="op-x" data-admin-only aria-label="Delete step" onclick="deleteStageItem(' + jsStr(it.id) + ')">&times;</button>' +
   '</div>';
-  const nextCard = '<div class="card"><div class="card-header"><div class="card-title">Next step</div>' +
+  const nextCard = '<div class="card"><div class="card-header">' + foldTitle('opp:next', 'Next step', 'card-title') +
       '<button class="btn btn-outline btn-xs" data-admin-only onclick="toggleOppStepForm()">' + (state.oppStepForm ? 'Cancel' : icon('plus', 12) + ' Add next step') + '</button></div>' +
-    (state.oppStepForm ? '<div class="op-form">' +
+    foldBody('opp:next', (state.oppStepForm ? '<div class="op-form">' +
       '<div class="fg"><label for="op-ns-text">What needs to happen</label><input id="op-ns-text" type="text" placeholder="Send the indicative tariff to the energy lead"></div>' +
       '<div class="fg"><label for="op-ns-due">Do it by</label><input id="op-ns-due" type="date"></div>' +
       '<button class="btn btn-primary btn-sm" onclick="addNextStep(' + jsStr(o.id) + ')">Save step</button></div>' : '') +
     (open_steps.length || done_steps.length
       ? open_steps.map((it, n) => stepRow(it, n === 0)).join('') + done_steps.map(it => stepRow(it, false)).join('')
-      : '<div class="pp-sub">No next step set. Add one so nobody has to guess what happens next.</div>') +
+      : '<div class="pp-sub">No next step set. Add one so nobody has to guess what happens next.</div>')) +
   '</div>';
   const notesList = items => items.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(it =>
     '<div class="op-note"><div class="pp-th">' + by(it) +
       '<button type="button" class="op-x" data-admin-only aria-label="Delete note" onclick="deleteStageItem(' + jsStr(it.id) + ')">&times;</button></div>' +
     '<div class="op-note-b">' + esc(it.body) + '</div></div>').join('');
   const acctNotes = stageItemsFor(o.id, 'account-note');
-  const notesCard = '<div class="card"><div class="card-header"><div><div class="card-title">Account notes</div>' +
+  const notesCard = '<div class="card"><div class="card-header"><div>' + foldTitle('opp:notes', 'Account notes', 'card-title') +
       '<div class="card-sub">About the account, whatever the stage</div></div></div>' +
-    '<div class="op-form op-form-note" data-admin-only><div class="fg"><label for="op-an-text">Add a note</label>' +
+    foldBody('opp:notes', '<div class="op-form op-form-note" data-admin-only><div class="fg"><label for="op-an-text">Add a note</label>' +
       '<textarea id="op-an-text" placeholder="E.g. group target of 30% renewable power by 2030; new energy lead started in October."></textarea></div>' +
       '<button class="btn btn-primary btn-sm" onclick="addOppNote(' + jsStr(o.id) + ',\'account-note\',\'account\',\'op-an-text\')">Save note</button></div>' +
-    (acctNotes.length ? notesList(acctNotes) : '<div class="pp-sub">No account notes yet.</div>') +
+    (acctNotes.length ? notesList(acctNotes) : '<div class="pp-sub">No account notes yet.</div>')) +
   '</div>';
 
   /* ── Key figures ─────────────────────────────────────────────── */
@@ -243,22 +248,22 @@ function renderOpportunity() {
       'aria-label="' + esc((on ? 'Untick: ' : 'Tick: ') + t) + '" onclick="toggleOppCheck(' + jsStr(o.id) + ',' + jsStr(viewId) + ',' + i + ',' + on + ')"' + (admin ? '' : ' disabled') + '>' + (on ? '✓' : '') + '</button>' +
       '<span>' + esc(t) + (why ? ' <span class="op-why">' + why + '</span>' : '') + '</span></div>';
   }).join('');
-  const checkBox = '<div class="op-box"><div class="op-h">To move on from ' + esc(vst.label) + '</div>' +
-    (checks || '<div class="pp-sub">Nothing left to clear: this is the end of the path.</div>') +
+  const checkBox = '<div class="op-box">' + foldTitle('opp:checks', 'To move on from ' + esc(vst.label), 'op-h') +
+    foldBody('opp:checks', (checks || '<div class="pp-sub">Nothing left to clear: this is the end of the path.</div>') +
     (play.guidance.length ? '<div class="op-h" style="margin-top:10px">Guidance for this stage</div><ul class="op-guide">' +
-      play.guidance.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' : '') + '</div>';
+      play.guidance.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' : '')) + '</div>';
   const stageNotes = stageNotesAll.filter(n => n.stage === viewId);
-  const notesBox = '<div class="op-box"><div class="op-h">Stage notes · ' + esc(vst.label) + '</div>' +
-    '<div class="op-form op-form-note" data-admin-only><div class="fg"><label for="op-sn-text">Add a note for this stage</label>' +
+  const notesBox = '<div class="op-box">' + foldTitle('opp:stagenotes', 'Stage notes · ' + esc(vst.label), 'op-h') +
+    foldBody('opp:stagenotes', '<div class="op-form op-form-note" data-admin-only><div class="fg"><label for="op-sn-text">Add a note for this stage</label>' +
       '<textarea id="op-sn-text" placeholder="What did you learn at this stage?"></textarea></div>' +
       '<button class="btn btn-primary btn-sm" onclick="addOppNote(' + jsStr(o.id) + ',\'note\',' + jsStr(viewId) + ',\'op-sn-text\')">Save</button></div>' +
-    (stageNotes.length ? notesList(stageNotes) : '<div class="pp-sub">No notes on this stage yet.</div>') + '</div>';
+    (stageNotes.length ? notesList(stageNotes) : '<div class="pp-sub">No notes on this stage yet.</div>')) + '</div>';
   const line = i => '<div class="pp-ti"><span class="pp-dot' + (i.type === 'stage change' ? ' stage' : '') + '"></span><div style="min-width:0">' +
     '<div class="pp-th">' + esc(entryMetaText(i)) + ' · ' + esc(fuDate(i.date) || i.date) + '</div>' +
     '<div>' + esc(i.summary) + '</div></div></div>';
   const inStage = logsNewest.filter(i => stageOf[i.id] === viewId);
-  const stageAct = '<div class="op-box"><div class="op-h">Activity in this stage <span class="pf-n">' + inStage.length + '</span></div>' +
-    (inStage.length ? inStage.map(line).join('')
+  const stageAct = '<div class="op-box">' + foldTitle('opp:stageact', 'Activity in this stage <span class="pf-n">' + inStage.length + '</span>', 'op-h') +
+    foldBody('opp:stageact', inStage.length ? inStage.map(line).join('')
       : '<div class="pp-sub">' + (viewIdx > curIdx ? 'Not reached yet. What is logged while the account is at ' + esc(vst.label) + ' will show here.' : 'Nothing was logged while the account was at this stage.') + '</div>') + '</div>';
   const chaseHtml = info.chases.length
     ? info.chases.map(c => '<div class="pp-chase"><div style="min-width:0"><div class="pp-name">' +
@@ -275,20 +280,20 @@ function renderOpportunity() {
         '<div class="op-h" style="margin-top:8px">Touches and moves</div>' +
         (logsNewest.length ? logsNewest.map(line).join('') : '<div class="pp-sub">Nothing logged yet.</div>')
       : '') + '</div>';
-  const stagesCard = '<div class="card"><div class="card-header"><div><div class="card-title">Sales stages</div>' +
+  const stagesCard = '<div class="card"><div class="card-header"><div>' + foldTitle('opp:stages', 'Sales stages', 'card-title') +
       '<div class="card-sub">Click a stage to open it. Moving the account is the button under the tabs, so looking never moves anything.</div></div>' +
       '<button class="btn btn-primary btn-xs" data-admin-only onclick="openLogInteraction(' + jsStr(o.id) + ')">' + icon('plus', 12) + ' Log touch</button></div>' +
-    tabs + bar +
+    foldBody('opp:stages', tabs + bar +
     '<div class="op-stagegrid">' + checkBox + notesBox + '</div>' +
-    stageAct + allAct +
+    stageAct + allAct) +
   '</div>';
 
   /* ── Details, MW opportunities, history, stakeholders ────────── */
   const np = nearestProject(o);
   const dl = rows => '<dl class="op-dl">' + rows.map(([k, v]) => '<dt>' + esc(k) + '</dt><dd>' + v + '</dd>').join('') + '</dl>';
   const supply = { eskom: 'Eskom', municipal: 'Municipal', mixed: 'Eskom and municipal' }[o.supply] || o.supply || '—';
-  const details = '<div class="card"><div class="card-header"><div class="card-title">Details</div></div>' +
-    dl([
+  const details = '<div class="card"><div class="card-header">' + foldTitle('opp:details', 'Details', 'card-title') + '</div>' +
+    foldBody('opp:details', dl([
       ['Sector', esc(sectorName(o.sector))],
       ['Location', esc([o.city, o.province].filter(Boolean).join(', ') || '—')],
       ['Annual load', isUnworked(o) ? muted('not established') : fmtNum(o.annualGwh) + ' GWh/yr' + (o.estimated ? ' ' + muted('(estimate)') : '')],
@@ -298,10 +303,10 @@ function renderOpportunity() {
       ['Wheeling', esc(WHEELING_LABEL[o.wheeling] || o.wheeling || '—')],
       ['Current tariff', num(o.tariff) ? 'R' + num(o.tariff).toFixed(2) + '/kWh' : muted('—')],
       ['Nearest site', np ? esc(np.project.name) + ' ' + muted('· ' + esc(distanceLabel(np))) : muted('—')],
-    ]) + '</div>';
-  const dealsCard = '<div class="card"><div class="card-header"><div class="card-title">MW opportunities</div>' +
+    ])) + '</div>';
+  const dealsCard = '<div class="card"><div class="card-header">' + foldTitle('opp:deals', 'MW opportunities', 'card-title') +
     '<button class="btn btn-ghost btn-xs" data-admin-only onclick="openAddDeal(' + jsStr(o.id) + ')">' + icon('plus', 12) + ' Add</button></div>' +
-    (deals.length ? deals.map(d => '<div class="op-deal">' +
+    foldBody('opp:deals', deals.length ? deals.map(d => '<div class="op-deal">' +
         '<div style="min-width:0"><div class="pp-name">' + esc(d.name || 'Opportunity') + '</div>' +
         '<div class="pp-sub">' + fmtNum(d.mw) + ' MW · R' + num(d.tariff).toFixed(2) + '/kWh · ' + num(d.tenor, 20) + ' yrs · ' +
           esc((PIPELINE_STAGES.find(s => s.id === d.stage) || { label: d.stage === 'lost' ? 'Lost' : d.stage }).label) +
@@ -312,17 +317,17 @@ function renderOpportunity() {
       : '<div class="pp-sub">No MW on the table yet. Add one once the load is understood.</div>') +
   '</div>';
   const moves = info.logs.filter(i => i.type === 'stage change').slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  const history = '<div class="card"><div class="card-header"><div class="card-title">Stage history</div></div>' +
-    (moves.length ? moves.map(i => '<div class="op-hist"><b>' + esc(fuDate(i.date) || i.date) + '</b> ' + esc(String(i.summary).split('. ')[0].replace(/^Sales stage moved /, '')) + '</div>').join('')
+  const history = '<div class="card"><div class="card-header">' + foldTitle('opp:history', 'Stage history <span class="pf-n">' + moves.length + '</span>', 'card-title') + '</div>' +
+    foldBody('opp:history', moves.length ? moves.map(i => '<div class="op-hist"><b>' + esc(fuDate(i.date) || i.date) + '</b> ' + esc(String(i.summary).split('. ')[0].replace(/^Sales stage moved /, '')) + '</div>').join('')
       : '<div class="pp-sub">No stage change logged yet.</div>') + '</div>';
   const seatOf = c => (AE_LADDER.find(s => aeSeatMatch(s, c)) || {}).label || 'Other';
   const people = info.people.map(c => ({ c, e: contactEngagement(c.id, info.logs, today) }))
     .sort((a, b) => ENGAGEMENT_RANK[b.e] - ENGAGEMENT_RANK[a.e] || (a.c.last || '').localeCompare(b.c.last || ''));
   const gaps = info.seats.filter(s => s.state === 'gap');
-  const stakeholders = '<div class="card"><div class="card-header"><div><div class="card-title">Stakeholders</div>' +
+  const stakeholders = '<div class="card"><div class="card-header"><div>' + foldTitle('opp:people', 'Stakeholders', 'card-title') +
       '<div class="card-sub">' + esc(reachText(info)) + '</div></div>' +
       '<button class="btn btn-ghost btn-xs" data-admin-only onclick="openAddContact(' + jsStr(o.id) + ')">' + icon('plus', 12) + ' Add</button></div>' +
-    seatBarHtml(info) +
+    foldBody('opp:people', seatBarHtml(info) +
     (people.length ? people.map(({ c, e }) => {
       const n = info.logs.filter(i => (i.contactIds || []).includes(c.id)).length;
       return '<div class="pp-person op-person"><div class="pp-seat">' + esc(seatOf(c)) + '</div>' +
@@ -331,7 +336,7 @@ function renderOpportunity() {
         '<span class="ow-eng ow-' + e + '">' + esc(ENGAGEMENT_LABEL[e]) + '</span></div>';
     }).join('') : '<div class="pp-sub" style="margin-top:8px">Nobody on file yet. Add someone, or type them in when you log a touch.</div>') +
     (gaps.length ? '<div class="pp-gaps"><span class="pp-sub">Nobody on file:</span>' +
-      gaps.map(s => '<span class="pp-gap">' + esc(s.label) + '</span>').join('') + '</div>' : '') +
+      gaps.map(s => '<span class="pp-gap">' + esc(s.label) + '</span>').join('') + '</div>' : '')) +
   '</div>';
 
   setContent('<div class="rec-block">' + head + '</div>' +
