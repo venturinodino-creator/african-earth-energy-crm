@@ -133,6 +133,20 @@ test('a next step or note gets its author from the sign-in on insert and keeps i
   assert.ok(/new\.author\s*:=\s*old\.author/.test(fn), 'an edit cannot change it');
 });
 
+console.log('\nRetention');
+test('a function deletes changes older than 24 months, deletion copies with them, and nothing newer', () => {
+  const fn = sql.match(/create or replace function public\.purge_old_changes\(\)[\s\S]*?\$\$;/)[0];
+  assert.ok(/security definer/.test(fn), 'it deletes from the table clients cannot');
+  assert.ok(/delete from public\.aee_changes where at < now\(\) - interval '24 months'/.test(fn), 'older than 24 months only');
+  assert.ok(/revoke all on function public\.purge_old_changes\(\)\s+from public, anon, authenticated/.test(sql), 'nobody calls it through the API');
+});
+test('it runs daily from the database\'s own scheduler', () => {
+  assert.ok(/create extension if not exists pg_cron/.test(sql), 'the scheduler');
+  const job = sql.match(/cron\.schedule\('aee-changes-retention', '([^']+)', 'select public\.purge_old_changes\(\)'\)/);
+  assert.ok(job, 'a named job, so re-running the schema replaces it rather than adding another');
+  assert.ok(/^\d+ \d+ \* \* \*$/.test(job[1]), 'once a day: ' + job[1]);
+});
+
 console.log('\nAccess');
 test('row level security is on for the change table', () =>
   assert.ok(/alter table public\.aee_changes\s+enable row level security/.test(sql)));
