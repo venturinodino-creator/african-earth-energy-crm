@@ -529,6 +529,23 @@ create policy aee_changes_read_accounts on public.aee_changes
   for select to authenticated using (public.has_crm_access() and offtaker_id is not null);
 revoke insert, update, delete, truncate on public.aee_changes from public, anon, authenticated;
 
+-- Retention (POPIA): changes older than 24 months, deletion copies with them, are removed
+-- by a daily job in the database's own scheduler. The job is named, so re-running this file
+-- replaces it rather than adding a second one.
+create or replace function public.purge_old_changes() returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  n integer;
+begin
+  delete from public.aee_changes where at < now() - interval '24 months';
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+revoke all on function public.purge_old_changes() from public, anon, authenticated;
+create extension if not exists pg_cron;
+select cron.schedule('aee-changes-retention', '23 2 * * *', 'select public.purge_old_changes()');
+
 -- The agent a request declares itself as, from its X-Aee-Agent header (PostgREST passes the
 -- request's headers to the transaction, lower-cased). Every repo script that writes sends its
 -- job name; the app sends none. Letters, digits and dashes, at most 40; anything else, or no
