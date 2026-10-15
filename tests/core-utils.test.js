@@ -22,7 +22,7 @@ const ctx = vm.createContext({
   localStorage: { getItem: () => null, setItem: noop }, location: { search: '', pathname: '/' }, history: { state: null, pushState: noop }, addEventListener: noop,
   navigator: { userAgent: 'node' }, matchMedia: () => ({ matches: false }), Intl, URLSearchParams, URL, fetch: async () => ({ ok: false }), CSS: { escape: s => s },
 });
-for (const f of ['data/sectors.js', 'data/seed.js', 'data/municipalities.js', 'js/icons.js', 'js/supabase.js', 'js/core.js']) {
+for (const f of ['data/sectors.js', 'data/seed.js', 'data/municipalities.js', 'js/icons.js', 'js/supabase.js', 'js/core.js', 'js/followups.js']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8') + '\n', ctx, { filename: f });
 }
 const run = code => JSON.parse(JSON.stringify(vm.runInContext(code, ctx)));
@@ -90,6 +90,23 @@ test('a company in two provinces is found under either; abbreviations are unders
 test('the province choices are single provinces, not every combination', () => {
   const choices = run('provinceChoices([{ province: "Free State / Gauteng" }, { province: "Gauteng" }, { province: "Gauteng / Limpopo" }, { province: "" }])');
   assert.strictEqual(JSON.stringify(choices), '["Free State","Gauteng","Limpopo"]');
+});
+
+test('the log is newest first: by day, then by when each entry was made; one just made leads', () => {
+  const order = run(`[
+    { id: 'a', date: '2026-10-15', createdAt: '2026-10-15T13:22:46Z' },
+    { id: 'b', date: '2026-10-13', createdAt: '2026-10-13T19:20:01Z' },
+    { id: 'c', date: '2026-10-15', createdAt: '2026-10-15T15:51:32Z' },
+    { id: 'd', date: '2026-10-15', createdAt: '' },
+    { id: 'e', date: '2026-10-15', createdAt: '2026-10-15T13:43:50Z' },
+  ].sort(newestFirst).map(i => i.id)`);
+  assert.deepStrictEqual(order, ['d', 'c', 'e', 'a', 'b']);
+});
+test('an entry reads its day and the time it was made; a back-dated one only its day', () => {
+  const at = run(`entryWhen({ date: '2026-10-15', createdAt: new Date(2026, 9, 15, 17, 51).toISOString() })`);
+  assert.strictEqual(at, '15 Oct 2026 · 17:51');
+  assert.strictEqual(run(`entryWhen({ date: '2026-10-03', createdAt: new Date(2026, 9, 15, 17, 51).toISOString() })`), '3 Oct 2026', 'logged on the 15th for the 3rd: no time');
+  assert.strictEqual(run(`entryWhen({ date: '2026-10-08', createdAt: '' })`), '8 Oct 2026');
 });
 
 console.log('\n' + n + ' passed');

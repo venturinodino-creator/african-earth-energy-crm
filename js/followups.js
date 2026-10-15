@@ -18,6 +18,23 @@ function fuDate(iso) {
   return m ? Number(m[3]) + ' ' + FU_MONTHS[Number(m[2]) - 1].slice(0, 3) + ' ' + m[1] : '';
 }
 
+/* The order every log is read in: the most recent day first, and within a day the entry made
+   last first. One made this session and not yet reloaded has no time from the database yet;
+   it is the newest there is. */
+function newestFirst(a, b) {
+  return String(b.date || '').localeCompare(String(a.date || '')) ||
+    (!a.createdAt ? -1 : !b.createdAt ? 1 : String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+/* An entry's day, and the local time it was made when it was made that day; a touch logged
+   later against an earlier day shows only its day, since the time would be the logging's. */
+function entryWhen(i) {
+  const day = fuDate(i.date) || i.date || '';
+  const t = i.createdAt ? new Date(i.createdAt) : null;
+  if (!t || Number.isNaN(t.getTime())) return day;
+  const local = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  return local === i.date ? day + ' · ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') : day;
+}
+
 /* Whole days on a calendar date, not on a clock: noon UTC, so daylight saving can never move one. */
 function addDays(iso, n) {
   const d = new Date(String(iso) + 'T12:00:00Z');

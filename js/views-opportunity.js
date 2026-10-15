@@ -265,7 +265,7 @@ function renderOpportunity() {
       '<button class="btn btn-primary btn-sm" onclick="addOppNote(' + jsStr(o.id) + ',\'note\',' + jsStr(viewId) + ',\'op-sn-text\')">Save</button></div>' +
     (stageNotes.length ? notesList(stageNotes) : '<div class="pp-sub">No notes on this stage yet.</div>')) + '</div>';
   const line = i => '<div class="pp-ti"><span class="pp-dot' + (i.type === 'stage change' ? ' stage' : '') + '"></span><div style="min-width:0">' +
-    '<div class="pp-th">' + esc(entryMetaText(i)) + ' · ' + esc(fuDate(i.date) || i.date) + '</div>' +
+    '<div class="pp-th">' + esc(entryMetaText(i)) + ' · ' + esc(entryWhen(i)) + '</div>' +
     '<div>' + esc(i.summary) + '</div></div></div>';
   const inStage = logsNewest.filter(i => stageOf[i.id] === viewId);
   const stageAct = '<div class="op-box">' + foldTitle('opp:stageact', 'Activity in this stage <span class="pf-n">' + inStage.length + '</span>', 'op-h') +
@@ -322,7 +322,7 @@ function renderOpportunity() {
       '</div>').join('')
       : '<div class="pp-sub">No MW on the table yet. Add one once the load is understood.</div>') +
   '</div>';
-  const moves = info.logs.filter(i => i.type === 'stage change').slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const moves = info.logs.filter(i => i.type === 'stage change').slice().sort(newestFirst);
   const history = '<div class="card"><div class="card-header">' + foldTitle('opp:history', 'Stage history <span class="pf-n">' + moves.length + '</span>', 'card-title') + '</div>' +
     foldBody('opp:history', moves.length ? moves.map(i => '<div class="op-hist"><b>' + esc(fuDate(i.date) || i.date) + '</b> ' + esc(String(i.summary).split('. ')[0].replace(/^Sales stage moved /, '')) + '</div>').join('')
       : '<div class="pp-sub">No stage change logged yet.</div>') + '</div>';

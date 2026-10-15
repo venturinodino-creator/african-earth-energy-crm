@@ -37,7 +37,7 @@ function renderActivity() {
   const day = /^\d{4}-\d{2}-\d{2}$/.test(state.actDay || '') ? state.actDay : '';
 
   /* The log and the follow-ups are those of the accounts in the province scope. */
-  const everything = scopedInteractions().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const everything = scopedInteractions().slice().sort(newestFirst);
   const items = followUps(scopedDeals(), scopedOfftakers(), actStageLabel)
     .concat(outreachFollowUps(scopedInteractions(), scopedOfftakers(), scopedContacts()))
     .concat(stepFollowUps(state.stageItems, scopedOfftakers(), actStageLabel));
@@ -112,7 +112,7 @@ function allActivityHtml(logs, day) {
     logs.map(i =>
       '<div class="int-row"><div class="int-dot"></div><div class="int-body">' +
       '<div class="int-meta">' + esc(entryMetaText(i)) + ' · <span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + i.offtakerId + '\'})">' +
-      esc(getOfftaker(i.offtakerId).short || 'Unknown') + '</span> · ' + esc(i.date) + '</div>' +
+      esc(getOfftaker(i.offtakerId).short || 'Unknown') + '</span> · ' + esc(entryWhen(i)) + '</div>' +
       '<div class="int-text">' + esc(i.summary) + '</div></div>' +
       '<button class="btn btn-xs btn-ghost" data-admin-only onclick="deleteInteraction(\'' + i.id + '\')">' + icon('trash', 11) + '</button></div>').join('') +
     '</div>';
@@ -127,7 +127,7 @@ function interactionTableHtml(logs) {
     logs.map(i => {
       const o = getOfftaker(i.offtakerId);
       return '<tr>' +
-        '<td style="white-space:nowrap">' + esc(i.date) + '</td>' +
+        '<td style="white-space:nowrap">' + esc(entryWhen(i)) + '</td>' +
         '<td>' + esc(entryMetaText(i)) + '</td>' +
         '<td>' + (o.id
           ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'detail\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'

@@ -195,7 +195,7 @@ function renderDashboard() {
     '</div>';
 
   /* ── Recent activity ────────────────────────────────────────── */
-  const recent = scopedInteractions().slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 6);
+  const recent = scopedInteractions().slice().sort(newestFirst).slice(0, 6);
   const actHtml =
     '<div class="card">' +
       '<div class="card-header"><div class="card-title">Recent activity</div>' +
