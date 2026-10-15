@@ -162,6 +162,24 @@ test('a stage note is filed on the stage that is open', () => {
   const o = run({ oppStage: 'outreach', oppStageFor: 'f' }, (ctx, inputs) => { inputs['op-sn-text'] = 'Try the COO.'; vm.runInContext('addOppNote("f","note","outreach","op-sn-text")', ctx); });
   assert.deepStrictEqual([o.pushed[0].kind, o.pushed[0].stage, o.pushed[0].body], ['note', 'outreach', 'Try the COO.']);
 });
+test('every next step and note says who added it and when', () => {
+  const h = run({ stageItems: steps.concat(notes) }).content;
+  assert.ok(h.includes('Set at Online meeting · by dino · 8 Oct 2026'), 'the step\'s byline');
+  assert.ok(h.includes('by dino · 2 Oct 2026'), 'the account note\'s byline');
+  assert.ok(h.includes('by dino · 8 Oct 2026<'), 'the stage note\'s byline');
+});
+test('re-ticking a hand tick keeps when it was first ticked and by whom', () => {
+  const first = { id: 'chk_f_online-meeting_0', offtakerId: 'f', stage: 'online-meeting', kind: 'check', body: '0', doneAt: '', author: 'karen', createdAt: '2026-10-01T00:00:00Z' };
+  const o = run({ stageItems: [first] }, ctx => vm.runInContext('toggleOppCheck("f","online-meeting",0,false)', ctx));
+  assert.deepStrictEqual([o.pushed[0].createdAt, o.pushed[0].author], ['2026-10-01T00:00:00Z', 'karen']);
+  assert.ok(o.pushed[0].doneAt, 'and it is ticked');
+});
+test('an item from before authors were recorded says so rather than guessing', () => {
+  const h = run({ stageItems: [Object.assign({}, steps[1], { author: '' }), Object.assign({}, notes[0], { author: null })] }).content;
+  assert.ok(h.includes('Set at Online meeting · not recorded · 8 Oct 2026'), 'the step');
+  assert.ok(h.includes('not recorded · 2 Oct 2026'), 'the note');
+  assert.ok(!h.includes('— · '), 'no dash for a missing author');
+});
 
 console.log('\nSales stages');
 test('seven tabs; the current one marked and open by default', () => {

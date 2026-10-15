@@ -58,6 +58,8 @@ function handTick(oid, stage, i) {
 function stageItemsFor(oid, kind, stage) {
   return state.stageItems.filter(i => i.offtakerId === oid && i.kind === kind && (stage === undefined || i.stage === stage));
 }
+/* The byline shown until the next load. The saved author is the database's,
+   stamped from the sign-in (ADR 0002); this is the same name, shown at once. */
 function authorName() { return state.email ? toDisplayName(state.email) : 'You'; }
 
 /* ─── ACTIONS ──────────────────────────────────────────────────── */
@@ -113,8 +115,12 @@ function addOppNote(oid, kind, stage, inputId) {
 }
 function toggleOppCheck(oid, stage, i, nowOn) {
   if (needAdmin()) return;
-  saveStageItem({ id: checkItemId(oid, stage, i), offtakerId: oid, stage, kind: 'check', body: String(i),
-    dueDate: '', doneAt: nowOn ? '' : new Date().toISOString(), author: authorName(), createdAt: new Date().toISOString() });
+  const id = checkItemId(oid, stage, i);
+  /* A tick toggled before keeps its first date and author, as the database does. */
+  const was = state.stageItems.find(x => x.id === id);
+  saveStageItem({ id, offtakerId: oid, stage, kind: 'check', body: String(i),
+    dueDate: '', doneAt: nowOn ? '' : new Date().toISOString(),
+    author: was ? was.author : authorName(), createdAt: was ? was.createdAt : new Date().toISOString() });
   renderOpportunity();
 }
 function viewOppStage(stage) { state.oppStage = stage; renderOpportunity(); }
@@ -156,7 +162,7 @@ function renderOpportunity() {
   const admin = state.role === 'admin';
   const dueLabel = d => !d ? 'No date' : d < today ? 'Overdue · ' + fuDate(d) : d === today ? 'Due today' : 'Due ' + fuDate(d);
   const dueCls = (d, done) => done ? 'op-due done' : !d ? 'op-due' : d < today ? 'op-due late' : daysBetween(today, d) <= 3 ? 'op-due soon' : 'op-due';
-  const by = it => esc(it.author || '—') + ' · ' + esc(fuDate(String(it.createdAt).slice(0, 10)) || '');
+  const by = it => (it.author ? 'by ' + esc(it.author) : 'not recorded') + ' · ' + esc(fuDate(String(it.createdAt).slice(0, 10)) || '');
 
   setPage(name, sectorName(o.sector) + (o.city ? ' · ' + o.city : '') + (o.province ? ', ' + o.province : ''), '', { record: true });
 
