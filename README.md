@@ -333,12 +333,12 @@ ls tests/*.test.js | xargs node --test    # all of them
 node tests/finder-agent.test.js           # or one: the finder's validator, loader, sign-in and CLI
 ```
 
-There are 43 files. They cover the contact finder (agent, Apollo helper, gap finder,
+There are 44 files. They cover the contact finder (agent, Apollo helper, gap finder,
 targets, ladder seats, email inference, accepting finds, the Agent HQ activity card, the OpenClaw runner), the Projects area
 (analytics maths and page, site profile, plan editing), the page layouts (shell, lists, record
 pages, dashboard, settings, activity, map, news), the province scope, row selection, the
 + New drawer, the Import wizard and its rules, follow-ups, the outreach rules (touch numbers,
-engagement, stage moves, chasing), the opportunity page, the Analytics export and the search
+engagement, stage moves, chasing), the opportunity page, the Change log page, the Analytics export and the search
 shortcut, form validation, shared helpers, the news merge and scan, the Change log's database
 side (every table recorded or named as not, and the change table closed to API writes, read from
 `supabase/schema.sql`), and the docs themselves
@@ -517,6 +517,7 @@ js/import-rules.js          CSV import rules, no DOM: which column is which fiel
 js/views-import.js          the Import wizard: Upload, Map columns, Review, Import
 js/views-settings.js        Settings
 js/views-activity.js        Activity: follow-ups, all activity, calendar
+js/views-changelog.js       the Change log: who did what, for admins
 js/views-map.js             the Map, with its side panel of filters
 js/views-tools.js           projects, analytics (and its Export summary), calculator, playbook
 js/views-agenthq.js         Agent HQ: the finder agents, their runs and results
