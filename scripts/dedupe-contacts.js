@@ -18,7 +18,7 @@ const norm=s=>String(s||'').toLowerCase().replace(/[^a-z]+/g,' ').trim();
 (async()=>{
   const r=await fetch(BASE+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password:process.env.AEE_PASSWORD})});
   const t=(await r.json()).access_token; const h={apikey:KEY,Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'return=representation'};
-  const all=await (await fetch(BASE+'/rest/v1/aee_contacts?select=*',{headers:h})).json();
+  const all=[]; for(let o=0;;o+=1000){ const g=await fetch(BASE+'/rest/v1/aee_contacts?select=*&order=id.asc&limit=1000&offset='+o,{headers:h}); if(!g.ok) throw new Error('read '+g.status); const pg=await g.json(); all.push(...pg); if(pg.length<1000) break; }
   const groups={}; for(const c of all){const k=(c.offtaker_id||'')+'|'+norm(c.first)+' '+norm(c.last); (groups[k]=groups[k]||[]).push(c);}
   const dups=Object.values(groups).filter(g=>g.length>1);
   const score=c=>(c.email?8:0)+(c.phone?4:0)+(c.id.startsWith('con_')?2:0)+(c.linkedin?1:0);

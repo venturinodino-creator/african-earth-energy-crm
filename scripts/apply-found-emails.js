@@ -80,6 +80,17 @@ async function rest(q, opts = {}) {
   if (!res.ok) throw new Error('Supabase ' + res.status + ' on ' + q + ': ' + text.slice(0, 300));
   return text ? JSON.parse(text) : null;
 }
+/* PostgREST caps a response at 1000 rows; page until a short page. */
+async function restAll(q) {
+  const rows = [];
+  for (let o = 0; ; o += 1000) {
+    const page = await rest(q + '&limit=1000&offset=' + o);
+    if (!page || !page.length) break;
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  return rows;
+}
 
 async function main() {
   loadDotEnv();
@@ -89,7 +100,7 @@ async function main() {
   if (!files.length) { console.error('Usage: node scripts/apply-found-emails.js <result.csv>… [--dry-run]'); process.exitCode = 1; return; }
 
   await signIn();
-  const contacts = await rest('aee_contacts?select=id,first,last,email,notes');
+  const contacts = await restAll('aee_contacts?select=id,first,last,email,notes&order=id.asc');
   const byId = Object.fromEntries(contacts.map(c => [c.id, c]));
   const tally = { rows: 0, unknownId: 0, alreadyHas: 0, badShape: 0, officeInbox: 0, noSource: 0, lowConfidence: 0, written: 0 };
   const seen = new Set();

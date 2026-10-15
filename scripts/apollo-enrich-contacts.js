@@ -80,6 +80,17 @@ async function rest(q, opts = {}) {
   if (!res.ok) throw new Error('Supabase ' + res.status + ' on ' + q + ': ' + text.slice(0, 300));
   return text ? JSON.parse(text) : null;
 }
+/* PostgREST caps a response at 1000 rows; page until a short page. */
+async function restAll(q) {
+  const rows = [];
+  for (let o = 0; ; o += 1000) {
+    const page = await rest(q + '&limit=1000&offset=' + o);
+    if (!page || !page.length) break;
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  return rows;
+}
 
 async function apollo(pathname, body) {
   const key = process.env.AEE_APOLLO_KEY;
@@ -124,7 +135,7 @@ async function main() {
   await signIn();
   const offs = await rest('aee_offtakers?select=id,name,website,status&archived=eq.false&sector=in.(' + sectors.join(',') + ')');
   const byId = Object.fromEntries(offs.map(o => [o.id, o]));
-  const contacts = await rest('aee_contacts?select=id,offtaker_id,first,last,title,email,notes,status&or=(email.is.null,email.eq.)');
+  const contacts = await restAll('aee_contacts?select=id,offtaker_id,first,last,title,email,notes,status&or=(email.is.null,email.eq.)&order=id.asc');
   let cands = contacts
     .filter(c => byId[c.offtaker_id] && byId[c.offtaker_id].status !== 'parked' && (c.status || 'active') === 'active' && realName(c))
     .filter(c => !onlyIds || onlyIds.includes(c.id))
