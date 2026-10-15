@@ -10,6 +10,7 @@
    then the oldest; folds notes and blank fields into the survivor; deletes
    the rest. --dry-run prints and writes nothing. Backup to OS temp. */
 const fs=require('fs'), os=require('os'), path=require('path');
+const AGENT=require('./agent-name').agentName(__filename);   // named on every request: see scripts/agent-name.js
 for (const line of fs.readFileSync('.env','utf8').split(/\r?\n/)) { const m=/^\s*([A-Za-z_]\w*)\s*=\s*(.*)$/.exec(line); if(m&&process.env[m[1]]===undefined) process.env[m[1]]=m[2].trim().replace(/^["']|["']$/g,''); }
 const BASE='https://pkzfazjtpswqjmnzzrgt.supabase.co', KEY='sb_publishable_jqCjOPRXZEIKjgNDVsL3uw_ldx-I-tO';
 const DRY=process.argv.includes('--dry-run');
@@ -17,7 +18,7 @@ const email = process.env.AEE_EMAIL.includes('@') ? process.env.AEE_EMAIL : proc
 const norm=s=>String(s||'').toLowerCase().replace(/[^a-z]+/g,' ').trim();
 (async()=>{
   const r=await fetch(BASE+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password:process.env.AEE_PASSWORD})});
-  const t=(await r.json()).access_token; const h={apikey:KEY,Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'return=representation'};
+  const t=(await r.json()).access_token; const h={apikey:KEY,Authorization:'Bearer '+t,'X-Aee-Agent':AGENT,'Content-Type':'application/json',Prefer:'return=representation'};
   const all=[]; for(let o=0;;o+=1000){ const g=await fetch(BASE+'/rest/v1/aee_contacts?select=*&order=id.asc&limit=1000&offset='+o,{headers:h}); if(!g.ok) throw new Error('read '+g.status); const pg=await g.json(); all.push(...pg); if(pg.length<1000) break; }
   const groups={}; for(const c of all){const k=(c.offtaker_id||'')+'|'+norm(c.first)+' '+norm(c.last); (groups[k]=groups[k]||[]).push(c);}
   const dups=Object.values(groups).filter(g=>g.length>1);

@@ -57,6 +57,21 @@ test('nothing named as not recorded is in fact recorded, so the list stays true'
   assert.deepStrictEqual(stale, [], 'recorded after all: ' + stale.join(', '));
 });
 test('next steps, notes and ticks are recorded', () => assert.ok(recorded('aee_stage_items')));
+test('an agent is read from the request\'s X-Aee-Agent header, cleaned to letters, digits and dashes', () => {
+  const fn = sql.match(/create or replace function public\.request_agent\(\)[\s\S]*?\$\$;/)[0];
+  assert.ok(/current_setting\('request\.headers', true\)/.test(fn) && /'x-aee-agent'/.test(fn), 'reads the header PostgREST passes on');
+  assert.ok(/regexp_replace/.test(fn) && /nullif/.test(fn), 'cleaned, and empty means none');
+  assert.ok(/nullif\(current_setting\('request\.headers', true\), ''\)::json/.test(fn), 'an empty setting (no request) is no agent, not an error');
+  assert.ok(/revoke all on function public\.request_agent\(\)\s+from public, anon, authenticated/.test(sql), 'only the database\'s own functions call it');
+});
+test('the change row records the agent beside the sign-in', () => {
+  const fn = sql.match(/create or replace function public\.record_change\(\)[\s\S]*?\$\$;/)[0];
+  assert.ok(/\(author_id, author_email, agent,/.test(fn) && /public\.request_agent\(\)/.test(fn), fn.slice(0, 0));
+});
+test('a byline stamped during an agent\'s request reads as the agent run as the person', () => {
+  const fn = sql.match(/create or replace function public\.author_display_name\(\)[\s\S]*?\$\$;/)[0];
+  assert.ok(/public\.request_agent\(\)/.test(fn) && /\(run as /.test(fn), 'agent (run as person)');
+});
 test('companies, contacts and opportunities are recorded', () =>
   ['aee_offtakers', 'aee_contacts', 'aee_deals'].forEach(t => assert.ok(recorded(t), t)));
 test('a company carries who last changed it, stamped from the sign-in', () => {

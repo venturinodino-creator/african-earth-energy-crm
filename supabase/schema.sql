@@ -523,6 +523,18 @@ create policy aee_changes_read on public.aee_changes
   for select to authenticated using (public.is_crm_admin());
 revoke insert, update, delete, truncate on public.aee_changes from public, anon, authenticated;
 
+-- The agent a request declares itself as, from its X-Aee-Agent header (PostgREST passes the
+-- request's headers to the transaction, lower-cased). Every repo script that writes sends its
+-- job name; the app sends none. Letters, digits and dashes, at most 40; anything else, or no
+-- header (the SQL editor, the app), is no agent. It names the job, it does not prove it: the
+-- author is still the sign-in, which is what cannot be spoofed (ADR 0002).
+create or replace function public.request_agent() returns text
+language sql stable set search_path = public as $$
+  select nullif(left(trim(both '-' from regexp_replace(lower(coalesce(
+           nullif(current_setting('request.headers', true), '')::json ->> 'x-aee-agent', '')),
+         '[^a-z0-9]+', '-', 'g')), 40), '');
+$$;
+
 create or replace function public.record_change() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
@@ -541,8 +553,8 @@ begin
       from jsonb_each(n) e
      where e.key not in ('updated_at','synced_at','last_changed_by','last_changed_at') and e.value <> 'null'::jsonb;
   end if;
-  insert into public.aee_changes (author_id, author_email, table_name, record_id, offtaker_id, kind, fields, deleted_row)
-  values (auth.uid(), (select email from auth.users where id = auth.uid()), tg_table_name, r ->> 'id',
+  insert into public.aee_changes (author_id, author_email, agent, table_name, record_id, offtaker_id, kind, fields, deleted_row)
+  values (auth.uid(), (select email from auth.users where id = auth.uid()), public.request_agent(), tg_table_name, r ->> 'id',
           coalesce(r ->> 'offtaker_id', case when tg_table_name = 'aee_offtakers' then r ->> 'id' end),
           case tg_op when 'INSERT' then 'created' when 'UPDATE' then 'edited' else 'deleted' end,
           diff, case when tg_op = 'DELETE' then o end);
@@ -551,11 +563,14 @@ end;
 $$;
 
 -- The name a byline shows for the sign-in: the login without @aeeg.co.za, as
--- toDisplayName() in js/supabase.js does; another domain keeps the whole email.
+-- toDisplayName() in js/supabase.js does; another domain keeps the whole email. During an
+-- agent's request it is the agent run as that person, "apollo-daily (run as dino)", so a
+-- next step or a company's "last changed by" never credits the person with the job's work.
 create or replace function public.author_display_name() returns text
 language sql stable security definer set search_path = public as $$
-  select case when lower(email) like '%@aeeg.co.za' then split_part(email, '@', 1) else email end
-    from auth.users where id = auth.uid();
+  select case when public.request_agent() is not null then public.request_agent() || ' (run as ' || p.name || ')' else p.name end
+    from (select case when lower(email) like '%@aeeg.co.za' then split_part(email, '@', 1) else email end as name
+            from auth.users where id = auth.uid()) p;
 $$;
 
 -- Bylines stored on the row are stamped too: a new row gets the sign-in's
@@ -598,6 +613,7 @@ $$;
 
 revoke all on function public.record_change()       from public, anon, authenticated;
 revoke all on function public.author_display_name() from public, anon, authenticated;
+revoke all on function public.request_agent()       from public, anon, authenticated;
 revoke all on function public.stamp_author()        from public, anon, authenticated;
 revoke all on function public.stamp_last_changed()  from public, anon, authenticated;
 

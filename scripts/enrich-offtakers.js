@@ -30,6 +30,7 @@
    Credentials come from .env like every other script here. --dry-run
    prints the patches and writes nothing. */
 'use strict';
+const AGENT = require('./agent-name').agentName(__filename);   // named on every request: see scripts/agent-name.js
 const fs = require('fs');
 const path = require('path');
 
@@ -112,7 +113,7 @@ async function signIn() {
 async function rest(q, opts = {}) {
   const res = await fetch(SUPA_URL + '/rest/v1/' + q, {
     ...opts,
-    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json',
+    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + token, 'X-Aee-Agent': AGENT, 'Content-Type': 'application/json',
       Prefer: 'return=representation', ...(opts.headers || {}) },
   });
   const text = await res.text();

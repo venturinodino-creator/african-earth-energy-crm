@@ -42,6 +42,7 @@
    reading it never has to parse prose.
    ═══════════════════════════════════════════════════════════════════ */
 'use strict';
+const AGENT = require('./agent-name').agentName(__filename);   // named on every request: see scripts/agent-name.js
 
 const fs = require('fs');
 const path = require('path');
@@ -162,6 +163,7 @@ async function rest(pathAndQuery, opts = {}) {
     headers: {
       apikey: SUPA_KEY,
       Authorization: 'Bearer ' + t,
+      'X-Aee-Agent': AGENT,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
       ...(opts.headers || {}),
