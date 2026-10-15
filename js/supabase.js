@@ -113,6 +113,9 @@ function rowToOfftaker(r) {
        answer to "how long has this been sitting" and the only one an
        account nobody has touched can give. */
     updatedAt: r.updated_at || '',
+    /* Who last changed the company and when, stamped by the database from the sign-in
+       (ADR 0002); like updatedAt, never written from here. */
+    lastChangedBy: r.last_changed_by || '', lastChangedAt: r.last_changed_at || '',
     description: r.description || '', revisitDate: r.revisit_date || '',
     estimated: r.estimated !== false,
     /* Carried over when leads and offtakers became one record type. A
@@ -286,7 +289,20 @@ async function fetchFinderData() {
 function upsert(table, row) {
   return supaFetch(table + '?on_conflict=id', { method: 'POST', body: JSON.stringify(row) });
 }
-async function pushOfftaker(o) { await guardWrite(() => upsert('aee_offtakers', offtakerToRow(o))); }
+async function pushOfftaker(o) {
+  await guardWrite(() => upsert('aee_offtakers', offtakerToRow(o)));
+  /* The database stamps who last changed the company and when (ADR 0002), and only when
+     something really changed. Read the stamp back so the header's chip says so now, not
+     after the next reload; only the chip is redrawn, so a form being typed in is left alone. */
+  try {
+    const rows = await supaFetch('aee_offtakers?id=eq.' + encodeURIComponent(o.id) + '&select=last_changed_by,last_changed_at');
+    const r = rows && rows[0];
+    if (!r || ((r.last_changed_by || '') === (o.lastChangedBy || '') && (r.last_changed_at || '') === (o.lastChangedAt || ''))) return;
+    o.lastChangedBy = r.last_changed_by || '';
+    o.lastChangedAt = r.last_changed_at || '';
+    if (state.detailId === o.id) document.querySelectorAll('.rh-changed').forEach(el => { el.outerHTML = lastChangedHtml(o); });
+  } catch (e) { /* the save itself is done; the chip catches up on the next load */ }
+}
 async function pushContact(c) { await guardWrite(() => upsert('aee_contacts', contactToRow(c))); }
 async function pushDeal(d) { await guardWrite(() => upsert('aee_deals', dealToRow(d))); }
 async function pushStageItem(i) { await guardWrite(() => upsert('aee_stage_items', stageItemToRow(i))); }

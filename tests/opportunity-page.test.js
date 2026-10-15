@@ -56,6 +56,8 @@ function run(over, after) {
     ...scopeStubs(state), console, state, esc, num, icon: () => '', jsStr: v => esc(JSON.stringify(String(v == null ? '' : v))),
     fmtNum: v => String(Math.round(num(v))), fmtR: v => 'R' + Math.round(num(v) / 1e6) + 'm', relTime: () => 'recently', sectorName: s => s,
     todayISO: () => '2026-10-13', getOfftaker: id => state.offtakers.find(o => o.id === id) || {},
+    /* layout.js's chip, tested in record-layout.test.js; here only where it sits. */
+    lastChangedHtml: o => '<span class="chip rh-changed">' + (o.lastChangedBy ? 'Last changed by ' + esc(o.lastChangedBy) : 'Last change not recorded') + '</span>',
     contactsFor: id => state.contacts.filter(c => c.offtakerId === id), dealsFor: id => state.deals.filter(d => d.offtakerId === id),
     logsForAccount: o => state.interactions.filter(i => i.offtakerId === o.id).sort((a, b) => b.date.localeCompare(a.date) || String(b.createdAt).localeCompare(String(a.createdAt))),
     inPipeline: o => !!o.sfStage, isUnworked: () => false, isStalled: () => false, stageDwell: () => ({ days: 5 }),
@@ -89,6 +91,11 @@ test('a record page named for the opportunity, header with stage, chase and acti
   assert.ok(o.page.opts.record);
   assert.ok(o.content.includes('class="badge">online-meeting') && o.content.includes('Chase Jan · today'));
   ['Log touch', 'Edit opportunity', 'Org map', 'Company record'].forEach(t => assert.ok(o.content.includes(t), t));
+});
+test('the header says who last changed the company', () => {
+  const o = run({ offtakers: [Object.assign({}, ferro, { lastChangedBy: 'thabo' }), lead] });
+  const head = o.content.slice(o.content.indexOf('record-head'), o.content.indexOf('op-keys'));
+  assert.ok(head.includes('Last changed by thabo'));
 });
 test('top to bottom: header, key figures, Sales stages, then Next step beside Account notes, then the rest', () => {
   const h = run({}).content;

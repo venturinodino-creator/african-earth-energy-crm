@@ -68,6 +68,15 @@ test('the card carries the name once, the chips and the description', () => {
   assert.strictEqual((head.match(/Alpha Mining/g) || []).length, 1);
   ['badge', 'Prospect', 'high priority', 'Website', 'Platinum miner.'].forEach(s => assert.ok(head.includes(s), 'head lacks ' + s));
 });
+test('the header says who last changed the company and when', () => {
+  const o = run('renderDetail', base({ lastChangedBy: 'thabo', lastChangedAt: '2026-10-14T12:00:00+00:00' }));
+  const head = o.content.slice(o.content.indexOf('class="record-head"'), o.content.indexOf('class="rec-grid"'));
+  assert.ok(/Last changed by thabo · 14 Oct 2026/.test(head), head.match(/rh-changed[^<]*/) && head.match(/rh-changed[^<]*/)[0]);
+});
+test('a company nobody has changed since tracking began says "not recorded"', () => {
+  const head = lead().content;
+  assert.ok(/Last change not recorded/.test(head));
+});
 test('every action is in the card: Org map, Log activity, Add contact, Edit', () => {
   const head = lead().content.slice(lead().content.indexOf('class="record-head"'), lead().content.indexOf('class="rec-grid"'));
   ['Org map', 'Log activity', 'Add contact', 'Edit'].forEach(s => assert.ok(head.includes(s), 'head lacks ' + s));

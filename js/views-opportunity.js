@@ -168,7 +168,7 @@ function renderOpportunity() {
 
   /* ── Header ──────────────────────────────────────────────────── */
   const head = recordCardHtml(sectorIcon(o.sector, 24), o.name,
-    sfStageBadge(o) + (current === 'closed' ? '' : ' ' + dwellChipHtml(o)) + ' ' + chasePillHtml(info) + ' ' + movedPillHtml(info),
+    sfStageBadge(o) + (current === 'closed' ? '' : ' ' + dwellChipHtml(o)) + ' ' + chasePillHtml(info) + ' ' + movedPillHtml(info) + ' ' + lastChangedHtml(o),
     null,
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openLogInteraction(' + jsStr(o.id) + ')">' + icon('plus', 14) + ' Log touch</button>' +
     (open.length === 1

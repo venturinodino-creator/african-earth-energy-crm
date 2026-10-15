@@ -87,20 +87,78 @@ function clGist(row) {
 }
 const clNewRow = c => Object.fromEntries(Object.entries(c.fields || {}).map(([k, v]) => [k, v && v.new]));
 
+/* Columns as a person names them. Anything not listed reads as its column name in words. */
+const CL_FIELD = {
+  name: 'Name', short: 'Short name', sector: 'Sector', province: 'Province', city: 'City', website: 'Website',
+  annual_gwh: 'Annual load', annual_gwh_low: 'Annual load (low)', annual_gwh_high: 'Annual load (high)', peak_mw: 'Peak demand',
+  peak_mw_est: 'Peak demand (estimate)', tariff: 'Tariff', nmd: 'Notified max demand', supply: 'Supply', wheeling: 'Wheeling',
+  status: 'Status', priority: 'Priority', description: 'Description', revisit_date: 'Revisit date', blurb: 'Overview',
+  notes: 'Notes', phone: 'Phone', email: 'Email', address: 'Address', near_site: 'Nearest site', estimated: 'Estimated load',
+  contact_source: 'Contact source', load_basis: 'Load basis', load_method: 'Load method', lat: 'Latitude', lng: 'Longitude',
+  first: 'First name', last: 'Last name', title: 'Title', dept: 'Department', linkedin: 'LinkedIn', role: 'Role',
+  offtaker_id: 'Company', mw: 'MW', tenor: 'Tenor', stage: 'Stage', sf_stage: 'Stage', probability: 'Probability',
+  close_date: 'Close date', project_id: 'Site', body: 'Text', due_date: 'Due date', done_at: 'Done', kind: 'Kind',
+  type: 'Type', summary: 'Summary', date: 'Date', archived: 'Archived',
+};
+const clLabel = k => CL_FIELD[k] || (k.charAt(0).toUpperCase() + k.slice(1)).replace(/_/g, ' ');
+function clVal(v, max) {
+  if (v === null || v === undefined || v === '') return '—';
+  /* A timestamp reads as the day and time on the local clock, not as ISO text. */
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return fuDate(clLocalDay(v)) + ' ' + clTime(v);
+  const s = typeof v === 'object' ? JSON.stringify(v) : typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v);
+  return s.length > (max || 40) ? s.slice(0, (max || 40) - 1) + '…' : s;
+}
+/* A stage id as the board names it, from the app's stage list when it is loaded. */
+function clStage(id) {
+  const all = typeof SF_STAGES !== 'undefined' ? SF_STAGES : [];
+  const s = all.find(x => x.id === id);
+  return s ? s.label : clVal(id);
+}
+
+/* What an edit changed, as words: a stage move or an archive first, then each other field
+   as "Label old → new", the first three and a count of the rest. */
+function clEdit(c, thing) {
+  const f = Object.assign({}, c.fields || {});
+  const subject = c.table_name === 'aee_offtakers' ? 'the company' : thing;
+  const stageKey = c.table_name === 'aee_offtakers' ? 'sf_stage' : c.table_name === 'aee_deals' ? 'stage' : null;
+  const lead = [];
+  if (stageKey && f[stageKey]) { lead.push('moved ' + subject + ' from ' + clStage(f[stageKey].old) + ' to ' + clStage(f[stageKey].new)); delete f[stageKey]; }
+  if (c.table_name === 'aee_offtakers' && f.archived) { lead.push((f.archived.new ? 'archived ' : 'restored ') + 'the company'); delete f.archived; }
+  /* Done is a tick, not a time someone typed: a checklist item is ticked or unticked, a next step marked done or reopened. */
+  if (c.table_name === 'aee_stage_items' && f.done_at) {
+    const tick = clStageKind(c) === 'check';
+    lead.push(f.done_at.new ? (tick ? 'ticked ' + thing : 'marked ' + thing + ' done') : (tick ? 'unticked ' : 'reopened ') + thing);
+    delete f.done_at;
+  }
+  const keys = Object.keys(f);
+  const each = keys.slice(0, 3).map(k => clLabel(k) + ' ' + clVal(f[k] && f[k].old) + ' → ' + clVal(f[k] && f[k].new)).join(', ') +
+    (keys.length > 3 ? ' and ' + (keys.length - 3) + ' more' : '');
+  if (!lead.length) return 'edited ' + subject + (each ? ': ' + each : '');
+  return lead.join(' and ') + (each ? '; ' + each : '');
+}
+
 /* One change as a sentence, without its author or company. */
 function describeChange(c) {
   if (c.kind === 'signed-in') return 'signed in';
   if (c.kind === 'role-changed') return 'changed a role';
   const thing = clThing(c);
   if (c.kind === 'deleted') { const g = clGist(c.deleted_row); return 'deleted ' + thing + (g ? ' “' + g + '”' : ''); }
-  if (c.kind === 'edited') {
-    const fields = Object.keys(c.fields || {});
-    return 'edited ' + thing + (fields.length ? ': ' + fields.join(', ') : '');
-  }
+  if (c.kind === 'edited') return clEdit(c, thing);
   const isTick = c.table_name === 'aee_stage_items' && clStageKind(c) === 'check';
   const verb = c.table_name === 'aee_interactions' ? 'logged ' : isTick ? 'ticked ' : 'added ';
   const g = isTick ? '' : clGist(clNewRow(c));   // a tick's body is only the item's position number
   return verb + thing + (g ? ' “' + g + '”' : '');
+}
+
+/* What a deletion removed, behind a disclosure: every filled-in field, labelled, without
+   ids and bookkeeping, so it can be read and re-entered by hand. */
+const CL_HIDDEN = new Set(['id', 'offtaker_id', 'prospect_id', 'run_id', 'created_at', 'updated_at', 'synced_at', 'last_changed_by', 'last_changed_at']);
+function deletedCopyHtml(c) {
+  if (c.kind !== 'deleted' || !c.deleted_row) return '';
+  const rows = Object.entries(c.deleted_row).filter(([k, v]) => !CL_HIDDEN.has(k) && v !== null && v !== '' && !(Array.isArray(v) && !v.length));
+  if (!rows.length) return '';
+  return '<details class="cl-copy"><summary>What was deleted</summary><dl>' +
+    rows.map(([k, v]) => '<dt>' + esc(clLabel(k)) + '</dt><dd>' + esc(clVal(v, 400)) + '</dd>').join('') + '</dl></details>';
 }
 
 /* A row per person, then per agent, busiest first; "not recorded" after the people. */
@@ -268,7 +326,7 @@ function renderChangeLog() {
       ? '<span class="ext-link" role="link" tabindex="0" onclick="openChangeRecord(' + jsStr(c.offtaker_id) + ')">' + esc(clCompanyName(c.offtaker_id)) + '</span>'
       : '<span class="pp-sub">—</span>';
     return '<tr class="cl-row"><td class="cl-when">' + esc(fuDate(clLocalDay(c.at))) + ' <span class="pp-sub">' + esc(clTime(c.at)) + '</span></td>' +
-      '<td>' + esc(a.label) + '</td><td class="cl-what">' + esc(describeChange(c)) + '</td><td>' + company + '</td></tr>';
+      '<td>' + esc(a.label) + '</td><td class="cl-what">' + esc(describeChange(c)) + deletedCopyHtml(c) + '</td><td>' + company + '</td></tr>';
   };
   const table = '<div class="table-wrap"><table class="cl-list"><thead><tr><th>When</th><th>Who</th><th>What</th><th>Company</th></tr></thead><tbody>' +
     list.map(rowHtml).join('') + '</tbody></table></div>';
