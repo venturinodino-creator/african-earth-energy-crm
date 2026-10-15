@@ -15,8 +15,9 @@
 
 const ACT_TABS = [['followups', 'Follow-ups'], ['all', 'All activity'], ['calendar', 'Calendar']];
 /* What goes before an entry's summary wherever the log is drawn: the channel, touch number,
-   people and outcome for an outreach entry, the plain type for anything older. */
-function entryMetaText(i) { return entryHeadline(i, state.contacts); }
+   people and outcome for an outreach entry, the plain type for anything older, then who logged
+   it, which the database stamps (ADR 0002). An entry from before that says so. */
+function entryMetaText(i) { return entryHeadline(i, state.contacts) + ' · ' + (i.author ? 'by ' + i.author : 'not recorded'); }
 
 function setActivityTab(t) { state.activityTab = t; renderActivity(); }
 function actMonth() { return cleanMonth(state.actMonth, todayISO().slice(0, 7)); }

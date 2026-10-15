@@ -189,6 +189,8 @@ function rowToInteraction(r) {
     contactIds: Array.isArray(r.contact_ids) ? r.contact_ids : [],
     channel: r.channel || '', touchNo: Number(r.touch_no) || 0,
     outcome: r.outcome || '', followUpOn: r.follow_up_on || '',
+    /* Who logged it, stamped by the database from the sign-in (ADR 0002); never written from here. */
+    author: r.author || '',
     createdAt: r.created_at || '',
   };
 }
@@ -306,7 +308,12 @@ async function pushOfftaker(o) {
 async function pushContact(c) { await guardWrite(() => upsert('aee_contacts', contactToRow(c))); }
 async function pushDeal(d) { await guardWrite(() => upsert('aee_deals', dealToRow(d))); }
 async function pushStageItem(i) { await guardWrite(() => upsert('aee_stage_items', stageItemToRow(i))); }
-async function pushInteraction(i) { await guardWrite(() => upsert('aee_interactions', interactionToRow(i))); }
+async function pushInteraction(i) {
+  /* The byline shown until the next load: the name the database stamps on a new touch from this
+     sign-in. interactionToRow does not send it; the database decides. */
+  if (!i.author && state.email) i.author = toDisplayName(state.email);
+  await guardWrite(() => upsert('aee_interactions', interactionToRow(i)));
+}
 async function pushContactRun(r) { await guardWrite(() => upsert('aee_contact_runs', runToRow(r))); }
 async function pushFoundContact(f) { await guardWrite(() => upsert('aee_found_contacts', findToRow(f))); }
 async function removeRow(table, id) {

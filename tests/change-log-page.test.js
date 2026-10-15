@@ -289,6 +289,18 @@ console.log('\nThe header after a save (js/supabase.js, the real file)');
     pass++; console.log('  ok   a save that changed nothing leaves the chip alone');
   } catch (e) { fail++; console.log('  FAIL a save that changed nothing leaves the chip alone\n       ' + e.message); }
 
+  try {
+    const sent = [];
+    vm.runInContext('state.email = "thabo@aeeg.co.za"; supaFetch = async () => [];', ctx);
+    ctx.__sent = sent;
+    vm.runInContext('upsert = async (t, row) => { __sent.push([t, row]); };', ctx);
+    vm.runInContext('state.interactions = [{ id: "i9", offtakerId: "f", date: "2026-10-15", type: "call", summary: "Rang Thandi" }];', ctx);
+    await vm.runInContext('pushInteraction(state.interactions[0])', ctx);
+    assert.strictEqual(vm.runInContext('state.interactions[0].author', ctx), 'thabo', 'shown as yours at once, the name the database stamps');
+    assert.ok(sent.length === 1 && sent[0][0] === 'aee_interactions' && !('author' in sent[0][1]), 'the page never sends the author; the database decides');
+    pass++; console.log('  ok   a touch you log reads "by you" at once, and the author is left to the database');
+  } catch (e) { fail++; console.log('  FAIL a touch you log reads "by you" at once, and the author is left to the database\n       ' + e.message); }
+
   console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();
