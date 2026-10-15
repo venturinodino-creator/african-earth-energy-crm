@@ -521,6 +521,12 @@ alter table public.aee_changes enable row level security;
 drop policy if exists aee_changes_read on public.aee_changes;
 create policy aee_changes_read on public.aee_changes
   for select to authenticated using (public.is_crm_admin());
+-- An account's changes are part of the account: anyone who can read the CRM reads them on the
+-- opportunity page's History card. Sign-ins and role changes belong to no account and stay
+-- admins', as does the Change log page.
+drop policy if exists aee_changes_read_accounts on public.aee_changes;
+create policy aee_changes_read_accounts on public.aee_changes
+  for select to authenticated using (public.has_crm_access() and offtaker_id is not null);
 revoke insert, update, delete, truncate on public.aee_changes from public, anon, authenticated;
 
 -- The agent a request declares itself as, from its X-Aee-Agent header (PostgREST passes the

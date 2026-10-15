@@ -237,6 +237,55 @@ function openChangeRecord(id) {
   if (o && inPipeline(o)) nav('opportunity', { id }); else nav(accountView(id), { id });
 }
 
+/* ─── the History card (opportunity page) ──────────────────────── */
+/* One account's changes: the off-taker and everything filed against it (people, opportunities,
+   touches, next steps, notes). Fetched only while the card is open, again when stale. Anyone
+   with CRM access may read an account's changes; sign-ins and role changes have no account and
+   stay admins'. */
+const CL_HISTORY_CAP = 50;
+async function loadAccountHistory(id) {
+  const prev = state.accountHistory && state.accountHistory.id === id ? state.accountHistory : null;
+  state.accountHistory = { id, rows: prev ? prev.rows : null, loadedAt: prev ? prev.loadedAt : 0, loading: true };
+  let next;
+  try {
+    const rows = await supaFetchAll('aee_changes?select=*&offtaker_id=eq.' + encodeURIComponent(id) + '&order=at.desc,id.desc');
+    next = { id, rows: rows || [], loadedAt: Date.now() };
+  } catch (e) {
+    next = { id, rows: prev ? prev.rows : [], loadedAt: Date.now(), error: String(e && e.message || e) };
+  }
+  if (state.accountHistory && state.accountHistory.id === id) state.accountHistory = next;
+  if (state.view === 'opportunity' && state.detailId === id) render();
+}
+function openChangeLogFor(id) {
+  state.changeLogFilter = { company: id };
+  state.changeLogPeriod = '30d';
+  state.changeLogPage = 1;
+  nav('changelog');
+}
+function accountHistoryCardHtml(o) {
+  const key = 'opp:changes';
+  let body = '';
+  if (!isFolded(key)) {
+    const h = state.accountHistory && state.accountHistory.id === o.id ? state.accountHistory : null;
+    if (!h || (!h.loading && Date.now() - (h.loadedAt || 0) > CL_FRESH_MS)) loadAccountHistory(o.id);
+    const now = state.accountHistory && state.accountHistory.id === o.id ? state.accountHistory : null;
+    const rows = now && now.rows;
+    body = !rows ? '<div class="pp-sub">Loading the history…</div>'
+      : !rows.length ? '<div class="pp-sub">No changes recorded for this account yet. Changes are recorded from 15 Oct 2026 on.</div>'
+      : rows.slice(0, CL_HISTORY_CAP).map(c =>
+          '<div class="hist-row"><span class="hist-when">' + esc(fuDate(clLocalDay(c.at))) + ' ' + esc(clTime(c.at)) + '</span> ' +
+          '<b>' + esc(changeAuthor(c).label) + '</b> ' + esc(describeChange(c)) + deletedCopyHtml(c) + '</div>').join('') +
+        (rows.length > CL_HISTORY_CAP || state.role === 'admin'
+          ? '<div class="hist-foot"><button class="btn btn-ghost btn-xs" data-admin-only onclick="openChangeLogFor(' + jsStr(o.id) + ')">' +
+            (rows.length > CL_HISTORY_CAP ? 'See all ' + rows.length + ' in the Change log' : 'Open in the Change log') + '</button></div>'
+          : '');
+    if (now && now.error) body = '<div class="pp-sub">Could not load the history: ' + esc(now.error) + '</div>' + body;
+  }
+  return '<div class="card"><div class="card-header"><div>' + foldTitle(key, 'History', 'card-title') +
+    '<div class="card-sub">Every change to this account and what is filed against it: who, when and what</div></div></div>' +
+    foldBody(key, body) + '</div>';
+}
+
 /* ─── the page ─────────────────────────────────────────────────── */
 function clCompanyName(id) {
   const o = state.offtakers.concat(state.archived || []).find(x => x.id === id);

@@ -288,6 +288,12 @@ tbody td{padding:9px 14px;vertical-align:middle;color:var(--text)}
 .cl-copy dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;margin:6px 0 2px}
 .cl-copy dt{color:var(--muted)}
 .cl-copy dd{margin:0;overflow-wrap:anywhere}
+/* History card on the opportunity page: one change a line, the time in a quiet column. */
+.op-history{margin-top:14px}
+.hist-row{font-size:12.5px;padding:7px 0;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.hist-row:first-child{border-top:none}
+.hist-when{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:4px;white-space:nowrap}
+.hist-foot{padding-top:8px;border-top:1px solid var(--border)}
 .table-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px;padding:10px 14px;
   border-top:1px solid var(--border);font-size:11.5px;color:var(--muted)}
 .table-foot.standalone{border:none;padding:12px 2px 0}

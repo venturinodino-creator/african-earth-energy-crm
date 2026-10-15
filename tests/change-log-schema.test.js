@@ -116,7 +116,10 @@ test('admins can read the change table', () =>
   assert.ok(/create policy aee_changes_read on public\.aee_changes\s+for select to authenticated using \(public\.is_crm_admin\(\)\)/.test(sql)));
 test('no policy lets anyone insert, update or delete a change', () => {
   const policies = [...sql.matchAll(/create policy \w+ on public\.aee_changes\s+for (\w+)/g)].map(m => m[1]);
-  assert.deepStrictEqual(policies, ['select']);
+  assert.ok(policies.length && policies.every(p => p === 'select'), policies.join(', '));
+});
+test('anyone with CRM access can read an account\'s changes (the History card); sign-ins and roles stay admins\'', () => {
+  assert.ok(/create policy aee_changes_read_accounts on public\.aee_changes\s+for select to authenticated using \(public\.has_crm_access\(\) and offtaker_id is not null\)/.test(sql));
 });
 test('and the API roles hold no write grant on it', () =>
   assert.ok(/revoke insert, update, delete, truncate on public\.aee_changes from public, anon, authenticated/.test(sql)));

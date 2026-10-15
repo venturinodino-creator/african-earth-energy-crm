@@ -352,5 +352,7 @@ function renderOpportunity() {
     '<div class="rec-block">' + keys + '</div>' +
     '<div class="rec-block">' + stagesCard + '</div>' +
     '<div class="rec-block op-two op-pair">' + nextCard + notesCard + '</div>' +
-    '<div class="op-two op-bottom"><div class="op-col">' + details + dealsCard + history + '</div><div class="op-col">' + stakeholders + '</div></div>');
+    '<div class="op-two op-bottom"><div class="op-col">' + details + dealsCard + history + '</div><div class="op-col">' + stakeholders + '</div></div>' +
+    /* Who did what to the account, folded until wanted (js/views-changelog.js). */
+    '<div class="op-history">' + accountHistoryCardHtml(o) + '</div>');
 }
