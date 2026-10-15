@@ -92,7 +92,7 @@ test('a record page named for the opportunity, header with stage, chase and acti
 });
 test('Next step and Account notes sit right under the header, before the key figures', () => {
   const h = run({}).content;
-  const a = h.indexOf('record-head'), b = h.indexOf('>Next step</div>'), c = h.indexOf('>Account notes</div>'), d = h.indexOf('op-keys');
+  const a = h.indexOf('record-head'), b = h.indexOf('>Next step</'), c = h.indexOf('>Account notes</'), d = h.indexOf('op-keys');
   assert.ok(a < b && b < c && c < d, [a, b, c, d].join(','));
   assert.ok(h.includes('No next step set') && h.includes('No account notes yet'));
 });
@@ -200,6 +200,44 @@ test('All activity is under every stage, folded away until opened', () => {
   ['First email to Thandi.', 'Email to Jan.', 'Intro call with Thandi.'].forEach(t => assert.ok(all.includes(t), t));
   assert.ok(all.includes('Chase') && all.includes('Due today'));
   assert.ok(run({ oppStage: 'proposal', oppStageFor: 'f' }).content.includes('op-box op-all'), 'there on a stage not reached too');
+});
+
+console.log('\nFolding');
+/* The browser store and the page re-render, as the real app has them, inside the sandbox. */
+const withStore = ctx => vm.runInContext('var stored = []; function lsSet(k, v) { stored.push([k, v]); } function render() { renderOpportunity(); }', ctx);
+const toggleOf = (key, open) => 'aria-expanded="' + open + '" onclick="toggleFold(&quot;' + key + '&quot;)"';
+const FOLDABLE = ['opp:next', 'opp:notes', 'opp:stages', 'opp:checks', 'opp:stagenotes', 'opp:stageact', 'opp:details', 'opp:deals', 'opp:history', 'opp:people'];
+test('every card below the header folds, and all start open', () => {
+  const h = run({}).content;
+  FOLDABLE.forEach(k => assert.ok(h.includes(toggleOf(k, true)), k));
+  assert.ok(!h.includes('fold-btn" aria-expanded="false"'));
+});
+test('folding Activity in this stage and Stage history hides their lines but keeps the titles and counts', () => {
+  const open = run({}).content;
+  const folded = run({ foldedCards: ['opp:stageact', 'opp:history'] }).content;
+  const actOf = h => h.slice(h.indexOf('toggleFold(&quot;opp:stageact&quot;)'), h.indexOf('op-box op-all'));
+  assert.ok(actOf(open).includes('pp-ti') && !actOf(folded).includes('pp-ti'), 'the stage activity folds');
+  assert.ok(open.includes('class="op-hist"') && !folded.includes('class="op-hist"'), 'the stage history folds');
+  assert.ok(folded.includes('Activity in this stage <span class="pf-n">') && folded.includes('Stage history <span class="pf-n">1</span>'), 'titles and counts stay');
+});
+test('a folded card keeps its header buttons', () => {
+  const h = run({ foldedCards: ['opp:stages', 'opp:deals', 'opp:people'] }).content;
+  ['Log touch', 'openAddDeal(', 'openAddContact('].forEach(t => assert.ok(h.includes(t), t));
+  assert.ok(!h.includes('class="op-tab'), 'the stage tabs fold with Sales stages');
+  assert.ok(!h.includes('Ferro 40 MW'), 'the MW opportunities fold');
+});
+test('a fold is remembered under one key in the browser, and opens again', () => {
+  let saved;
+  const o = run({}, ctx => { withStore(ctx); vm.runInContext('toggleFold("opp:history"); toggleFold("opp:details")', ctx); saved = vm.runInContext('stored', ctx); });
+  assert.ok(o.content.includes(toggleOf('opp:history', false)) && o.content.includes(toggleOf('opp:details', false)));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(saved)), [['folded_cards', ['opp:history']], ['folded_cards', ['opp:history', 'opp:details']]]);
+  const back = run({}, ctx => { withStore(ctx); vm.runInContext('toggleFold("opp:history"); toggleFold("opp:history")', ctx); });
+  assert.ok(back.content.includes(toggleOf('opp:history', true)));
+});
+test('Add next step on a folded Next step opens the card with the form showing', () => {
+  const o = run({ foldedCards: ['opp:next'] }, ctx => { withStore(ctx); vm.runInContext('toggleOppStepForm()', ctx); });
+  assert.ok(o.content.includes('id="op-ns-text"'));
+  assert.ok(o.content.includes(toggleOf('opp:next', true)));
 });
 
 console.log('\nUnderneath');
