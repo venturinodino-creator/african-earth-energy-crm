@@ -4,7 +4,7 @@ A sales workspace for the African Earth Energy team: find, qualify and track the
 commercial and industrial buyers for roughly 1 GW of South African solar-plus-storage
 capacity in development.
 
-Live site: <https://venturinodino-creator.github.io/african-earth-energy-crm/>
+Live site: <https://african-earth-energy-crm.dinov.workers.dev/>
 Company site: <https://www.aeeg.co.za/en>
 
 ---

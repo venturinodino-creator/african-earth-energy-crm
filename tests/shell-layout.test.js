@@ -225,6 +225,21 @@ test('the landing page is open to everyone and signs in only through the CRM', (
   const links = [...landing.matchAll(/href="(index\.html[^"]*)"/g)].map(m => m[1]);
   assert.ok(links.length && links.every(h => /[?&](amp;)?signin\b/.test(h)), 'every CRM link opens the sign-in, not the redirect: ' + links.join(', '));
 });
+test('a visit to a github.io copy moves to the workers.dev site at once, same page, before anything loads', () => {
+  for (const page of ['index.html', 'landing.html']) {
+    const src = read(page);
+    const head = src.slice(src.indexOf('<head>'), src.indexOf('<title>') > 0 ? src.indexOf('<title>') : src.indexOf('</head>'));
+    const m = /<script>([^<]*github\\?\.io[^<]*)<\/script>/.exec(head);
+    assert.ok(m, page + ' forwards from github.io first thing in its head');
+    const go = [];
+    const run = (host, pathname, search, hash) => vm.runInNewContext(m[1], { location: { hostname: host, pathname, search, hash, replace: u => go.push(u) } });
+    run('venturinodino-creator.github.io', '/african-earth-energy-crm/landing.html', '?next=x', '#top');
+    run('venturinodino-creator.github.io', '/african-earth-energy-crm/', '', '');
+    run('african-earth-energy-crm.dinov.workers.dev', '/landing.html', '', '');
+    assert.deepStrictEqual(go, ['https://african-earth-energy-crm.dinov.workers.dev/landing.html?next=x#top', 'https://african-earth-energy-crm.dinov.workers.dev/'], page);
+  }
+  assert.ok(!/github\.io/.test(read('README.md')), 'the README gives the workers.dev address');
+});
 test('the no-access screen is the same card, with Sign out', () => {
   const h = fn('pendingScreenHtml', { esc: s => String(s), icon: () => '', toDisplayName: e => e.split('@')[0] })('pat@aeeg.co.za');
   assert.ok(h.startsWith('<div class="gate-card">') && h.includes('signOut()') && h.includes('pat'));
