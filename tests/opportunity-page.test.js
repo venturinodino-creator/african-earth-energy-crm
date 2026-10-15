@@ -71,6 +71,7 @@ function run(over, after) {
     toast: m => out.toasts.push(m), save() {}, pushStageItem: i => out.pushed.push(i), removeRow() {}, confirm: () => true,
     setSfStage: (id, stage) => { out.moved.push([id, stage]); state.offtakers.find(o => o.id === id).sfStage = stage; },
     setPage: (t, s, a, opts) => { out.page = { t, s, a, opts }; }, setContent: h => { out.content = h; }, nav: (v, x) => out.navs.push([v, x && x.id]),
+    supaFetchAll: async q => { (out.fetched = out.fetched || []).push(q); return []; }, render() {},
   });
   vm.runInContext(read('data/seed.js') + '\n' + read('js/followups.js') + '\n' + read('js/outreach.js') + '\n' +
     read('js/views-dashboard.js').match(/function isLiveDeal[\s\S]*?\n}/)[0] + '\n' +
@@ -79,7 +80,7 @@ function run(over, after) {
     'function sfStageOf(id) { return SF_STAGES.find(s => s.id === id) || null; }\n' +
     'function sfStageIndex(id) { return SF_STAGES.findIndex(s => s.id === id); }\n' +
     'function stageProbability(id) { return (sfStageOf(id) || {}).prob; }\n' +
-    read('js/views-pipeline.js') + '\n' + read('js/views-opportunity.js') + '\nrenderOpportunity();', ctx);
+    read('js/views-pipeline.js') + '\n' + read('js/views-changelog.js') + '\n' + read('js/views-opportunity.js') + '\nrenderOpportunity();', ctx);
   if (after) after(ctx, inputs);
   return out;
 }
@@ -244,10 +245,54 @@ console.log('\nFolding');
 const withStore = ctx => vm.runInContext('var stored = []; function lsSet(k, v) { stored.push([k, v]); } function render() { renderOpportunity(); }', ctx);
 const toggleOf = (key, open) => 'aria-expanded="' + open + '" onclick="toggleFold(&quot;' + key + '&quot;)"';
 const FOLDABLE = ['opp:next', 'opp:notes', 'opp:stages', 'opp:checks', 'opp:stagenotes', 'opp:stageact', 'opp:details', 'opp:deals', 'opp:history', 'opp:people'];
-test('every card below the header folds, and all start open', () => {
+test('every card below the header folds, and all start open but History', () => {
   const h = run({}).content;
   FOLDABLE.forEach(k => assert.ok(h.includes(toggleOf(k, true)), k));
-  assert.ok(!h.includes('fold-btn" aria-expanded="false"'));
+  assert.deepStrictEqual([...h.matchAll(/aria-expanded="false" onclick="toggleFold\(&quot;([^&]*)&quot;\)"/g)].map(m => m[1]), ['opp:changes']);
+});
+
+console.log('\nHistory');
+const at = h => '2026-10-1' + h + 'T12:00:00+00:00';
+const CHANGES = [
+  { id: 3, at: at(4), author_email: 'lebo@aeeg.co.za', agent: null, table_name: 'aee_contacts', record_id: 'c1', offtaker_id: 'f', kind: 'edited', fields: { title: { old: 'CFO', new: 'VP Sustainability' } } },
+  { id: 2, at: at(3), author_email: 'thabo@aeeg.co.za', agent: 'apollo-daily', table_name: 'aee_found_contacts', record_id: 'x', offtaker_id: 'f', kind: 'created', fields: { first: { new: 'Jan' } } },
+  { id: 1, at: at(2), author_email: null, agent: null, table_name: 'aee_contacts', record_id: 'c9', offtaker_id: 'f', kind: 'deleted', deleted_row: { first: 'Old', last: 'Person', title: 'COO' } },
+];
+const opened = over => run(Object.assign({ foldedCards: ['opp:changes'] }, over));
+const historyOf = h => h.slice(h.indexOf('toggleFold(&quot;opp:changes&quot;)'));
+test('History sits at the bottom, folded, and fetches nothing until opened', () => {
+  const o = run({});
+  const h = o.content;
+  assert.ok(h.indexOf('toggleFold(&quot;opp:changes&quot;)') > h.indexOf('op-bottom'), 'after the two columns');
+  assert.ok(/>History</.test(historyOf(h)));
+  assert.ok(!o.fetched, 'a folded History costs nothing');
+});
+test('opening History fetches that account\'s changes, newest first', () => {
+  const o = opened({});
+  assert.deepStrictEqual(o.fetched, ['aee_changes?select=*&offtaker_id=eq.f&order=at.desc,id.desc']);
+  assert.ok(/Loading/.test(historyOf(o.content)));
+});
+test('the changes read as in the Change log: when, who and what, agents as themselves', () => {
+  const hist = historyOf(opened({ accountHistory: { id: 'f', rows: CHANGES, loadedAt: Date.now() } }).content);
+  const lines = [...hist.matchAll(/<div class="hist-row">([\s\S]*?)<\/div>\s*(?=<div class="hist-row">|<div class="hist-foot|<\/div>)/g)].map(m => m[1]);
+  assert.strictEqual(lines.length, 3, hist);
+  assert.ok(/lebo/.test(lines[0]) && /Title CFO → VP Sustainability/.test(lines[0]) && /14 Oct 2026/.test(lines[0]), lines[0]);
+  assert.ok(/apollo-daily \(run as thabo\)/.test(lines[1]) && /added a find “Jan”/.test(lines[1]), lines[1]);
+  assert.ok(/not recorded/.test(lines[2]) && /deleted a contact “Old Person”/.test(lines[2]) && /What was deleted/.test(lines[2]), lines[2]);
+  assert.strictEqual(opened({ accountHistory: { id: 'f', rows: CHANGES, loadedAt: Date.now() } }).fetched, undefined, 'fresh: not fetched again');
+});
+test('an account with no recorded changes says so', () => {
+  assert.ok(/No changes recorded for this account yet/.test(historyOf(opened({ accountHistory: { id: 'f', rows: [], loadedAt: Date.now() } }).content)));
+});
+test('a long history shows the latest 50 and offers the rest in the Change log, for admins', () => {
+  const many = Array.from({ length: 60 }, (_, i) => Object.assign({}, CHANGES[0], { id: 100 - i }));
+  const hist = historyOf(opened({ accountHistory: { id: 'f', rows: many, loadedAt: Date.now() } }).content);
+  assert.strictEqual((hist.match(/class="hist-row"/g) || []).length, 50);
+  assert.ok(/data-admin-only[^>]*onclick="openChangeLogFor\(&quot;f&quot;\)"[^>]*>See all 60 in the Change log/.test(hist), hist.slice(-400));
+});
+test('viewers see History too', () => {
+  const hist = historyOf(opened({ role: 'viewer', accountHistory: { id: 'f', rows: CHANGES, loadedAt: Date.now() } }).content);
+  assert.strictEqual((hist.match(/class="hist-row"/g) || []).length, 3);
 });
 test('folding Activity in this stage and Stage history hides their lines but keeps the titles and counts', () => {
   const open = run({}).content;

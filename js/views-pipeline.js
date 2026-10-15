@@ -38,7 +38,11 @@ function foldedCards() {
   }
   return state.foldedCards;
 }
-function isFolded(key) { return foldedCards().includes(key); }
+/* Cards that start folded until a viewer opens them: the History card is long and fetched on
+   demand, so it costs nothing until it is wanted. What is stored is the viewer's departures
+   from these defaults, so the same list folds an open card and opens a folded one. */
+const FOLDED_BY_DEFAULT = new Set(['opp:changes']);
+function isFolded(key) { return FOLDED_BY_DEFAULT.has(key) !== foldedCards().includes(key); }
 function toggleFold(key) {
   const list = foldedCards();
   state.foldedCards = list.includes(key) ? list.filter(k => k !== key) : list.concat(key);
