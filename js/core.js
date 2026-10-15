@@ -257,8 +257,7 @@ function accountView(id) { return isMunicipalityId(id) ? 'municipality' : 'detai
 function getProject(id) { return state.projects.find(p => p.id === id) || {}; }
 function contactsFor(id) { return state.contacts.filter(c => c.offtakerId === id); }
 function dealsFor(id) { return state.deals.filter(d => d.offtakerId === id); }
-function interactionsFor(id) { return state.interactions.filter(i => i.offtakerId === id).sort((a, b) => (b.date || '').localeCompare(a.date || '')); }
-
+function interactionsFor(id) { return state.interactions.filter(i => i.offtakerId === id).sort(newestFirst); }
 /* Distance between two lat/lng points, km. Used to match offtakers to the
    nearest generation site — a short wheeling path is a real commercial
    advantage, so proximity feeds the fit score. */
@@ -633,7 +632,7 @@ function logsForAccount(rec) {
   if (!rec || !rec.id) return [];
   return state.interactions
     .filter(i => i.offtakerId === rec.id)
-    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    .sort(newestFirst);
 }
 
 function daysSince(when) {

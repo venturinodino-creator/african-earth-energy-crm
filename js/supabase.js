@@ -312,6 +312,8 @@ async function pushInteraction(i) {
   /* The byline shown until the next load: the name the database stamps on a new touch from this
      sign-in. interactionToRow does not send it; the database decides. */
   if (!i.author && state.email) i.author = toDisplayName(state.email);
+  /* And its time, for the log's order and its stamp; the database sets its own on insert. */
+  if (!i.createdAt) i.createdAt = new Date().toISOString();
   await guardWrite(() => upsert('aee_interactions', interactionToRow(i)));
 }
 async function pushContactRun(r) { await guardWrite(() => upsert('aee_contact_runs', runToRow(r))); }
