@@ -206,6 +206,25 @@ test('sign-in is one centred card with the AEEG mark, the form and a message lin
   ['#aeeg-mark', 'African Earth Energy', 'id="gate-email"', 'id="gate-password"', 'id="gate-btn"', 'Sign in', 'Wrong password'].forEach(s => assert.ok(h.includes(s), 'sign-in lacks ' + s));
   assert.ok(!/<\/?(style|script)/.test(h));
 });
+test('a signed-out visitor sees the landing page first, carrying where they were headed', () => {
+  const to = fn('landingRedirect', { URLSearchParams });
+  assert.strictEqual(to(''), 'landing.html');
+  assert.strictEqual(to('?view=detail&id=x'), 'landing.html?next=' + encodeURIComponent('?view=detail&id=x'));
+});
+test('coming from the landing page\'s "Open the CRM", the sign-in shows instead', () => {
+  const to = fn('landingRedirect', { URLSearchParams });
+  assert.strictEqual(to('?signin'), null);
+  assert.strictEqual(to('?view=calculator&signin'), null);
+  assert.ok(/const away = landingRedirect\(location\.search\);\s*if \(away\) \{ location\.replace\(away\); return; \}/.test(core), 'boot sends a signed-out visitor there');
+});
+test('the landing page is open to everyone and signs in only through the CRM', () => {
+  const landing = read('landing.html');
+  assert.ok(!/id="landing-gate"/.test(landing) && !/class="wrap" style="visibility:hidden"/.test(landing), 'no gate over the page');
+  assert.ok(!/signInWithPassword/.test(landing), 'no second sign-in form: the CRM\'s records the sign-in');
+  assert.ok(/function crmHref\(extra\)/.test(landing) && /'signin'/.test(landing), '"Open the CRM" goes to the CRM\'s sign-in');
+  const links = [...landing.matchAll(/href="(index\.html[^"]*)"/g)].map(m => m[1]);
+  assert.ok(links.length && links.every(h => /[?&](amp;)?signin\b/.test(h)), 'every CRM link opens the sign-in, not the redirect: ' + links.join(', '));
+});
 test('the no-access screen is the same card, with Sign out', () => {
   const h = fn('pendingScreenHtml', { esc: s => String(s), icon: () => '', toDisplayName: e => e.split('@')[0] })('pat@aeeg.co.za');
   assert.ok(h.startsWith('<div class="gate-card">') && h.includes('signOut()') && h.includes('pat'));

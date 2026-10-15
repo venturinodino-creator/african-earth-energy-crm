@@ -93,20 +93,21 @@ one card per company, with its opportunities summed on the card.
 
 ## Access and security
 
-The CRM is **not public**. Both pages — the app and the overview page — show
-nothing but a sign-in card until Supabase confirms a session, and the data is
-protected by Postgres Row Level Security rather than by anything in the
-JavaScript. An unauthenticated visitor who opens the page, reads the source, or
-calls the API directly gets an empty list and cannot write a single row.
+The CRM is **not public**. A signed-out visitor sees the overview page first
+(`landing.html`, which the app redirects to, keeping where they were headed);
+its "Open the CRM" leads to the app's sign-in card, and the app shows nothing
+else until Supabase confirms a session. The data is protected by Postgres Row
+Level Security rather than by anything in the JavaScript. An unauthenticated
+visitor who opens the page, reads the source, or calls the API directly gets an
+empty list and cannot write a single row.
 
 Every table in the project is covered, including `mining_leads`, which carried
 an `Allow public read access` policy from earlier work and is now behind the
 same role gate.
 
-One honest caveat: this is a static site, so the *markup* of the overview page
-is readable in the page source whatever the gate does. That page is written to
-contain nothing that is not already on aeeg.co.za. The wall that matters is on
-the data, and that one is enforced by the database.
+The overview page is open to anyone, so it is written to contain nothing that
+is not already on aeeg.co.za. The wall that matters is on the data, and that one
+is enforced by the database.
 
 Three roles, stored in `public.profiles`:
 
@@ -131,8 +132,7 @@ karen metcalf   →  karen.metcalf@aeeg.co.za
 someone@x.com   →  someone@x.com          (anything with an @ passes through)
 ```
 
-The domain is `AUTH_DOMAIN` in [`js/supabase.js`](js/supabase.js), mirrored in
-`landing.html`. Change both together if it ever moves. Input is lower-cased and
+The domain is `AUTH_DOMAIN` in [`js/supabase.js`](js/supabase.js). Input is lower-cased and
 spaces become dots, so capitalisation and stray spaces do not matter.
 
 For a synthetic `@aeeg.co.za` address the address is only ever an identifier —
