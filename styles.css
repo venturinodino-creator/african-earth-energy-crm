@@ -1380,6 +1380,10 @@ button.wiz-btn:hover .wiz-l{color:var(--text2)}
 /* ─── Opportunity page: next step, notes, stage workspaces ───────── */
 .op-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
 @media(max-width:860px){.op-two{grid-template-columns:minmax(0,1fr)}}
+/* Next step and Account notes share a row and its height, whichever is taller;
+   a folded card keeps to its header instead of stretching empty. */
+.op-pair{align-items:stretch}
+.op-pair>.card:has(.fold-btn[aria-expanded="false"]){align-self:start}
 .op-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 .op-form{display:grid;grid-template-columns:minmax(0,1fr) 150px auto;gap:8px;align-items:end;margin-bottom:10px}
 .op-form-note{grid-template-columns:minmax(0,1fr) auto}
