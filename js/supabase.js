@@ -221,7 +221,8 @@ function rowToStageItem(r) {
 function stageItemToRow(i) {
   return {
     id: i.id, offtaker_id: i.offtakerId, stage: i.stage, kind: i.kind, body: i.body,
-    due_date: i.dueDate || null, done_at: i.doneAt || null, author: i.author || null,
+    due_date: i.dueDate || null, done_at: i.doneAt || null,
+    /* no author: the database stamps it from the sign-in (ADR 0002) */
     created_at: i.createdAt || null, updated_at: new Date().toISOString(),
   };
 }
