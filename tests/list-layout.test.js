@@ -196,6 +196,27 @@ console.log('\nContacts');
     assert.ok(/Export <span class="btn-n">11<\/span>/.test(out.page.a), out.page.a);
     assert.ok(out.page.a.includes('exportContacts(contactsFiltered().list)'));
   });
+
+  const shelvedBook = {
+    offtakers: [lead('o1', 'Alpha')], contacts: people(3),
+    archived: [Object.assign(lead('x1', 'Old Co'), { archived: true })],
+    archivedContacts: [{ id: 'ax1', offtakerId: 'x1', first: 'Sam', last: 'Shelf', title: 'Energy Manager', dept: '', email: 's@old.co.za', phone: '', role: 'decision', priority: 'high' }],
+  };
+  test('people at archived companies stay hidden by default, and the toggle says how many there are', () => {
+    const { out } = env(shelvedBook).run('renderContacts');
+    assert.ok(!out.content.includes('Sam Shelf'));
+    assert.ok(out.content.includes('Show archived (1)') && out.content.includes('toggleContactShowArchived()'));
+    assert.ok(out.page.s.startsWith('3 people across 1 companies'), out.page.s);
+  });
+  test('Show archived lists them read-only under their company, marked Archived', () => {
+    const { out } = env(Object.assign({ contactShowArchived: true }, shelvedBook)).run('renderContacts');
+    assert.ok(out.content.includes('Sam Shelf') && out.content.includes('Hide archived (1)'));
+    assert.ok(/Old Co[\s\S]*?Archived/.test(out.content));
+    assert.ok(out.page.s.includes('4 people across 2 companies') && out.page.s.includes('including 1 at archived companies'), out.page.s);
+    assert.ok(!out.content.includes("openEditContact('ax1')") && !out.content.includes("'contact','ax1'"), 'no edit or delete for archived people');
+    assert.ok(!out.content.includes('data-id="ax1"'), 'archived people cannot be bulk-selected');
+    assert.ok(out.content.includes('Old Co (archived)'), 'the company filter offers the archived company');
+  });
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');

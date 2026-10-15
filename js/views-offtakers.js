@@ -557,7 +557,34 @@ const ROLE_LABEL = { decision: 'Decision maker', influencer: 'Influencer', techn
 /* The account a contact hangs off, offtaker or municipality alike. The
    page groups on this, so a municipality resolves to its name and its
    own page rather than rendering as "unassigned". */
-function contactAccountOf(c) { return finderAccountOf(c.offtakerId); }
+function contactAccountOf(c) {
+  const a = finderAccountOf(c.offtakerId);
+  if (a.id) return a;
+  const shelved = archivedOfftakerOf(c.offtakerId);
+  return shelved ? Object.assign({}, shelved, { archived: true }) : {};
+}
+
+/* Archived companies keep their people, but those people stay off this page
+   unless "Show archived" is on. They are read-only here: editing or deleting
+   them goes through restoring the company from the Archive first. */
+function archivedOfftakerOf(id) { return (state.archived || []).find(o => o.id === id); }
+function isArchivedContact(c) { return !!archivedOfftakerOf(c.offtakerId); }
+function scopedArchivedContacts() {
+  const all = state.archivedContacts || [];
+  return state.province
+    ? all.filter(c => provinceInScope(state.province, (archivedOfftakerOf(c.offtakerId) || {}).province || ''))
+    : all;
+}
+function storedContactShowArchived() {
+  try { return localStorage.getItem(STORE_PREFIX + 'contactShowArchived') === '1'; } catch (e) { return false; }
+}
+function toggleContactShowArchived() {
+  state.contactShowArchived = !state.contactShowArchived;
+  try { localStorage.setItem(STORE_PREFIX + 'contactShowArchived', state.contactShowArchived ? '1' : '0'); } catch (e) {}
+  if (!state.contactShowArchived && state.contactOfftaker && archivedOfftakerOf(state.contactOfftaker)) state.contactOfftaker = '';
+  state.contactPage = 1;
+  renderContacts();
+}
 
 function contactSortVal(c, field) {
   switch (field) {
@@ -574,7 +601,8 @@ function contactSortVal(c, field) {
    role. The page and its Export both read this, so the file is exactly the list. */
 function contactsFiltered() {
   const term = state.contactSearch.toLowerCase();
-  const people = scopedContacts();
+  if (state.contactShowArchived === undefined) state.contactShowArchived = storedContactShowArchived();
+  const people = state.contactShowArchived ? scopedContacts().concat(scopedArchivedContacts()) : scopedContacts();
   const base = people.filter(c => {
     const o = contactAccountOf(c);
     if (term && !((c.first + ' ' + c.last + ' ' + c.title + ' ' + c.dept + ' ' + (o.name || '')).toLowerCase().includes(term))) return false;
@@ -587,7 +615,7 @@ function contactsFiltered() {
 function renderContacts() {
   const { people, base, list: filtered } = contactsFiltered();
   let list = sortBy(filtered, state.contactSort, contactSortVal);
-  selectionSync('contacts', JSON.stringify([state.contactView, state.contactRole, state.contactSearch, state.contactOfftaker, state.province, state.contactPage]));
+  selectionSync('contacts', JSON.stringify([state.contactView, state.contactRole, state.contactSearch, state.contactOfftaker, state.province, state.contactPage, !!state.contactShowArchived]));
 
   /* Group by account. A stable re-sort on the account's name keeps the
      chosen column order intact inside each group, so the page reads as
@@ -605,8 +633,10 @@ function renderContacts() {
   const groupCount = {};
   list.forEach(c => { groupCount[accKey(c)] = (groupCount[accKey(c)] || 0) + 1; });
 
+  const archivedTotal = scopedArchivedContacts().length;
   setPage('Contacts', people.length + ' people across ' +
-    new Set(people.map(c => c.offtakerId).filter(Boolean)).size + ' companies',
+    new Set(people.map(c => c.offtakerId).filter(Boolean)).size + ' companies' +
+    (state.contactShowArchived && archivedTotal ? ', including ' + archivedTotal + ' at archived companies' : ''),
     '<button class="btn btn-outline btn-sm" data-admin-only onclick="openImport(\'contacts\')">' + icon('upload', 14) + ' Import CSV</button>' +
     exportButtonHtml('exportContacts(contactsFiltered().list)', list.length) +
     '<button class="btn btn-primary btn-sm" data-admin-only onclick="openAddContact()">' + icon('plus', 14) + ' Add contact</button>');
@@ -625,7 +655,16 @@ function renderContacts() {
         scopedOfftakers().map(o => '<option value="' + esc(o.id) + '"' + (state.contactOfftaker === o.id ? ' selected' : '') + '>' + esc(o.short || o.name) + '</option>').join('') +
         SA_MUNICIPALITIES.filter(m => contactsFor(m.id).length && accountInScope(m.id))
           .map(m => '<option value="' + esc(m.id) + '"' + (state.contactOfftaker === m.id ? ' selected' : '') + '>' + esc(m.name) + ' Municipality</option>').join('') +
+        (state.contactShowArchived
+          ? (state.archived || []).filter(o => (state.archivedContacts || []).some(c => c.offtakerId === o.id))
+              .filter(o => !state.province || provinceInScope(state.province, o.province || ''))
+              .sort((a, b) => (a.short || a.name).localeCompare(b.short || b.name))
+              .map(o => '<option value="' + esc(o.id) + '"' + (state.contactOfftaker === o.id ? ' selected' : '') + '>' + esc(o.short || o.name) + ' (archived)</option>').join('')
+          : '') +
       '</select>' +
+      '<button class="btn btn-sm ' + (state.contactShowArchived ? 'btn-primary' : 'btn-outline') + '" aria-pressed="' + !!state.contactShowArchived + '" ' +
+        'title="Include people at companies you have archived" onclick="toggleContactShowArchived()">' +
+        (state.contactShowArchived ? 'Hide archived' : 'Show archived') + ' (' + archivedTotal + ')</button>' +
       viewToggle('contactView') +
       '<span class="result-count">' + list.length + ' result' + (list.length === 1 ? '' : 's') + '</span>' +
     '</div>';
@@ -663,11 +702,12 @@ function contactGroupHeadHtml(c, groupCount) {
   const a = contactAccountOf(c);
   const n = groupCount[c.offtakerId || ''] || 0;
   const label = a.id ? esc(a.short || a.name) : 'Not linked to a company';
-  const open = a.id ? ' style="cursor:pointer" onclick="nav(\'' + accountView(a.id) + '\',{id:\'' + a.id + '\'})"' : '';
+  const open = a.id && !a.archived ? ' style="cursor:pointer" onclick="nav(\'' + accountView(a.id) + '\',{id:\'' + a.id + '\'})"' : '';
   return '<div class="contact-group-head" style="display:flex;align-items:center;gap:7px;' +
     'margin:16px 2px 8px;padding-bottom:5px;border-bottom:1px solid var(--border)">' +
     (a.id ? avatarTileHtml(a.name || a.short) : icon('building', 14)) +
-    '<span class="ext-link"' + open + ' style="font-weight:700;color:var(--text2);cursor:' + (a.id ? 'pointer' : 'default') + '">' + label + '</span>' +
+    '<span class="ext-link"' + open + ' style="font-weight:700;color:var(--text2);cursor:' + (a.id && !a.archived ? 'pointer' : 'default') + '">' + label + '</span>' +
+    (a.archived ? '<span class="badge b-low">Archived</span>' : '') +
     '<span style="font-size:11px;color:var(--muted)">' + n + ' ' + (n === 1 ? 'person' : 'people') + '</span>' +
   '</div>';
 }
@@ -696,7 +736,8 @@ function contactCardHtml(c) {
       '<span class="badge b-' + c.priority + '">' + esc(c.priority) + '</span>' +
     '</div>' +
     '<div class="meta">' + icon(isMunicipalityId(o.id) ? 'pin' : 'building', 13) +
-      (o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'' + accountView(o.id) + '\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
+      (o.archived ? '<span>' + esc(o.short || o.name) + '</span> <span class="badge b-low">Archived</span>'
+        : o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'' + accountView(o.id) + '\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
         : '<span style="color:var(--muted)">unassigned</span>') + '</div>' +
     '<div class="meta">' + icon('contacts', 13) +
       '<span class="badge ' + (c.role === 'decision' ? 'b-contracted' : 'b-prospect') + '">' +
@@ -707,12 +748,13 @@ function contactCardHtml(c) {
     '<div class="meta">' + icon('phone', 13) +
       (c.phone ? esc(c.phone) : '<span style="color:var(--muted)">no number on file</span>') + '</div>' +
     '<div class="ec-footer">' +
-      '<span>' + (o.id ? (isMunicipalityId(o.id) ? 'Municipality contact' : 'Org map available') : 'Not linked to a company') + '</span>' +
+      '<span>' + (o.archived ? 'Archived company — restore it to edit' : o.id ? (isMunicipalityId(o.id) ? 'Municipality contact' : 'Org map available') : 'Not linked to a company') + '</span>' +
       '<div style="display:flex;gap:4px">' +
-        (o.id && !isMunicipalityId(o.id) ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 12) + '</button>' : '') +
+        (o.id && !o.archived && !isMunicipalityId(o.id) ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 12) + '</button>' : '') +
         (safeHref(c.linkedin) ? '<a class="btn btn-xs btn-outline" href="' + esc(safeHref(c.linkedin)) + '" target="_blank" rel="noopener">' + icon('link', 12) + '</a>' : '') +
-        '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 12) + '</button>' +
-        '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 12) + '</button>' +
+        (o.archived ? '' :
+          '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 12) + '</button>' +
+          '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 12) + '</button>') +
       '</div>' +
     '</div>' +
   '</div>';
@@ -723,7 +765,7 @@ function contactTableHtml(page, groupCount) {
   const th = (field, label) => '<th class="' + thClass(field, s) + '" onclick="toggleSort(state.contactSort,\'' + field + '\',renderContacts)">' + label + sortArrow(field, s) + '</th>';
   let cur = null;
   return '<div class="table-wrap"><table><thead><tr>' +
-      selectionHeadCellHtml('contacts', page.map(c => c.id)) +
+      selectionHeadCellHtml('contacts', page.filter(c => !isArchivedContact(c)).map(c => c.id)) +
       th('last', 'Name') + th('title', 'Title') + th('offtaker', 'Company') +
       th('role', 'Role') + '<th>Email</th><th>Phone</th>' + th('priority', 'Priority') + '<th>Actions</th>' +
     '</tr></thead><tbody>' +
@@ -734,22 +776,24 @@ function contactTableHtml(page, groupCount) {
         cur = c.offtakerId || '';
         head = '<tr><td colspan="9" style="padding:0 8px">' + contactGroupHeadHtml(c, groupCount) + '</td></tr>';
       }
-      return head + '<tr>' +
-        selectionCellHtml('contacts', c.id, c.first + ' ' + c.last) +
+      return head + '<tr' + (o.archived ? ' style="opacity:.75"' : '') + '>' +
+        (o.archived ? '<td class="sel-cell"></td>' : selectionCellHtml('contacts', c.id, c.first + ' ' + c.last)) +
         '<td><div class="name-cell"><div class="av" style="background:' + avatarColor(c.first + c.last) + '">' +
           esc(initials(c.first, c.last).toUpperCase()) + '</div><div style="font-weight:700">' + esc(c.first + ' ' + c.last) + '</div></div></td>' +
         '<td>' + esc(c.title) + (c.dept ? '<div style="font-size:10.5px;color:var(--muted)">' + esc(c.dept) + '</div>' : '') + '</td>' +
-        '<td>' + (o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'' + accountView(o.id) + '\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
+        '<td>' + (o.archived ? esc(o.short || o.name) + ' <span class="badge b-low">Archived</span>'
+          : o.id ? '<span class="ext-link" style="cursor:pointer" onclick="nav(\'' + accountView(o.id) + '\',{id:\'' + o.id + '\'})">' + esc(o.short || o.name) + '</span>'
           : '<span class="badge b-low">unassigned</span>') + '</td>' +
         '<td><span class="badge ' + (c.role === 'decision' ? 'b-contracted' : 'b-prospect') + '">' + esc(ROLE_LABEL[c.role] || c.role) + '</span></td>' +
         '<td>' + (c.email ? '<a class="ext-link" href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td>' + (c.phone ? esc(c.phone) : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td><span class="badge b-' + c.priority + '">' + esc(c.priority) + '</span></td>' +
         '<td style="white-space:nowrap">' +
-          (o.id && !isMunicipalityId(o.id) ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 11) + '</button> ' : '') +
+          (o.id && !o.archived && !isMunicipalityId(o.id) ? '<button class="btn btn-xs btn-outline" title="Org map for ' + esc(o.short || o.name) + '" onclick="nav(\'org-map\',{id:\'' + o.id + '\'})">' + icon('grid', 11) + '</button> ' : '') +
           (safeHref(c.linkedin) ? '<a class="btn btn-xs btn-outline" href="' + esc(safeHref(c.linkedin)) + '" target="_blank" rel="noopener">' + icon('link', 11) + '</a> ' : '') +
-          '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button> ' +
-          '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>' +
+          (o.archived ? '<span style="font-size:10.5px;color:var(--muted)" title="Restore the company from the Archive to edit">read-only</span>' :
+            '<button class="btn btn-xs btn-outline" data-admin-only onclick="openEditContact(\'' + c.id + '\')">' + icon('edit', 11) + '</button> ' +
+            '<button class="btn btn-xs btn-danger" data-admin-only onclick="confirmDelete(\'contact\',\'' + c.id + '\')">' + icon('trash', 11) + '</button>') +
         '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
