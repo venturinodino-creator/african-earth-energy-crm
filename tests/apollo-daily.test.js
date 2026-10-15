@@ -7,8 +7,9 @@
 'use strict';
 
 const assert = require('assert');
-const { chooseCandidates, toFind, sameName, domainOf, parseFlags } = require('../scripts/apollo-daily.js');
+const { chooseCandidates, toFind, sameName, domainOf, parseFlags, harvest } = require('../scripts/apollo-daily.js');
 const { coverage, loadLadder } = require('../scripts/finder-gaps.js');
+const { isOutOfCredits, OutOfCredits, Bail } = require('../scripts/finder-apollo.js');
 
 const ladder = loadLadder();
 const c = (first, last, title, email) => ({ first, last, title, dept: '', email: email || '', status: 'active' });
@@ -77,4 +78,76 @@ test('flags have safe defaults and reject nonsense', () => {
   assert.throws(() => parseFlags(['--spend', '5']));
 });
 
-console.log(n + ' passed');
+test('running out of credits is told apart from a plan or validation refusal', () => {
+  assert.ok(isOutOfCredits(422, '{"error":"You are out of credits!"}'));
+  assert.ok(isOutOfCredits(422, 'Insufficient credits to complete this request'));
+  assert.ok(isOutOfCredits(402, ''));
+  assert.ok(!isOutOfCredits(403, '{"error":"The api/v1/mixed_people/api_search API is not included in your Free plan"}'));
+  assert.ok(!isOutOfCredits(422, '{"error":"Validation failed"}'));
+});
+
+/* ─── harvest: the spending loop, against fake Apollo calls ───────── */
+const ann = ap('Ann', 'Lee', 'Head of Energy');
+const sam = ap('Sam', 'Roe', 'Procurement Manager');
+const revealed = p => ({ ...p, email: p.first_name.toLowerCase() + '@acme.co.za', email_status: 'verified' });
+const company = id => ({ ...rowFor([]), id, name: 'Company ' + id });
+const fakes = (opts) => ({
+  budget: opts.budget,
+  search: async () => [ann, sam],
+  enrich: opts.enrich,
+  pause: async () => {},
+});
+
+const asyncTests = [];
+const atest = (name, fn) => asyncTests.push([name, fn]);
+
+atest('credits running out stops spending but keeps what was already paid for', async () => {
+  let calls = 0;
+  const r = await harvest([company('a'), company('b'), company('c')], fakes({
+    budget: 15,
+    enrich: async p => { calls++; if (calls > 2) throw new OutOfCredits('out'); return revealed(p); },
+  }));
+  assert.strictEqual(r.exhausted, true);
+  assert.strictEqual(r.spent, 2);
+  assert.deepStrictEqual(r.finds.map(f => f.offtakerId + ':' + f.first), ['a:Ann', 'a:Sam']);
+  assert.strictEqual(calls, 3, 'no reveal is attempted after Apollo says the credits are gone');
+});
+
+atest('only companies whose candidates were all tried go on cooldown', async () => {
+  let calls = 0;
+  const r = await harvest([company('a'), company('b'), company('c')], fakes({
+    budget: 15,
+    enrich: async p => { calls++; if (calls > 3) throw new OutOfCredits('out'); return revealed(p); },
+  }));
+  assert.deepStrictEqual(r.worked, ['a'], 'b was cut off half way and c never reached: both wait for the next run');
+});
+
+atest('the per-run budget leaves unfinished companies off cooldown too', async () => {
+  const r = await harvest([company('a'), company('b')], fakes({ budget: 3, enrich: async p => revealed(p) }));
+  assert.strictEqual(r.exhausted, false);
+  assert.strictEqual(r.spent, 3);
+  assert.deepStrictEqual(r.worked, ['a']);
+});
+
+atest('a company Apollo has nobody for is worked, so it is not searched every night', async () => {
+  const r = await harvest([company('a')], { budget: 5, search: async () => [], enrich: async () => { throw new Error('never'); }, pause: async () => {} });
+  assert.deepStrictEqual(r.worked, ['a']);
+  assert.strictEqual(r.spent, 0);
+});
+
+atest('a dry run (no budget) still searches every company and reveals nobody', async () => {
+  let searched = 0;
+  const r = await harvest([company('a'), company('b')], { budget: 0, search: async () => { searched++; return [ann]; }, enrich: async () => { throw new Error('never'); }, pause: async () => {} });
+  assert.strictEqual(searched, 2);
+  assert.strictEqual(r.spent, 0);
+  assert.deepStrictEqual(r.report.map(e => e.candidates.length), [1, 1]);
+});
+
+atest('a key or plan refusal still stops the whole run', async () => {
+  await assert.rejects(harvest([company('a')], { budget: 5, search: async () => { throw new Bail('plan'); }, enrich: async () => null, pause: async () => {} }), Bail);
+});
+
+(async () => {
+  for (const [name, fn] of asyncTests) { await fn(); n++; console.log('ok - ' + name); }
+  console.log(n + ' passed');
+})().catch(e => { console.error(e); process.exitCode = 1; });
