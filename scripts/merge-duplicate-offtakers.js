@@ -83,6 +83,17 @@ async function rest(pathAndQuery, opts = {}) {
   return text ? JSON.parse(text) : null;
 }
 const get = q => rest(q);
+/* PostgREST caps a response at 1000 rows; page until a short page. */
+async function getAll(q) {
+  const rows = [];
+  for (let o = 0; ; o += 1000) {
+    const page = await rest(q + '&limit=1000&offset=' + o);
+    if (!page || !page.length) break;
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  return rows;
+}
 const patch = (tbl, q, body) => DRY ? Promise.resolve([]) : rest(tbl + '?' + q, { method: 'PATCH', body: JSON.stringify(body) });
 const del = (tbl, q) => DRY ? Promise.resolve([]) : rest(tbl + '?' + q, { method: 'DELETE' });
 
@@ -127,10 +138,10 @@ async function main() {
       ' | filled ' + (Object.keys(fill).join(',') || '-'));
   }
 
-  const ids = new Set((await get('aee_offtakers?select=id')).map(o => o.id));
+  const ids = new Set((await getAll('aee_offtakers?select=id&order=id.asc')).map(o => o.id));
   let orphans = 0;
   for (const tbl of REF_TABLES) {
-    const rows = await get(tbl + '?select=id,offtaker_id');
+    const rows = await getAll(tbl + '?select=id,offtaker_id&order=id.asc');
     orphans += rows.filter(x => x.offtaker_id && !x.offtaker_id.startsWith('mun_') && !ids.has(x.offtaker_id)).length;
   }
   console.log('offtakers now ' + ids.size + ' | records pointing at a missing company: ' + orphans +

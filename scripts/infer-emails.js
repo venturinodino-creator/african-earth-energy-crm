@@ -139,6 +139,17 @@ async function rest(q, opts = {}) {
   if (!res.ok) throw new Error('Supabase ' + res.status + ' on ' + q + ': ' + text.slice(0, 300));
   return text ? JSON.parse(text) : null;
 }
+/* PostgREST caps a response at 1000 rows; page until a short page. */
+async function restAll(q) {
+  const rows = [];
+  for (let o = 0; ; o += 1000) {
+    const page = await rest(q + '&limit=1000&offset=' + o);
+    if (!page || !page.length) break;
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  return rows;
+}
 
 /* Which format a known address follows for its owner; null if none or
    if the owner's name is unknown (evidence rows carry a name string). */
@@ -174,8 +185,8 @@ async function main() {
   const offs = await rest('aee_offtakers?select=id,name,website,status,sector&archived=eq.false');
   const byId = Object.fromEntries(offs.map(o => [o.id, o]));
   const known = [
-    ...(await rest('aee_contacts?select=first,last,email&email=not.is.null')),
-    ...(await rest('aee_found_contacts?select=first,last,email&email=not.is.null')),
+    ...(await restAll('aee_contacts?select=first,last,email&email=not.is.null&order=id.asc')),
+    ...(await restAll('aee_found_contacts?select=first,last,email&email=not.is.null&order=id.asc')),
   ];
 
   /* domain -> format -> set of example addresses; company -> mail domain */

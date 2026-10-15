@@ -333,8 +333,8 @@ ls tests/*.test.js | xargs node --test    # all of them
 node tests/finder-agent.test.js           # or one: the finder's validator, loader, sign-in and CLI
 ```
 
-There are 41 files. They cover the contact finder (agent, Apollo helper, gap finder,
-targets, ladder seats, email inference, the Agent HQ activity card, the OpenClaw runner), the Projects area
+There are 42 files. They cover the contact finder (agent, Apollo helper, gap finder,
+targets, ladder seats, email inference, accepting finds, the Agent HQ activity card, the OpenClaw runner), the Projects area
 (analytics maths and page, site profile, plan editing), the page layouts (shell, lists, record
 pages, dashboard, settings, activity, map, news), the province scope, row selection, the
 + New drawer, the Import wizard and its rules, follow-ups, the outreach rules (touch numbers,

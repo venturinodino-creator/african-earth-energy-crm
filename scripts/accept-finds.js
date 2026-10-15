@@ -57,6 +57,19 @@ async function rest(q, opts = {}) {
   if (!res.ok) throw new Error('Supabase ' + res.status + ' on ' + q + ': ' + text.slice(0, 300));
   return text ? JSON.parse(text) : null;
 }
+/* PostgREST returns at most 1000 rows per request and truncates silently, so
+   a table past that loses its tail. Page with limit/offset until a short page,
+   as supaFetchAll() in js/supabase.js does; q carries a stable order. */
+async function restAll(q, pageSize = 1000) {
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await rest(q + '&limit=' + pageSize + '&offset=' + offset);
+    if (!page || !page.length) break;
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
 
 const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 /* Same rules as contactIsFind() in js/views-contactfinder.js: a bracketed first
@@ -90,6 +103,16 @@ function contactFrom(f) {
   };
 }
 
+/* The pending finds (every run, or only runIds) and every contact on file,
+   each read in full. */
+async function loadQueue(runIds) {
+  const q = 'aee_found_contacts?status=eq.pending&select=*' + (runIds ? '&run_id=in.(' + runIds.map(encodeURIComponent).join(',') + ')' : '') + '&order=id.asc';
+  const finds = await restAll(q);
+  const contacts = await restAll('aee_contacts?select=id,offtaker_id,first,last,title,email,phone,notes&order=id.asc');
+  return { finds, contacts };
+}
+const onFileIn = (contacts, f) => contacts.find(c => c.offtaker_id === f.offtaker_id && isSamePerson(c, f)) || null;
+
 async function main() {
   loadDotEnv();
   const args = process.argv.slice(2);
@@ -103,10 +126,8 @@ async function main() {
   }
 
   await signIn();
-  const q = 'aee_found_contacts?status=eq.pending&select=*' + (ALL ? '' : '&run_id=in.(' + runIds.map(encodeURIComponent).join(',') + ')');
-  const finds = await rest(q);
-  const contacts = await rest('aee_contacts?select=id,offtaker_id,first,last,title,email,phone,notes');
-  const onFile = (f) => contacts.find(c => c.offtaker_id === f.offtaker_id && isSamePerson(c, f)) || null;
+  const { finds, contacts } = await loadQueue(ALL ? null : runIds);
+  const onFile = (f) => onFileIn(contacts, f);
 
   const tally = { pending: finds.length, held: 0, created: 0, reused: 0 };
   for (const f of finds) {
@@ -136,4 +157,5 @@ async function main() {
   console.log(JSON.stringify(tally));
 }
 
-main().catch(e => { console.error(e.message); process.exitCode = 1; });
+if (require.main === module) main().catch(e => { console.error(e.message); process.exitCode = 1; });
+module.exports = { restAll, loadQueue, onFileIn, isSamePerson };
