@@ -73,6 +73,17 @@ test('a byline stamped during an agent\'s request reads as the agent run as the 
   assert.ok(/public\.request_agent\(\)/.test(fn) && /\(run as /.test(fn), 'agent (run as person)');
 });
 test('touches and other logged activity are recorded', () => assert.ok(recorded('aee_interactions')));
+test('a sign-in is recorded by a function that stamps its caller, never someone it is told', () => {
+  const fn = sql.match(/create or replace function public\.record_sign_in\(\)[\s\S]*?\$\$;/)[0];
+  assert.ok(/security definer/.test(fn), 'it writes the table clients cannot');
+  assert.ok(/'signed-in'/.test(fn) && /auth\.uid\(\)/.test(fn), 'a signed-in change by the caller');
+  assert.ok(/if auth\.uid\(\) is null then return/.test(fn), 'nobody signed in, nothing recorded');
+  assert.ok(/interval '1 minute'/.test(fn), 'a double submit within a minute counts once');
+});
+test('only signed-in users can call it', () => {
+  assert.ok(/revoke all on function public\.record_sign_in\(\) from public, anon;/.test(sql));
+  assert.ok(/grant execute on function public\.record_sign_in\(\) to authenticated;/.test(sql));
+});
 test('a touch gets its author and created_by from the sign-in on insert, and keeps them after', () => {
   assert.ok(/alter table public\.aee_interactions add column if not exists author text/.test(sql), 'a name a viewer can read');
   assert.ok(/create trigger aee_interactions_stamp_author\s+before insert or update on public\.aee_interactions\s+for each row execute function public\.stamp_author\(\)/.test(sql), 'the same stamp as next steps');

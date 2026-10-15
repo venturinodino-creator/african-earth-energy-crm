@@ -333,6 +333,13 @@ async function signIn(usernameOrEmail, password) {
   await initSupabase();
   return supabaseClient.auth.signInWithPassword({ email: toAuthEmail(usernameOrEmail), password });
 }
+
+/* A sign-in for the Change log: the database stamps whoever is signed in (it takes no name),
+   and counts a second call within a minute once. Called after the sign-in form succeeds, never
+   when a reload picks up a session. Recording is a courtesy: if it fails, the sign-in stands. */
+async function recordSignIn() {
+  try { await supaFetch('rpc/record_sign_in', { method: 'POST', body: '{}' }); } catch (e) { /* not recorded, nothing else lost */ }
+}
 async function signOut() {
   if (supabaseClient) await supabaseClient.auth.signOut();
   try { localStorage.removeItem(STORE_PREFIX + 'cache'); } catch (e) {}
