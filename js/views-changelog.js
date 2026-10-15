@@ -137,10 +137,49 @@ function clEdit(c, thing) {
   return lead.join(' and ') + (each ? '; ' + each : '');
 }
 
+/* The review queue, finder runs, project plans and roles, which read as what happened
+   rather than as fields changed. Null when a change has no sentence of its own here. */
+const CL_RUN_STATUS = { running: 'started a finder run', done: 'finished a finder run', failed: 'a finder run failed' };
+function clOwnSentence(c) {
+  const f = c.fields || {};
+  const nw = k => f[k] && f[k].new;
+  if (c.kind === 'role-changed') {
+    const who = nw('email') ? toDisplayName(nw('email')) : 'an account';
+    return 'changed the role of ' + who + ' from ' + clVal(f.role && f.role.old) + ' to ' + clVal(nw('role'));
+  }
+  if (c.table_name === 'aee_found_contacts' && c.kind === 'edited' && f.status && /^(approved|discarded)$/.test(f.status.new)) {
+    const find = (state.foundContacts || []).find(x => x.id === c.record_id);
+    const name = find ? [find.first, find.last].filter(Boolean).join(' ') : '';
+    return (f.status.new === 'approved' ? 'accepted ' : 'discarded ') + (name ? 'find “' + name + '”' : 'a find') +
+      (name && c.offtaker_id ? ' at ' + clCompanyName(c.offtaker_id) : '');
+  }
+  if (c.table_name === 'aee_contact_runs' && c.kind === 'created') {
+    const n = (nw('offtaker_ids') || []).length;
+    return 'queued a finder run' + (n ? ' for ' + n + (n === 1 ? ' company' : ' companies') : '');
+  }
+  if (c.table_name === 'aee_contact_runs' && c.kind === 'edited' && f.status && CL_RUN_STATUS[f.status.new]) {
+    const rest = Object.assign({}, f); delete rest.status;
+    const keys = Object.keys(rest);
+    return CL_RUN_STATUS[f.status.new] + (keys.length ? '; ' + keys.map(k => clLabel(k) + ' ' + clVal(rest[k].old) + ' → ' + clVal(rest[k].new)).join(', ') : '');
+  }
+  if (c.table_name === 'aee_pm_history' && c.kind === 'created') {
+    const field = nw('field'), to = nw('new_value') || '';
+    if (field === '_created') return 'added a project-plan task “' + to.replace(/^created: /, '') + '”';
+    if (field === '_deleted') return 'deleted a project-plan task “' + to.replace(/^deleted: /, '') + '”';
+    if (field === '_reverted') return 'reverted a project-plan task to ProjectManager.com';
+    const label = (typeof PM_FIELD_LABEL !== 'undefined' && PM_FIELD_LABEL[field]) || clLabel(field || '');   // the plans' own words
+    return 'changed ' + label + ' of a project-plan task from ' + clVal(nw('old_value')) + ' to ' + clVal(to);
+  }
+  /* A task's saved patch sits beside the history line that says what changed. */
+  if (c.table_name === 'aee_pm_task_edits') return c.kind === 'deleted' ? "cleared a project-plan task's edits" : 'saved a project-plan task';
+  return null;
+}
+
 /* One change as a sentence, without its author or company. */
 function describeChange(c) {
   if (c.kind === 'signed-in') return 'signed in';
-  if (c.kind === 'role-changed') return 'changed a role';
+  const own = clOwnSentence(c);
+  if (own) return own;
   const thing = clThing(c);
   if (c.kind === 'deleted') { const g = clGist(c.deleted_row); return 'deleted ' + thing + (g ? ' “' + g + '”' : ''); }
   if (c.kind === 'edited') return clEdit(c, thing);
