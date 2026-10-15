@@ -69,6 +69,24 @@ _Avoid_: Sequence, cadence (in user-facing text)
 Where one person stands, worked out from the touches logged against them: Not contacted, Contacted, Replied, Engaging (a meeting booked or held), Declined, or Gone cold (three unanswered touches and the last one more than five working days old). Never typed in.
 _Avoid_: Task, reminder
 
+### Who did what
+
+**Change**:
+One thing done to a record: created, edited, deleted, moved to a stage, ticked, archived or restored. Every change carries who made it and when; one made before tracking began says "not recorded".
+_Avoid_: Event, action, update (for the whole set)
+
+**Author**:
+The person whose sign-in made a change, as the CRM saw it, never as the change claims.
+_Avoid_: User (on its own), owner, editor
+
+**Agent**:
+An automated job that makes changes, such as the contact finder or the daily Apollo run. It works under a person's sign-in but is never counted as that person: its changes read as the agent, run as that person.
+_Avoid_: Bot, script (in user-facing text)
+
+**Change log**:
+The admin page that lists every change and every sign-in, with a row per person (and per agent) summing what each did over a period. Distinct from the Activity page, which is about touches and follow-ups.
+_Avoid_: Audit trail, team activity
+
 ### Layout
 
 **Shell**:
