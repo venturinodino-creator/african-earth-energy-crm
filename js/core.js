@@ -1508,6 +1508,13 @@ async function onSignedIn(session) {
   nav(view, id ? { id } : {}, true);
 }
 
+/* Where a signed-out visitor goes first: the landing page, carrying where they were headed so
+   its "Open the CRM" can bring them back. Coming from that button (?signin), the sign-in shows. */
+function landingRedirect(search) {
+  if (new URLSearchParams(search).has('signin')) return null;
+  return 'landing.html' + (search ? '?next=' + encodeURIComponent(search) : '');
+}
+
 async function boot() {
   document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon, 17); });
   syncProvinceSwitch();
@@ -1516,7 +1523,11 @@ async function boot() {
   await initSupabase();
   const { data } = await supabaseClient.auth.getSession();
   if (data && data.session) await onSignedIn(data.session);
-  else showGate(signInScreenHtml());
+  else {
+    const away = landingRedirect(location.search);
+    if (away) { location.replace(away); return; }
+    showGate(signInScreenHtml());
+  }
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) await onSignedIn(session);

@@ -139,41 +139,6 @@ header{padding:22px 0;display:flex;align-items:center;justify-content:space-betw
 footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align-items:center;
   justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
 
-/* ─── SIGN-IN GATE ────────────────────────────────────────────── */
-#landing-gate{
-  position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;
-  padding:24px;background:var(--bg);
-}
-#landing-gate::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(680px 400px at 18% -8%, color-mix(in srgb,var(--c-amber) 16%,transparent), transparent 62%),
-    radial-gradient(620px 440px at 84% 6%, color-mix(in srgb,var(--accent) 14%,transparent), transparent 62%);
-}
-.gate-card{
-  position:relative;width:100%;max-width:352px;background:color-mix(in srgb,var(--card) 94%,transparent);
-  border:1px solid var(--border2);border-radius:15px;padding:30px 28px;
-  display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;
-  box-shadow:0 26px 70px rgba(31,20,16,0.30);
-}
-.gate-mark{
-  width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(140deg,color-mix(in srgb,var(--accent) 24%,transparent),color-mix(in srgb,var(--c-amber) 20%,transparent));
-  border:1px solid color-mix(in srgb,var(--accent) 34%,transparent);color:var(--accent);margin-bottom:3px;
-}
-.gate-card h1{font-size:16.5px;font-weight:800;color:var(--text2);letter-spacing:-.2px}
-.gate-sub{font-size:12.5px;color:var(--muted2);line-height:1.6;max-width:30ch}
-.gate-form{display:flex;flex-direction:column;gap:9px;width:100%;margin-top:10px}
-.gate-form input{
-  padding:10px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);
-  color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:all .15s;width:100%;
-}
-.gate-form input::placeholder{color:var(--muted)}
-.gate-form input:focus{border-color:color-mix(in srgb,var(--accent) 42%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 9%,transparent)}
-.gate-form .btn{width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:8px}
-.gate-mark.brand{background:none;border:0;width:auto;height:auto;margin-bottom:6px}
-.gate-msg{font-size:11.5px;color:var(--c-amber);line-height:1.55;min-height:15px;max-width:32ch}
-
 @media(max-width:640px){
   .hero{padding:46px 0 36px}
   .cta-band{padding:30px 20px}
@@ -184,23 +149,7 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="aeeg-mk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E0A530"/><stop offset="1" stop-color="#C04420"/></linearGradient><symbol id="aeeg-mark" viewBox="0 0 44 44"><path d="M40.31,25.98c-.35-1.9-.79-3.78-1.33-5.63-1.34-4.65-3.17-9.2-5.95-13.2-1.16-1.67-2.57-3.32-4.25-4.49-1.43-1-3.31-1.84-5.09-1.69-5.76.5-10.19,8.92-12.23,13.68-.53,1.23-1.02,2.63-1.49,3.89-1.07-.84-1.7-1.74-3.28-1.58-.75.07-1.52.6-1.95,1.22-1.02,1.45-1.92,3.35-1.73,5.17.18,1.67,1.25,2.38,2.4,3.39l2.02,1.76c-.67,2.68-1.19,5.42-1.68,8.14-.16.88-.46,2.08-.47,2.94,0,.57.13,1.14.43,1.64.39.65,1,1.13,1.74,1.31.67.16,4.14.15,4.89.01.46-.08.9-.25,1.29-.49.8-.49,1.37-1.29,1.57-2.21.04-.17.07-.35.09-.52.21-1.53.48-3.04.73-4.56.2.14.41.28.61.43,4.23,3,10.06,6.86,15.25,7.72.97.16,2.02.24,3,.07,1.73-.3,3.19-1.36,4.19-2.78.82-1.16,1.36-2.53,1.64-3.92.6-2.97.12-7.26-.4-10.27ZM30.04,30.75c-.17.31-.43.52-.77.61-1.02.28-2.43-.52-3.3-1.01-1.73-1.03-3.4-2.15-5.01-3.35-.77-.57-1.64-1.19-2.37-1.8.66-2.24,1.41-4.46,2.26-6.64.48-1.2,1.01-2.47,1.7-3.57.37-.59.77-1.04,1.46-1.2.31-.02.57.03.85.18,1.82,1,3.89,7.04,4.49,9.08.5,1.72,1.5,6.24.69,7.69Z"/></symbol></defs></svg>
 
-<!-- Sign-in gate. Shown by default so nothing of the page appears before
-     the session check has run. -->
-<div id="landing-gate">
-  <div class="gate-card">
-    <div class="gate-mark brand"><svg viewBox="0 0 44 44" width="46" height="46" aria-hidden="true"><use href="#aeeg-mark" fill="url(#aeeg-mk)"/></svg></div>
-    <h1>African Earth Energy</h1>
-    <p class="gate-sub">Offtaker CRM &mdash; internal. Sign in with the username and password you were given.</p>
-    <form class="gate-form" onsubmit="event.preventDefault();doLogin()">
-      <input id="lm-email" type="text" placeholder="Username or email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
-      <input id="lm-password" type="password" placeholder="Password" autocomplete="current-password" required>
-      <button class="btn btn-primary" id="lm-btn" type="submit">Sign in</button>
-    </form>
-    <div class="gate-msg" id="lm-msg"></div>
-  </div>
-</div>
-
-<div class="wrap" style="visibility:hidden">
+<div class="wrap">
 
   <header>
     <div class="brand">
@@ -210,7 +159,7 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
     <div class="hlinks">
       <a class="btn btn-outline" href="https://www.aeeg.co.za/en" target="_blank" rel="noopener">Company site</a>
       <a class="btn btn-outline" id="signout-link" href="#" onclick="event.preventDefault();doSignOut()" style="display:none">Sign out</a>
-      <a class="btn btn-primary" href="index.html">Open the CRM</a>
+      <a class="btn btn-primary" href="index.html?signin" data-crm>Open the CRM</a>
     </div>
   </header>
 
@@ -227,11 +176,11 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
       need before they pick up the phone.
     </p>
     <div class="hero-cta">
-      <a class="btn btn-primary btn-lg" href="index.html">
+      <a class="btn btn-primary btn-lg" href="index.html?signin" data-crm>
         Open the CRM
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </a>
-      <a class="btn btn-outline btn-lg" href="index.html?view=calculator">Savings calculator</a>
+      <a class="btn btn-outline btn-lg" href="index.html?view=calculator&amp;signin">Savings calculator</a>
     </div>
   </section>
 
@@ -303,7 +252,7 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
   <div class="cta-band">
     <h3>Start with the call list</h3>
     <p>Twenty offtakers are already loaded with estimated load profiles and tariffs. Verify the numbers as you go, add your own accounts, and export the list whenever you need to share it.</p>
-    <a class="btn btn-primary btn-lg" href="index.html">Open the CRM</a>
+    <a class="btn btn-primary btn-lg" href="index.html?signin" data-crm>Open the CRM</a>
   </div>
 
 <footer>
@@ -314,31 +263,29 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
 </div>
 <script>
 /* ═══════════════════════════════════════════════════════════════
-   The overview page is gated the same way the app is: nothing of it
-   renders until Supabase confirms a session. Signed-out visitors get
-   the sign-in card and nothing else.
+   The overview page is open to everyone: it is what a visitor sees
+   before signing in, and its copy holds nothing that is not already
+   on aeeg.co.za. The real wall is on the data: every table is behind
+   Row Level Security and returns nothing without a signed-in account
+   holding a role.
 
-   Worth being precise about what this does and does not do. The page
-   markup is static and therefore readable in the page source whatever
-   this script does — so for the copy below, the gate is presentation,
-   not protection. It is deliberately written to contain nothing that
-   is not already on aeeg.co.za. The real wall is on the data: every
-   table is behind Row Level Security and returns nothing without a
-   signed-in account holding a role.
+   Signing in happens in the CRM, whose form records the sign-in for
+   the Change log; "Open the CRM" goes there. A visitor the CRM sent
+   here arrives with ?next=, where they were headed, and the button
+   takes them back to it.
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   var SUPA_URL = 'https://pkzfazjtpswqjmnzzrgt.supabase.co';
   var SUPA_KEY = 'sb_publishable_jqCjOPRXZEIKjgNDVsL3uw_ldx-I-tO';
-  /* Kept in step with AUTH_DOMAIN in js/supabase.js — a bare username is
-     completed to this domain, which is what the account is stored under. */
-  var AUTH_DOMAIN = 'aeeg.co.za';
   var client = null;
 
-  function toAuthEmail(input) {
-    var v = String(input || '').trim();
-    if (!v) return '';
-    return v.indexOf('@') !== -1 ? v.toLowerCase() : v.toLowerCase().replace(/\s+/g, '.') + '@' + AUTH_DOMAIN;
+  function crmHref(extra) {
+    var p = new URLSearchParams(extra || '');
+    p.set('signin', '');
+    return 'index.html?' + p.toString().replace(/signin=(&|$)/, 'signin$1');
   }
+  var next = new URLSearchParams(location.search).get('next');
+  if (next) document.querySelectorAll('a[data-crm]').forEach(function (a) { a.href = crmHref(next); });
 
   async function init() {
     if (client) return client;
@@ -348,30 +295,6 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
     });
     return client;
   }
-
-  function reveal() {
-    document.getElementById('landing-gate').style.display = 'none';
-    document.querySelector('.wrap').style.visibility = 'visible';
-  }
-
-  window.doLogin = async function () {
-    var email = (document.getElementById('lm-email').value || '').trim();  // username or full address
-    var password = document.getElementById('lm-password').value || '';
-    var msg = document.getElementById('lm-msg');
-    var btn = document.getElementById('lm-btn');
-    if (!email || !password) { msg.textContent = 'Enter your username and password.'; return; }
-    await init();
-    btn.disabled = true; btn.textContent = 'Signing in…';
-    var res = await client.auth.signInWithPassword({ email: toAuthEmail(email), password: password });
-    btn.disabled = false; btn.textContent = 'Sign in';
-    if (res.error) {
-      msg.textContent = /invalid/i.test(res.error.message)
-        ? 'That username and password combination was not recognised.'
-        : res.error.message;
-    } else {
-      reveal();
-    }
-  };
 
   window.doSignOut = async function () {
     await init();
@@ -384,18 +307,10 @@ footer{border-top:1px solid var(--border);padding:26px 0 44px;display:flex;align
       await init();
       var res = await client.auth.getSession();
       if (res.data && res.data.session) {
-        reveal();
         var out = document.getElementById('signout-link');
         if (out) out.style.display = '';
-      } else {
-        document.getElementById('lm-email').focus();
       }
-    } catch (err) {
-      /* If Supabase cannot be reached we cannot prove a session exists,
-         so the page stays closed rather than failing open. */
-      document.getElementById('lm-msg').textContent =
-        'Could not reach the sign-in service. Check your connection and reload.';
-    }
+    } catch (err) { /* signed out as far as this page can tell; nothing is hidden */ }
   })();
 })();
 </script>
