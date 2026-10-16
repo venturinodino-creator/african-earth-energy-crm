@@ -4,6 +4,18 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-i3k4el",
+    "topic": "new_ppa",
+    "province": "Multiple",
+    "date": "2026-10-16",
+    "title": "Tharisa signs PGM offtake deal with Valterra Platinum subsidiary",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Yahoo Finance",
+    "url": "https://finance.yahoo.com/news/tharisa-signs-pgm-offtake-deal-081021275.html",
+    "auto": true
+  },
+  {
     "id": "auto-l9h56c",
     "topic": "new_ppa",
     "province": "Multiple",
@@ -13,6 +25,18 @@ const NEWS_AUTO = [
     "whyItMatters": "",
     "source": "www.marketscreener.com",
     "url": "https://www.marketscreener.com/news/tharisa-inks-offtake-pgm-deal-with-valterra-platinum-in-sa-ce785dd3d880f424",
+    "auto": true
+  },
+  {
+    "id": "auto-lsora3",
+    "topic": "new_ppa",
+    "province": "Multiple",
+    "date": "2026-10-15",
+    "title": "Tharisa secures new PGM offtake deal with Valterra Platinum",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Investing.com",
+    "url": "https://www.investing.com/news/company-news/tharisa-secures-new-pgm-offtake-deal-with-valterra-platinum-93CH-4950599",
     "auto": true
   },
   {
@@ -28,6 +52,18 @@ const NEWS_AUTO = [
     "auto": true
   },
   {
+    "id": "auto-p5ooi9",
+    "topic": "ppa_contracts",
+    "province": "Multiple",
+    "date": "2026-10-15",
+    "title": "REG - Tharisa PLC - PGM concentrate offtake agreement with Valterra",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "TradingView",
+    "url": "https://www.tradingview.com/news/reuters.com,2026-10-15:newsml_RSO9867Ya:0-reg-tharisa-plc-pgm-concentrate-offtake-agreement-with-valterra/",
+    "auto": true
+  },
+  {
     "id": "auto-s2kah6",
     "topic": "ppa_contracts",
     "province": "Multiple",
@@ -37,6 +73,18 @@ const NEWS_AUTO = [
     "whyItMatters": "",
     "source": "TipRanks",
     "url": "https://www.tipranks.com/news/company-announcements/tharisa-deepens-valterra-platinum-partnership-with-new-pgm-offtake-deal",
+    "auto": true
+  },
+  {
+    "id": "auto-uup9y8",
+    "topic": "new_ppa",
+    "province": "Multiple",
+    "date": "2026-10-15",
+    "title": "Tharisa Signs Offtake Deal With Valterra Platinum in South Africa",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "www.marketscreener.com",
+    "url": "https://www.marketscreener.com/news/tharisa-signs-offtake-deal-with-valterra-platinum-in-south-africa-ce785dd3d880ff2d",
     "auto": true
   },
   {
@@ -133,6 +181,18 @@ const NEWS_AUTO = [
     "whyItMatters": "",
     "source": "Energy News Network",
     "url": "https://energy-news-network.com/industry-news/lion-thorn-solar-park-construction-powerchina/",
+    "auto": true
+  },
+  {
+    "id": "auto-bpuhwz",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-11",
+    "title": "Eskom Green seeks partners for up to 6GW of renewables and storage",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Energy News Network",
+    "url": "https://energy-news-network.com/industry-news/eskom-green-6gw-renewable-partners/",
     "auto": true
   },
   {
