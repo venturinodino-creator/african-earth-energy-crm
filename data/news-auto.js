@@ -4,6 +4,18 @@
 
 const NEWS_AUTO = [
   {
+    "id": "auto-6o2ipl",
+    "topic": "renewable_energy",
+    "province": "Multiple",
+    "date": "2026-10-16",
+    "title": "New turbine technology for South African wind energy market aims to maximise energy yield",
+    "summary": "",
+    "whyItMatters": "",
+    "source": "Mining Weekly",
+    "url": "https://www.miningweekly.com/article/new-turbine-technology-for-south-african-wind-energy-market-aims-to-maximise-energy-yield-2026-10-16",
+    "auto": true
+  },
+  {
     "id": "auto-i3k4el",
     "topic": "new_ppa",
     "province": "Multiple",
